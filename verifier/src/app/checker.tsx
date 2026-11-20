@@ -49,6 +49,11 @@ interface CheckInput {
   document: Record<string, unknown> | null;
   /** Typed by hand, only ever for an acknowledgement. */
   reportId: string;
+  /**
+   * The record's details are not at hand (a public link carries none): check
+   * only that the record is on the blockchain, and by which contract.
+   */
+  presence?: boolean;
 }
 
 type CheckRun =
@@ -65,6 +70,7 @@ async function runCheck({
   file,
   document,
   reportId,
+  presence = false,
 }: CheckInput): Promise<CheckRun> {
   let digest: Hex32 | undefined;
   let noun = nounFor(record.event);
@@ -76,8 +82,11 @@ async function runCheck({
       if (!file) return { ok: false, message: "Choose your photo or document first." };
       digest = await sha256Hex(new Uint8Array(await file.arrayBuffer()));
       noun = nounFor(record.event, file.type);
-    } else if (record.mode === "document") {
-      if (!document) return { ok: false, message: "Add the record's details first." };
+    } else if (record.mode === "document" && !document) {
+      // Nothing to fingerprint. With `presence` the receipt alone is sent, and
+      // this site answers whether the record is on the blockchain.
+      if (!presence) return { ok: false, message: "Add the record's details first." };
+    } else if (record.mode === "document" && document) {
       digest = await computeCommitment(document);
       // The document names its own report: that is the one to compare with.
       if (typeof document.reportId === "string") report = document.reportId;
@@ -185,13 +194,22 @@ export function Checker({
   /**
    * A record that arrived needing nothing from the person (an acknowledgement,
    * or a document that came in the link) is checked as soon as the screen opens.
+   * So is a record whose details did not come with the link, as on a public
+   * page: this site then answers whether it is on the blockchain, and the
+   * details can still be pasted afterwards for the full check.
    */
   const [onArrival] = useState<CheckInput | null>(() => {
     if (arrived?.kind !== "record") return null;
     const { document } = documentOf(arrived.record);
     const { mode } = arrived.record;
-    return mode === "acknowledgement" || (mode === "document" && document)
-      ? { record: arrived.record, file: null, document, reportId: "" }
+    return mode === "acknowledgement" || mode === "document"
+      ? {
+          record: arrived.record,
+          file: null,
+          document,
+          reportId: "",
+          presence: document === null,
+        }
       : null;
   });
   const [checking, setChecking] = useState(onArrival !== null);
@@ -314,15 +332,20 @@ export function Checker({
       void check({ record, file: null, document: next.document, reportId: "" });
   }
 
+  /**
+   * Opened from a link whose record is not a file and whose details are not
+   * here: the answer is "recorded", and pasting the details is a second step.
+   */
+  const presenceOnly = fromLink && record?.mode === "document" && doc.document === null;
   const ready =
     record !== null &&
     (record.mode === "evidence"
       ? file !== null
       : record.mode === "document"
-        ? doc.document !== null
+        ? doc.document !== null || presenceOnly
         : true);
   const current: CheckInput | null = record
-    ? { record, file, document: doc.document, reportId }
+    ? { record, file, document: doc.document, reportId, presence: presenceOnly }
     : null;
 
   /** What the person supplies for this record, apart from the receipt. */
@@ -342,6 +365,16 @@ export function Checker({
                 clearAnswer();
                 setChanged(true);
                 setDoc(NO_DOCUMENT);
+                // Back to what can be said without the details.
+                if (fromLink) {
+                  void check({
+                    record,
+                    file: null,
+                    document: null,
+                    reportId: "",
+                    presence: true,
+                  });
+                }
               },
             })}
       />
@@ -354,7 +387,6 @@ export function Checker({
         ) : null}
         <PasteBox
           buttonLabel="Paste the record's details"
-          primary={fromLink}
           hint="In Bona Chain, tap Copy document on the same record first. The details stay on your device."
           emptyHint="In Bona Chain, tap Copy document on the same record first."
           fieldLabel="The record's details"
@@ -431,7 +463,8 @@ export function Checker({
               </span>
             </p>
           </div>
-          {supply ? <div className="mt-3">{supply}</div> : null}
+          {/* Without the details the answer comes first; pasting them is offered below it. */}
+          {supply && !presenceOnly ? <div className="mt-3">{supply}</div> : null}
         </>
       ) : (
         <>
@@ -556,6 +589,17 @@ export function Checker({
             : undefined
         }
       />
+
+      {presenceOnly && supply ? (
+        <section className={`${CARD} no-print mt-4`} data-testid="hold-the-record">
+          <h2 className="text-lg font-semibold">Do you hold this record?</h2>
+          <p className="mt-1 mb-3 text-muted">
+            Paste its details to check that they match the fingerprint on the blockchain.
+            They stay on your device.
+          </p>
+          {supply}
+        </section>
+      ) : null}
 
       <p className="no-print mt-6 text-center">
         <button type="button" onClick={onLeave} className={LINK_BUTTON}>

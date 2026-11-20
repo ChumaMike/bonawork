@@ -86,7 +86,12 @@ export type Source =
   | { kind: "document"; document: unknown }
   /** A value computed elsewhere, e.g. in the browser so the content never leaves the device. */
   | { kind: "digest"; digest: string }
-  /** Nothing to recompute (ReportAcknowledged, WorkOrderAcknowledged, a payment dispute): only the event's existence is checked. */
+  /**
+   * Nothing is supplied. For a record that holds no fingerprint (ReportAcknowledged,
+   * WorkOrderAcknowledged) that is the whole check. For any other record it is a
+   * check of presence only: the result is `RECORDED`, and the fingerprint the
+   * ledger holds is reported, not compared.
+   */
   | { kind: "none" };
 
 export interface VerifyRequest {
@@ -138,8 +143,15 @@ export interface VerifyContext {
 
 /* --------------------------------- Outputs --------------------------------- */
 
+/**
+ * `RECORDED`: the record is on the ledger, in the contract the receipt names,
+ * but nothing was supplied to compare with the fingerprint it holds. It says
+ * that the step was recorded and by which contract; it says nothing about the
+ * content. `VERIFIED` is kept for a check in which everything the record holds
+ * was compared.
+ */
 export type Overall =
-  "VERIFIED" | "MISMATCH" | "NOT_FOUND" | "REJECTED" | "CANNOT_VERIFY";
+  "VERIFIED" | "RECORDED" | "MISMATCH" | "NOT_FOUND" | "REJECTED" | "CANNOT_VERIFY";
 
 export type StepStatus = "pass" | "fail" | "skip";
 
@@ -161,7 +173,7 @@ export interface Facts {
   explorerUrl?: string;
   /** Digest or commitment recomputed from what the holder supplied. */
   recomputedDigest?: Hex32;
-  /** The value the ledger actually holds in the named event (when it differs). */
+  /** The value the ledger actually holds in the named event: when it differs, or when nothing was supplied to compare with it. */
   onChainValue?: Hex32;
   blockNumber?: number;
   eventName?: string;
@@ -195,6 +207,7 @@ export interface VerifyResult {
 
 export const OVERALL_LABEL: Record<Overall, string> = {
   VERIFIED: "Verified",
+  RECORDED: "Recorded — the record is on the ledger; its content was not compared",
   MISMATCH: "Mismatch — the content does not match the ledger",
   NOT_FOUND: "Not found on the ledger",
   REJECTED: "Rejected — the receipt or input cannot be checked by this verifier",
@@ -616,7 +629,7 @@ export async function verify(
   if (recomputed.value) {
     match = candidates.find((c) => c.value === recomputed.value);
   } else {
-    // Nothing to recompute (an acknowledgement, a dispute): prefer the event for the given report.
+    // Nothing to compare (an acknowledgement, or a check of presence): prefer the event for the given report.
     match = facts.reportIdExpected
       ? candidates.find((c) => c.reportId === facts.reportIdExpected)
       : candidates[0];
@@ -658,7 +671,7 @@ export async function verify(
     );
     return finish(
       "MISMATCH",
-      family === "finance"
+      family === "finance" || recomputed.presence
         ? `The ${receipt.event} record in this transaction is for a different report.`
         : "The acknowledgement in this transaction is for a different report.",
     );
@@ -685,6 +698,8 @@ export async function verify(
 
   facts.reportIdOnChain = match.reportId;
   if (match.workOrderId) facts.workOrderIdOnChain = match.workOrderId;
+  // Presence only: report the fingerprint the event itself holds.
+  if (recomputed.presence && match.value) facts.onChainValue = match.value;
   if (match.timestamp !== undefined) {
     facts.eventTimestamp = new Date(Number(match.timestamp) * 1000).toISOString();
   }
@@ -693,7 +708,11 @@ export async function verify(
     "pass",
     recomputed.value
       ? `A ${receipt.event} event in this transaction records exactly your ${what}: ${recomputed.value}.`
-      : `A ${receipt.event} event is present in this transaction${match.reportId ? ` for report ${match.reportId}` : ""}.`,
+      : `A ${receipt.event} event is present in this transaction${match.reportId ? ` for report ${match.reportId}` : ""}.${
+          recomputed.presence
+            ? ` It holds the fingerprint ${match.value ?? "(none)"}. Nothing was supplied to compare with it, so the content was not checked.`
+            : ""
+        }`,
   );
 
   /* 8. Report id */
@@ -734,6 +753,12 @@ export async function verify(
     return finish("MISMATCH", "The anchored content belongs to a different work order.");
   }
 
+  if (recomputed.presence) {
+    return finish(
+      "RECORDED",
+      `The Avalanche ledger holds the ${receipt.event} record in transaction ${facts.txHash}. Nothing was supplied to compare with its fingerprint, so its content was not checked.`,
+    );
+  }
   return finish(
     "VERIFIED",
     recomputed.value
@@ -764,6 +789,9 @@ export const STEP_TITLE: Record<StepId, string> = {
   reportId: "Report id matches",
 };
 
+const PRESENCE_NOTE =
+  "Nothing was supplied to compare: only the record's presence is checked, and the fingerprint it holds is read from the ledger.";
+
 type Recompute =
   | {
       ok: true;
@@ -771,6 +799,8 @@ type Recompute =
       note: string;
       /** MatchRecorded only: the outcome the holder's document states. */
       passed?: boolean;
+      /** The record holds a fingerprint, and nothing was supplied to compare with it. */
+      presence?: boolean;
     }
   | { ok: false; error: string };
 
@@ -810,11 +840,7 @@ async function recompute(
         error: `No document format is published for a ${event} record. Supply nothing to check that it was recorded, or the fingerprint itself.`,
       };
     }
-    return {
-      ok: true,
-      value: null,
-      note: "Nothing to hash: only the event's presence is checked.",
-    };
+    return { ok: true, value: null, presence: true, note: PRESENCE_NOTE };
   }
 
   if (rule.field === null) {
@@ -829,6 +855,12 @@ async function recompute(
       value: null,
       note: "Nothing to hash: only the event's presence is checked.",
     };
+  }
+
+  // The record holds a fingerprint and the holder supplied nothing: check
+  // that it was recorded, and by which contract. The content is not compared.
+  if (source.kind === "none") {
+    return { ok: true, value: null, presence: true, note: PRESENCE_NOTE };
   }
 
   if (rule.field === "digest") {

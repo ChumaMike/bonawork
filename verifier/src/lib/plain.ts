@@ -1,5 +1,6 @@
 import {
   EVENT_RULE,
+  familyOf,
   type Overall,
   type RegistryEvent,
   type VerifyResult,
@@ -28,6 +29,12 @@ export const OUTCOME_GUIDE: { outcome: Overall; plain: string; means: string }[]
     outcome: "VERIFIED",
     plain: "Verified",
     means: "what you hold is exactly what the blockchain has on record.",
+  },
+  {
+    outcome: "RECORDED",
+    plain: "Recorded on Avalanche",
+    means:
+      "the blockchain holds this record, made by a contract this site trusts. Its details were not compared, because none were given.",
   },
   {
     outcome: "MISMATCH",
@@ -102,12 +109,57 @@ const RECORD_NOUN: Record<RegistryEvent, string> = {
  */
 const PRESENCE: Partial<Record<RegistryEvent, { what: string; note?: string }>> = {
   WorkOrderAcknowledged: { what: "the supplier acknowledged the work order" },
-  PaymentDisputeOpened: {
-    what: "a payment dispute was opened on the work order",
-    note: "While a dispute is open, no release can be authorised.",
-  },
-  PaymentDisputeClosed: { what: "a payment dispute on the work order was closed" },
 };
+
+/** The name of a step on its own line: "Release authorisation". */
+export function stepName(event: RegistryEvent): string {
+  const name = RECORD_NAME[event].replace(/^A /, "");
+  return name.charAt(0).toUpperCase() + name.slice(1);
+}
+
+/** What the ledger's own pass/fail flag on a three-way match says, in words. */
+export function matchOutcomeWords(passed: boolean): string {
+  return passed ? "The rules passed this invoice" : "The rules blocked this invoice";
+}
+
+/**
+ * The answer for a record that is on the ledger and was not compared with
+ * anything: what was checked, and plainly what was not.
+ */
+function recordedAnswer(
+  result: VerifyResult,
+  event: RegistryEvent,
+  network: string,
+): PlainAnswer {
+  const { verifier, facts } = result;
+  const by =
+    verifier.expectedFactoryAddress && facts.contractKind !== "registry"
+      ? "by a contract that the Bona Chain factory created"
+      : verifier.expectedContractAddress || verifier.expectedFactoryAddress
+        ? "by the Bona Chain contract this site trusts"
+        : null;
+  const outcome =
+    event === "MatchRecorded" && facts.matchPassed !== undefined
+      ? ` ${matchOutcomeWords(facts.matchPassed)}.`
+      : "";
+  if (!by) {
+    return {
+      tone: "neutral",
+      title: "Recorded on Avalanche",
+      body: `${RECORD_NAME[event]} was recorded on the ${network} in this transaction.${outcome}`,
+      note: "This site is not set up to check which contract recorded it, so this does not show that it is a Bona Chain record. Its details were not compared.",
+    };
+  }
+  return {
+    tone: "good",
+    title: "Recorded on Avalanche",
+    body: `${RECORD_NAME[event]} was recorded on the ${network}, ${by}.${outcome}`,
+    note:
+      familyOf(event) === "finance"
+        ? "This shows the step was recorded and by which contract. The details (amounts, names, documents) are private. Someone who holds the record can paste it here to check that it matches this fingerprint."
+        : "This shows the record was made and by which contract. Its details were not compared. Someone who holds the record can paste it here to check that it matches this fingerprint.",
+  };
+}
 
 /**
  * What a Verified finance record does and does not show. A step of the
@@ -139,9 +191,10 @@ function financeNote(event: RegistryEvent, result: VerifyResult): string | undef
 
 /** For the checking screen: what a record with nothing to compare is, in one sentence. */
 export function nothingToCompare(event: RegistryEvent): string {
-  const subject = PRESENCE[event]
-    ? lowerFirst(RECORD_NAME[event])
-    : "a school’s acknowledgement of a report";
+  const subject =
+    event === "ReportAcknowledged"
+      ? "a school’s acknowledgement of a report"
+      : lowerFirst(RECORD_NAME[event]);
   return `This receipt is for ${subject}. There is no file to compare, so nothing more is needed.`;
 }
 
@@ -169,19 +222,14 @@ export function plainAnswer(
 ): PlainAnswer {
   const { event, noun, network } = context;
   const failed = result.steps.find((step) => step.status === "fail")?.id;
-  const rule = EVENT_RULE[event];
-  /**
-   * False for an acknowledgement: there is no content to compare, only the
-   * event. A payment dispute is compared only when a fingerprint was supplied.
-   */
-  const hashed =
-    rule.field !== null &&
-    (rule.field === "digest" ||
-      rule.document !== null ||
-      result.facts.recomputedDigest !== undefined);
+  /** False for an acknowledgement: there is no content to compare, only the event. */
+  const hashed = EVENT_RULE[event].field !== null;
   const presence = PRESENCE[event] ?? null;
 
   switch (result.overall) {
+    case "RECORDED":
+      return recordedAnswer(result, event, network);
+
     case "VERIFIED": {
       if (!hashed && presence) {
         return {
