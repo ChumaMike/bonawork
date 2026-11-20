@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { FINANCE_EVENTS, LEDGER_EVENTS, type FinanceEvent } from "@/shared";
 import { drawQr, VERIFY_QR_MAX_VERSION } from "@/components/verify-qr";
 // The verifier is a separate package that shares no code with this app. Its
 // parser is imported here, in a test only, to prove that the two sides agree
@@ -232,5 +233,207 @@ describe("the square code for a verify link", () => {
     expect(drawQr(link)).toBeNull();
     expect(drawQr("x".repeat(20_000))).toBeNull();
     expect(VERIFY_QR_MAX_VERSION).toBeLessThanOrEqual(25);
+  });
+});
+
+/* ----------------------------- Procurement trail ---------------------------- */
+
+const WORK_ORDER_ID = "0b7c1d2e-3f40-4a5b-8c6d-7e8f90a1b2c3";
+const SALT = `0x${"5a".repeat(32)}`;
+const LINES = [
+  { sku: "PIPE-20", description: "20 mm pipe, 6 m", quantity: 4, unitPriceCents: 18_500 },
+  { sku: "TAP-01", description: "Brass tap", quantity: 6, unitPriceCents: 9_900 },
+];
+
+/** One sample of each finance commitment document (`src/shared/domain.ts`). */
+const FINANCE_DOCUMENTS = {
+  work_order: {
+    type: "work_order",
+    workOrderId: WORK_ORDER_ID,
+    reportId: REPORT_ID,
+    institutionId: "7d1e2f3a-0000-4000-8000-000000000002",
+    version: 1,
+    description: "Restore water to the toilets in block B",
+    lines: LINES,
+    totalCents: 133_400,
+    currency: "ZAR",
+    createdAt: "2026-11-19T07:00:00.000Z",
+    salt: SALT,
+  },
+  supplier_invoice: {
+    type: "supplier_invoice",
+    invoiceId: "1c8d2e3f-4051-4b6c-9d7e-8f90a1b2c3d4",
+    workOrderId: WORK_ORDER_ID,
+    reportId: REPORT_ID,
+    invoiceNumber: "INV-0042",
+    orderVersion: 1,
+    lines: LINES,
+    totalCents: 133_400,
+    currency: "ZAR",
+    createdAt: "2026-11-19T09:00:00.000Z",
+    salt: SALT,
+  },
+  goods_receipt: {
+    type: "goods_receipt",
+    receiptId: "2d9e3f40-5162-4c7d-8e8f-90a1b2c3d4e5",
+    workOrderId: WORK_ORDER_ID,
+    reportId: REPORT_ID,
+    orderVersion: 1,
+    lines: LINES.map(({ sku, description, quantity }) => ({
+      sku,
+      description,
+      quantity,
+    })),
+    evidenceDigests: [`0x${"e1".repeat(32)}`],
+    createdAt: "2026-11-19T10:00:00.000Z",
+    salt: SALT,
+  },
+  match_result: {
+    type: "match_result",
+    matchId: "3eaf4051-6273-4d8e-9f90-a1b2c3d4e5f6",
+    workOrderId: WORK_ORDER_ID,
+    reportId: REPORT_ID,
+    workOrderCommitment: `0x${"a1".repeat(32)}`,
+    invoiceCommitment: `0x${"a2".repeat(32)}`,
+    receiptCommitments: [`0x${"a3".repeat(32)}`],
+    outcome: "fail",
+    reasons: [
+      { code: "quantity_mismatch", sku: "TAP-01", expected: 6, actual: 8 },
+      { code: "total_mismatch", sku: null, expected: 133_400, actual: 153_200 },
+    ],
+    engineVersion: "1",
+    createdAt: "2026-11-19T10:00:01.000Z",
+    salt: SALT,
+  },
+  release_decision: {
+    type: "release_decision",
+    releaseId: "4fb05162-7384-4e9f-a0a1-b2c3d4e5f607",
+    workOrderId: WORK_ORDER_ID,
+    reportId: REPORT_ID,
+    matchCommitment: `0x${"b1".repeat(32)}`,
+    reviewCommitment: `0x${"b2".repeat(32)}`,
+    decision: "authorised",
+    createdAt: "2026-11-20T08:00:00.000Z",
+    salt: SALT,
+  },
+} as const;
+
+/** A dispute has no document schema yet: any salted document travels as it is. */
+const DISPUTE_DOCUMENT = {
+  type: "payment_dispute",
+  workOrderId: WORK_ORDER_ID,
+  reportId: REPORT_ID,
+  createdAt: "2026-11-19T11:00:00.000Z",
+  salt: SALT,
+};
+
+/** The eight finance events in trail order: their letter and the document they anchor. */
+const FINANCE_LINKS: [FinanceEvent, string, Record<string, unknown> | null][] = [
+  ["WorkOrderApproved", "W", FINANCE_DOCUMENTS.work_order],
+  ["WorkOrderAcknowledged", "K", null],
+  ["InvoiceSubmitted", "I", FINANCE_DOCUMENTS.supplier_invoice],
+  ["GoodsReceiptRecorded", "G", FINANCE_DOCUMENTS.goods_receipt],
+  ["MatchRecorded", "M", FINANCE_DOCUMENTS.match_result],
+  ["PaymentDisputeOpened", "O", DISPUTE_DOCUMENT],
+  ["PaymentDisputeClosed", "L", DISPUTE_DOCUMENT],
+  ["ReleaseAuthorised", "Z", FINANCE_DOCUMENTS.release_decision],
+];
+
+describe("verify links for the procurement trail", () => {
+  /** The institution's InstitutionFinance contract, not the factory. */
+  const FINANCE_CONTRACT = "0x5fC8d32690cc91D4c39d9d3abcBD16989F875707";
+  const receiptFor = (event: FinanceEvent) =>
+    ({ ...RECEIPT, contractAddress: FINANCE_CONTRACT, event }) as const;
+  const carried = (event: FinanceEvent) => ({
+    ...CARRIED,
+    contractAddress: FINANCE_CONTRACT.toLowerCase(),
+    event,
+  });
+
+  it("covers the eight finance events, in trail order", () => {
+    expect(FINANCE_LINKS.map(([event]) => event)).toEqual([...FINANCE_EVENTS]);
+    expect(FINANCE_LINKS.map(([, letter]) => letter).join(" ")).toBe("W K I G M O L Z");
+  });
+
+  it.each(FINANCE_LINKS)("%s travels as the letter %s", (event, letter) => {
+    const link = verifyLink(receiptFor(event), {
+      label: "Step of BB-2026-000042",
+      reportId: REPORT_ID,
+    });
+    expect(new URL(link!).hash.startsWith(`#v1.43113.${letter}.`)).toBe(true);
+    expect(opened(link)).toEqual({
+      receipt: carried(event),
+      label: "Step of BB-2026-000042",
+      reportId: REPORT_ID,
+    });
+  });
+
+  it.each(FINANCE_LINKS.filter(([, , document]) => document !== null))(
+    "%s carries its commitment document",
+    (event, _letter, document) => {
+      const link = verifyLink(receiptFor(event), { reportId: REPORT_ID, document });
+      const read = opened(link);
+      expect(read.receipt).toEqual(carried(event));
+      // Byte for byte what was given: the verifier hashes exactly this.
+      expect(read.document).toEqual(document);
+      expect(JSON.stringify(read.document)).toBe(JSON.stringify(document));
+      expect(read.documentDamaged).toBeUndefined();
+      // The document names its report, so the id is not sent a second time.
+      expect(read.reportId).toBeUndefined();
+      expect(link!.length).toBeLessThanOrEqual(VERIFY_LINK_MAX_LENGTH);
+    },
+  );
+
+  it("carries no document for the supplier's acknowledgement: it anchors none", () => {
+    const read = opened(
+      verifyLink(receiptFor("WorkOrderAcknowledged"), {
+        reportId: REPORT_ID,
+        document: FINANCE_DOCUMENTS.work_order,
+      }),
+    );
+    expect(read.document).toBeUndefined();
+    expect(read.reportId).toBe(REPORT_ID);
+  });
+
+  it("still links the receipt when the finance document is held back or is a sample", () => {
+    const event = "InvoiceSubmitted";
+    expect(opened(verifyLink(receiptFor(event), { reportId: REPORT_ID }))).toEqual({
+      receipt: carried(event),
+      reportId: REPORT_ID,
+    });
+    const sample = { sample: true, type: "supplier_invoice", salt: null };
+    expect(
+      opened(verifyLink(receiptFor(event), { document: sample })).document,
+    ).toBeUndefined();
+  });
+
+  it("builds no link for a simulated or unconfirmed finance step", () => {
+    for (const [event] of FINANCE_LINKS) {
+      // The memory ledger's receipt: never presented as an Avalanche record.
+      expect(
+        verifyLink({ ...receiptFor(event), chainId: "bona:memory" }),
+        event,
+      ).toBeNull();
+      expect(
+        verifyLink({
+          ...receiptFor(event),
+          status: "pending",
+          blockNumber: null,
+          blockTimestamp: null,
+        }),
+        event,
+      ).toBeNull();
+    }
+  });
+
+  it("gives all fifteen ledger events a letter of their own", () => {
+    const letters = LEDGER_EVENTS.map(
+      (event) => new URL(verifyLink({ ...RECEIPT, event })!).hash.split(".")[2],
+    );
+    expect(new Set(letters).size).toBe(LEDGER_EVENTS.length);
+    expect(letters.join("")).toBe("REAPCVDWKIGMOLZ");
+    for (const event of LEDGER_EVENTS) {
+      expect(opened(verifyLink({ ...RECEIPT, event })).receipt.event).toBe(event);
+    }
   });
 });

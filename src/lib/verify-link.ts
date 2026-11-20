@@ -43,7 +43,10 @@ export const VERIFY_LINK_MAX_LENGTH = 8000;
 /** Longest label carried in a link. It is a caption, not something that is checked. */
 export const VERIFY_LINK_MAX_LABEL = 80;
 
-/** One letter per ledger event. Part of the format: never reuse or change a letter. */
+/**
+ * One letter per ledger event. Part of the format: never reuse or change a letter.
+ * E to D are the report flow; W K I G M O L Z are the procurement trail, in trail order.
+ */
 const EVENT_CODE: Record<LedgerEvent, string> = {
   EvidenceRegistered: "E",
   ReportRegistered: "R",
@@ -62,7 +65,13 @@ const EVENT_CODE: Record<LedgerEvent, string> = {
   ReleaseAuthorised: "Z",
 };
 
-/** Events that anchor no commitment document: a file digest, or nothing at all. */
+/**
+ * Events that anchor no commitment document: a file digest, or nothing at all.
+ * Every other event is document-backed, and its link can carry the document:
+ * a report, a temporary protection, a repair claim, a review, and on the
+ * procurement trail a work order, an invoice, a goods receipt, a match result,
+ * a payment dispute and a release decision.
+ */
 const NO_DOCUMENT: ReadonlySet<LedgerEvent> = new Set([
   "EvidenceRegistered",
   "ReportAcknowledged",
@@ -82,9 +91,14 @@ export interface VerifyLinkOptions {
   reportId?: string;
   /**
    * The salted commitment document, for a record that is not a file: a report,
-   * a temporary protection, a repair claim or a review. It is public (see
-   * SECURITY.md) and is carried in the link when the link stays under
+   * a temporary protection, a repair claim or a review, or a step of the
+   * procurement trail. It is carried in the link when the link stays under
    * `VERIFY_LINK_MAX_LENGTH`. Ignored for evidence and acknowledgements.
+   *
+   * A link is public to whoever it is sent to. The report-flow documents are
+   * public anyway (see SECURITY.md). A finance document holds amounts and line
+   * detail: pass it only for a viewer who is allowed to read it
+   * (`procurement:read`); leave it out and the link still checks the receipt.
    */
   document?: unknown;
 }

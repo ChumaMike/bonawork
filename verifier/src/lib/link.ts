@@ -24,7 +24,7 @@
  */
 export const LINK_VERSION = "v1";
 
-/** One letter per registry event. Part of the format. */
+/** One letter per ledger event. Part of the format: a letter is never reused or changed. */
 export const EVENT_BY_CODE: Readonly<Record<string, string>> = {
   E: "EvidenceRegistered",
   R: "ReportRegistered",
@@ -33,6 +33,15 @@ export const EVENT_BY_CODE: Readonly<Record<string, string>> = {
   C: "RepairClaimed",
   V: "RepairVerified",
   D: "RepairDisputed",
+  /* The procurement trail (InstitutionFinance), in trail order. */
+  W: "WorkOrderApproved",
+  K: "WorkOrderAcknowledged",
+  I: "InvoiceSubmitted",
+  G: "GoodsReceiptRecorded",
+  M: "MatchRecorded",
+  O: "PaymentDisputeOpened",
+  L: "PaymentDisputeClosed",
+  Z: "ReleaseAuthorised",
 };
 
 /** A link may carry a whole commitment document, but nothing near this size is a real one. */
