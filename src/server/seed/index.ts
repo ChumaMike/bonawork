@@ -10,7 +10,7 @@
  */
 import { createHash, randomUUID } from "node:crypto";
 import { sql } from "drizzle-orm";
-import type { ReportCategory } from "@/shared";
+import type { ReportCategory, UserRole } from "@/shared";
 import { hashPassword } from "../auth/password";
 import type { ServerContext } from "../context";
 import { schema } from "../db";
@@ -136,10 +136,12 @@ export const SEED_SCHOOLS: SeedSchool[] = [
 interface SeedUser {
   id: string;
   email: string;
-  role: "reporter" | "school_admin" | "district_official" | "independent_reviewer";
+  role: UserRole;
   school: string | null;
   displayName: string;
   publicLabel: string;
+  /** Supplier accounts only: the registration reference and trading name. */
+  supplier?: { ref: string; name: string };
 }
 
 /** The accounts in docs/demo/DEMO_SCENARIO.md §3, plus staff for the other sample schools. */
@@ -609,7 +611,7 @@ export async function resetDatabase(ctx: ServerContext): Promise<void> {
   // The ledger (memory or Avalanche) keeps the previous cases forever; the
   // re-seeded cases get new report ids in runSeed, so nothing collides.
   await ctx.db.execute(
-    sql`TRUNCATE TABLE "ledger_jobs", "commitment_documents", "independent_reviews", "repair_claims", "interim_protections", "endorsements", "evidence_commitments", "case_events", "reports", "users", "institutions" RESTART IDENTITY CASCADE`,
+    sql`TRUNCATE TABLE "ledger_jobs", "release_instructions", "match_results", "goods_receipts", "invoices", "work_order_versions", "work_orders", "commitment_documents", "independent_reviews", "repair_claims", "interim_protections", "endorsements", "evidence_commitments", "case_events", "reports", "users", "institutions" RESTART IDENTITY CASCADE`,
   );
   await runSeed(ctx, { freshIds: true });
 }
@@ -639,6 +641,8 @@ export async function runSeed(
       institutionId: u.school ? slugToId[u.school] : null,
       displayName: u.displayName,
       publicLabel: u.publicLabel,
+      supplierRef: u.supplier?.ref ?? null,
+      supplierName: u.supplier?.name ?? null,
       createdAt: ago(70),
     })),
   );
@@ -653,6 +657,8 @@ export async function runSeed(
         institutionId: u.school ? slugToId[u.school] : null,
         displayName: u.displayName,
         publicLabel: u.publicLabel,
+        supplierRef: u.supplier?.ref ?? null,
+        supplierName: u.supplier?.name ?? null,
         createdAt: "",
       }),
     ]),

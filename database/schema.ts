@@ -26,6 +26,10 @@ import type {
   ClaimOutcome,
   CommitmentDocument,
   EvidenceKind,
+  MatchOutcome,
+  MatchReason,
+  OrderLine,
+  ReceiptLine,
   ReportCategory,
   ReportStatus,
   UserRole,
@@ -78,9 +82,19 @@ export const users = pgTable(
     displayName: text("display_name").notNull(),
     /** What the public sees, e.g. "Reporter R-7F3A". */
     publicLabel: text("public_label").notNull(),
+    /**
+     * Supplier accounts only: the registration reference a buyer names on a
+     * work order, and the trading name shown to procurement staff. Null for
+     * every other role. Never part of a public response.
+     */
+    supplierRef: text("supplier_ref"),
+    supplierName: text("supplier_name"),
     createdAt: isoNow(),
   },
-  (t) => [uniqueIndex("users_email_idx").on(t.email)],
+  (t) => [
+    uniqueIndex("users_email_idx").on(t.email),
+    uniqueIndex("users_supplier_ref_idx").on(t.supplierRef),
+  ],
 );
 
 /* --------------------------------- Reports --------------------------------- */
@@ -251,6 +265,177 @@ export const commitmentDocuments = pgTable("commitment_documents", {
   createdAt: text("created_at").notNull(),
 });
 
+/* -------------------------------- Procurement ------------------------------ */
+
+/*
+ * The procurement trail of a report. These tables hold amounts, supplier
+ * names and people: only the signed-in procurement routes read them. The
+ * public issue views are built from `case_events` alone.
+ */
+
+/** One work order per report (for now). The scope and lines live in its versions. */
+export const workOrders = pgTable(
+  "work_orders",
+  {
+    id: uuid("id").primaryKey(),
+    reportId: uuid("report_id")
+      .notNull()
+      .references(() => reports.id),
+    institutionId: uuid("institution_id")
+      .notNull()
+      .references(() => institutions.id),
+    /** The buyer who approved version 1. */
+    buyerId: uuid("buyer_id")
+      .notNull()
+      .references(() => users.id),
+    /** The supplier account the order is bound to. */
+    supplierId: uuid("supplier_id")
+      .notNull()
+      .references(() => users.id),
+    supplierName: text("supplier_name").notNull(),
+    supplierRef: text("supplier_ref").notNull(),
+    currentVersion: integer("current_version").notNull(),
+    /** The version the supplier acknowledged; null until the first acknowledgement. */
+    acknowledgedVersion: integer("acknowledged_version"),
+    acknowledgedBy: uuid("acknowledged_by").references(() => users.id),
+    acknowledgedAt: text("acknowledged_at"),
+    createdAt: isoNow(),
+  },
+  (t) => [
+    uniqueIndex("work_orders_report_idx").on(t.reportId),
+    index("work_orders_supplier_idx").on(t.supplierId),
+  ],
+);
+
+/** One approved version of a work order. Its id is the record id of its commitment document. */
+export const workOrderVersions = pgTable(
+  "work_order_versions",
+  {
+    id: uuid("id").primaryKey(),
+    orderId: uuid("order_id")
+      .notNull()
+      .references(() => workOrders.id),
+    /** 1-based. */
+    version: integer("version").notNull(),
+    /** Scope of work, in words. */
+    scope: text("scope").notNull(),
+    lines: jsonb("lines").notNull().$type<OrderLine[]>(),
+    totalCents: integer("total_cents").notNull(),
+    approvedBy: uuid("approved_by")
+      .notNull()
+      .references(() => users.id),
+    commitment: text("commitment").notNull(),
+    createdAt: isoNow(),
+  },
+  (t) => [uniqueIndex("work_order_versions_order_version_idx").on(t.orderId, t.version)],
+);
+
+export const invoices = pgTable(
+  "invoices",
+  {
+    id: uuid("id").primaryKey(),
+    orderId: uuid("order_id")
+      .notNull()
+      .references(() => workOrders.id),
+    reportId: uuid("report_id")
+      .notNull()
+      .references(() => reports.id),
+    /** The order version the supplier invoiced against. */
+    orderVersion: integer("order_version").notNull(),
+    invoiceNumber: text("invoice_number").notNull(),
+    supplierRef: text("supplier_ref").notNull(),
+    lines: jsonb("lines").notNull().$type<OrderLine[]>(),
+    /** The total as stated on the invoice; the match engine checks it. */
+    statedTotalCents: integer("stated_total_cents").notNull(),
+    submittedBy: uuid("submitted_by")
+      .notNull()
+      .references(() => users.id),
+    aiDrafted: boolean("ai_drafted").notNull().default(false),
+    /** SHA-256 of the pasted text an AI draft was read from. The text itself is not kept. */
+    sourceTextDigest: text("source_text_digest"),
+    commitment: text("commitment").notNull(),
+    createdAt: isoNow(),
+  },
+  (t) => [index("invoices_order_idx").on(t.orderId)],
+);
+
+export const goodsReceipts = pgTable(
+  "goods_receipts",
+  {
+    id: uuid("id").primaryKey(),
+    orderId: uuid("order_id")
+      .notNull()
+      .references(() => workOrders.id),
+    reportId: uuid("report_id")
+      .notNull()
+      .references(() => reports.id),
+    orderVersion: integer("order_version").notNull(),
+    lines: jsonb("lines").notNull().$type<ReceiptLine[]>(),
+    evidenceDigests: jsonb("evidence_digests").notNull().$type<string[]>().default([]),
+    receivedBy: uuid("received_by")
+      .notNull()
+      .references(() => users.id),
+    commitment: text("commitment").notNull(),
+    createdAt: isoNow(),
+  },
+  (t) => [index("goods_receipts_order_idx").on(t.orderId)],
+);
+
+/** One run of the rule engine over an invoice. Written by code only. */
+export const matchResults = pgTable(
+  "match_results",
+  {
+    id: uuid("id").primaryKey(),
+    orderId: uuid("order_id")
+      .notNull()
+      .references(() => workOrders.id),
+    reportId: uuid("report_id")
+      .notNull()
+      .references(() => reports.id),
+    invoiceId: uuid("invoice_id")
+      .notNull()
+      .references(() => invoices.id),
+    /** The latest goods receipt the run saw; null when there was none. */
+    receiptId: uuid("receipt_id").references(() => goodsReceipts.id),
+    /** The order version that was current when the engine ran. */
+    orderVersion: integer("order_version").notNull(),
+    outcome: text("outcome").notNull().$type<MatchOutcome>(),
+    reasons: jsonb("reasons").notNull().$type<MatchReason[]>(),
+    /** SHA-256 of the canonical JSON of exactly what the engine was given. */
+    inputsDigest: text("inputs_digest").notNull(),
+    engineVersion: text("engine_version").notNull(),
+    commitment: text("commitment").notNull(),
+    createdAt: isoNow(),
+  },
+  (t) => [index("match_results_invoice_idx").on(t.invoiceId)],
+);
+
+/** The release instruction for an order. At most one per order. It moves no money. */
+export const releaseInstructions = pgTable(
+  "release_instructions",
+  {
+    id: uuid("id").primaryKey(),
+    orderId: uuid("order_id")
+      .notNull()
+      .references(() => workOrders.id),
+    reportId: uuid("report_id")
+      .notNull()
+      .references(() => reports.id),
+    matchId: uuid("match_id")
+      .notNull()
+      .references(() => matchResults.id),
+    reviewId: uuid("review_id")
+      .notNull()
+      .references(() => independentReviews.id),
+    authorisedBy: uuid("authorised_by")
+      .notNull()
+      .references(() => users.id),
+    commitment: text("commitment").notNull(),
+    createdAt: isoNow(),
+  },
+  (t) => [uniqueIndex("release_instructions_order_idx").on(t.orderId)],
+);
+
 /* -------------------------------- Ledger jobs ------------------------------ */
 
 export type LedgerOperation =
@@ -316,3 +501,9 @@ export type RepairClaimRow = typeof repairClaims.$inferSelect;
 export type IndependentReviewRow = typeof independentReviews.$inferSelect;
 export type CommitmentDocumentRow = typeof commitmentDocuments.$inferSelect;
 export type LedgerJobRow = typeof ledgerJobs.$inferSelect;
+export type WorkOrderRow = typeof workOrders.$inferSelect;
+export type WorkOrderVersionRow = typeof workOrderVersions.$inferSelect;
+export type InvoiceRow = typeof invoices.$inferSelect;
+export type GoodsReceiptRow = typeof goodsReceipts.$inferSelect;
+export type MatchResultRow = typeof matchResults.$inferSelect;
+export type ReleaseInstructionRow = typeof releaseInstructions.$inferSelect;
