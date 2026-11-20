@@ -21,6 +21,7 @@ import type {
   MismatchExplanation,
   MoneyTrail,
   RecordProof,
+  ReleaseBlocker,
   School,
   SchoolProfile,
   Session,
@@ -44,6 +45,33 @@ const KNOWN_CODES = [
   "conflict",
   "invalid_input",
 ] as const;
+
+/**
+ * A release the gate refused. It is an `ApiError` of code `conflict` that
+ * also carries the reasons the backend gave (`error.blockers` of the 409), so
+ * the gate can list them without asking again.
+ */
+export class ReleaseBlockedError extends ApiError {
+  constructor(
+    readonly blockers: ReleaseBlocker[],
+    message = `The release cannot be authorised yet: ${blockers
+      .map((blocker) => blocker.code)
+      .join(", ")}.`,
+  ) {
+    super("conflict", message);
+    this.name = "ReleaseBlockedError";
+  }
+}
+
+/** The blockers of a refused release, when the error body carries a well-formed list. */
+function blockersOf(value: unknown): ReleaseBlocker[] | null {
+  if (!Array.isArray(value)) return null;
+  const blockers = value.filter(
+    (item): item is ReleaseBlocker =>
+      typeof item === "object" && item !== null && typeof item.code === "string",
+  );
+  return blockers.length === value.length ? blockers : null;
+}
 
 /** Build the `ApiError` for an envelope error; unknown codes keep the server's string. */
 export function apiErrorFrom(
@@ -71,13 +99,20 @@ export function createHttpApi(baseUrl = ""): BonaApi {
       headers: options.json ? { "content-type": "application/json" } : undefined,
       body: options.json ? JSON.stringify(options.json) : options.form,
     });
-    let body: { data?: T; error?: { code: string; message: string } } = {};
+    let body: {
+      data?: T;
+      error?: { code: string; message: string; blockers?: unknown };
+    } = {};
     try {
       body = await response.json();
     } catch {
       // Not JSON: fall through to the status check.
     }
     if (!response.ok || body.error) {
+      const blockers = blockersOf(body.error?.blockers);
+      if (response.status === 409 && blockers) {
+        throw new ReleaseBlockedError(blockers, body.error?.message);
+      }
       throw apiErrorFrom(
         body.error?.code,
         body.error?.message ?? `Request failed (${response.status}).`,
@@ -219,7 +254,16 @@ export function createHttpApi(baseUrl = ""): BonaApi {
 
     /* Procurement trail */
     listWorkQueue: () => call<WorkQueueItem[]>("/api/work/queue"),
-    getMoneyTrail: (issueId) => optional<MoneyTrail>(issuePath(issueId, "/procurement")),
+    // 404: the case has no work order. 403: it has one this person may not
+    // see (another supplier's). Both are "no trail for you", as the port says.
+    getMoneyTrail: async (issueId) => {
+      try {
+        return await optional<MoneyTrail>(issuePath(issueId, "/procurement"));
+      } catch (error) {
+        if (error instanceof ApiError && error.code === "forbidden") return null;
+        throw error;
+      }
+    },
     approveWorkOrder: (issueId, input) =>
       call<MoneyTrail>(issuePath(issueId, "/work-order"), { json: input }),
     acknowledgeOrder: (issueId) =>

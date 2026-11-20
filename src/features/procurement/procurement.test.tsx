@@ -11,7 +11,13 @@ import {
   CASE_B_ISSUE_ID as CASE_B,
   SAMPLE_PASSWORD,
 } from "@/data/fixtures/seed";
-import type { MoneyTrail, SubmitInvoiceInput, TrailMatch } from "@/data/types";
+import type {
+  MoneyTrail,
+  PublicTrailStep,
+  SubmitInvoiceInput,
+  TimelineEvent,
+  TrailMatch,
+} from "@/data/types";
 import { getMessages } from "@/i18n";
 import { sampleInvoiceText } from "./invoice-form";
 import { MatchResult } from "./match-result";
@@ -20,10 +26,9 @@ import { PublicTrail, StaffTrail } from "./money-trail";
 import { ReleaseGate } from "./release-gate";
 import { buildTrailRows, trailTime } from "./trail-rows";
 
-const BUYER = "buyer@programme.demo";
-const SUPPLIER = "supplier@khumalo.demo";
-const RECEIVER = "receiving@thuto-lesedi.demo";
-const APPROVER = "payments@district.demo";
+const SUPPLIER = "supplier@emseni-supplies.demo";
+const RECEIVER = "receiving@thandolwethu.demo";
+const APPROVER = "approver@vaalridge.demo";
 const REVIEWER = "reviewer@district.demo";
 
 const m = getMessages();
@@ -32,7 +37,7 @@ const p = m.procurement;
 /** Every amount on these screens is printed as rand. */
 const AMOUNT = /R\s?\d/;
 /** The people and the suppliers of the two sample cases. */
-const NAMES = /Dube|Khumalo|Radebe|Mokoena|Mahlangu/;
+const NAMES = /Dlamini|Zulu|Ngcobo|van Wyk|Mahlangu|Emseni/;
 
 const newApi = () => createFixtureApi({ latency: 0, persist: false });
 async function as(api: BonaApi, email: string) {
@@ -332,7 +337,7 @@ describe("the trail", () => {
 
     expect(trail).not.toHaveTextContent(AMOUNT);
     expect(trail).not.toHaveTextContent(NAMES);
-    expect(trail).not.toHaveTextContent(/INV-|SUP-|LED-TUBE/);
+    expect(trail).not.toHaveTextContent(/INV-|SUP-|FENCE-POST/);
     expect(within(trail).queryByTestId("trail-person")).toBeNull();
     expect(within(trail).queryByText(p.order.see)).toBeNull();
 
@@ -407,21 +412,21 @@ describe("the trail", () => {
     const row = (key: string) =>
       screen.getAllByTestId("trail-row").find((item) => item.dataset.row === key)!;
     expect(within(row("order")).getByTestId("trail-person")).toHaveTextContent(
-      "Ms Lerato Dube",
+      "Ms Naledi Dlamini",
     );
-    expect(row("order")).toHaveTextContent("3 lines · R5 140,00");
+    expect(row("order")).toHaveTextContent("3 lines · R20 550,00");
     expect(within(row("order")).getByTestId("order-total")).toHaveTextContent(
-      "R5 140,00",
+      "R20 550,00",
     );
     expect(row("acknowledged")).toHaveTextContent("Ms Zodwa Mahlangu");
-    expect(row("invoice")).toHaveTextContent("Invoice INV-1991 · R5 140,00");
+    expect(row("invoice")).toHaveTextContent("Invoice INV-1991 · R20 550,00");
     expect(row("invoice")).toHaveTextContent(p.trail.aiDrafted);
-    expect(row("delivery")).toHaveTextContent("Ms Nomsa Radebe");
-    expect(row("delivery")).toHaveTextContent("20 of 20 items arrived");
+    expect(row("delivery")).toHaveTextContent("Mrs Ayanda Ngcobo");
+    expect(row("delivery")).toHaveTextContent("22 of 22 items arrived");
     // The rules are nobody: a role label and no name.
     expect(within(row("match")).queryByTestId("trail-person")).toBeNull();
     expect(row("match")).toHaveTextContent(p.rules);
-    expect(row("release")).toHaveTextContent("Mr Thabo Mokoena");
+    expect(row("release")).toHaveTextContent("Mr Pieter van Wyk");
 
     // A procurement document is offered here, to people who may read the trail.
     fireEvent.click(within(row("order")).getByTestId("show-proof"));
@@ -441,12 +446,26 @@ describe("the trail", () => {
       );
       const view = screen.getByTestId("staff-trail");
       expect(view).toHaveAttribute("data-prices", "hidden");
-      expect(view).toHaveTextContent("Ms Lerato Dube");
-      expect(view).toHaveTextContent("3 lines · 20 items");
+      expect(view).toHaveTextContent("Ms Naledi Dlamini");
+      expect(view).toHaveTextContent("3 lines · 22 items");
       expect(view).toHaveTextContent("Invoice INV-1991");
       expect(view).not.toHaveTextContent(AMOUNT);
       expect(within(view).queryByTestId("order-total")).toBeNull();
       expect(within(view).queryByText(p.order.unitPrice)).toBeNull();
+
+      // Without prices, only the documents that hold none are offered.
+      const rowOf = (key: string) =>
+        screen.getAllByTestId("trail-row").find((item) => item.dataset.row === key)!;
+      const documentFor = (key: string) => {
+        fireEvent.click(within(rowOf(key)).getByTestId("show-proof"));
+        const sheets = screen.getAllByTestId("proof-sheet");
+        return within(sheets[sheets.length - 1]).queryByRole("button", {
+          name: /Copy document/,
+          hidden: true,
+        });
+      };
+      expect(documentFor("order")).toBeNull();
+      expect(documentFor("delivery")).not.toBeNull();
       cleanup();
     }
   });
@@ -472,19 +491,28 @@ describe("the trail", () => {
       "release:waiting",
     ]);
 
-    await as(api, BUYER);
-    await api.approveWorkOrder(CASE_A, {
-      supplierRef: "SUP-0417",
-      description: "Four locks now.",
-      lines: CASE_A_LINES,
-    });
-    const changed = (await api.getIssue(CASE_A))!;
     // A new order version waits for the supplier again.
+    const step = (
+      type: PublicTrailStep["type"],
+      actor: PublicTrailStep["actor"],
+      occurredAt: string,
+    ): PublicTrailStep => ({
+      eventId: `${type}-${occurredAt}`,
+      type,
+      actor,
+      occurredAt,
+      note: "",
+      ledger: { source: "none" },
+    });
     expect(
       buildTrailRows({
-        steps: changed.publicTrail!,
-        timeline: changed.timeline,
-        status: changed.status,
+        steps: [
+          step("work_order_approved", "buyer", "2026-11-01T08:00:00.000Z"),
+          step("work_order_acknowledged", "supplier", "2026-11-02T08:00:00.000Z"),
+          step("work_order_approved", "buyer", "2026-11-03T08:00:00.000Z"),
+        ],
+        timeline: issue.timeline,
+        status: issue.status,
       }).find((row) => row.key === "acknowledged"),
     ).toMatchObject({ state: "waiting", next: true });
   });
@@ -499,11 +527,37 @@ describe("the trail", () => {
 });
 
 describe("the public timeline", () => {
-  it("shows a procurement step as its name, role, time and proof only", async () => {
+  it("has no procurement entries in the sample data, as on the backend", async () => {
     const issue = (await newApi().getIssue(CASE_B))!;
     render(<Timeline issueId={issue.id} events={issue.timeline} />);
+    expect(screen.queryAllByTestId("timeline-finance")).toHaveLength(0);
+  });
+
+  it("would show a procurement entry as its name, role, time and proof only", () => {
+    // Defence in depth: should such an entry ever arrive, nothing private can show.
+    const entry = (
+      id: string,
+      type: TimelineEvent["type"],
+      actor: TimelineEvent["actor"],
+    ): TimelineEvent => ({
+      id,
+      type,
+      actor,
+      note: "Ms Naledi Dlamini approved R4 200,00 for Emseni.",
+      occurredAt: "2026-11-18T08:00:00.000Z",
+      ledger: { source: "simulated", status: "confirmed" },
+    });
+    render(
+      <Timeline
+        issueId="issue-1"
+        events={[
+          entry("e1", "work_order_approved", "buyer"),
+          entry("e2", "match_recorded", "system"),
+        ]}
+      />,
+    );
     const steps = screen.getAllByTestId("timeline-finance");
-    expect(steps).toHaveLength(issue.publicTrail!.length);
+    expect(steps).toHaveLength(2);
     for (const step of steps) {
       expect(step.querySelector("time")).not.toBeNull();
       expect(step.querySelector("[data-ledger]")).not.toBeNull();
@@ -511,7 +565,6 @@ describe("the public timeline", () => {
       expect(step).not.toHaveTextContent(NAMES);
     }
     expect(steps.some((step) => step.textContent!.includes(p.rules))).toBe(true);
-    // The report's own records keep their document; a procurement step has none here.
     fireEvent.click(within(steps[0]).getByTestId("show-proof"));
     expect(
       within(screen.getByTestId("proof-sheet")).queryByRole("button", {
@@ -534,7 +587,7 @@ describe("the sample invoice", () => {
     const wrong = await api.draftInvoice(CASE_A, sampleInvoiceText(trail.order, true));
     expect(wrong.missing).toEqual([]);
     expect(wrong.invoiceNumber).not.toBe(right.invoiceNumber);
-    expect(wrong.lines[0]).toMatchObject({ quantity: 4, unitPriceCents: 73_500 });
+    expect(wrong.lines[0]).toMatchObject({ quantity: 4, unitPriceCents: 70_000 });
     expect(wrong.totalCents).not.toBe(trail.order.totalCents);
   });
 

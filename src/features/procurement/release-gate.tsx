@@ -10,7 +10,7 @@ import { Dialog } from "@/components/ui/dialog";
 import { Icon, type IconName } from "@/components/ui/icon";
 import type { IssueStatus, MoneyTrail } from "@/data/types";
 import { useMessages, type Messages } from "@/i18n";
-import { trailTime } from "./trail-rows";
+import { trailDateTime } from "./trail-rows";
 
 type CheckKind = "done" | "problem" | "waiting";
 interface Check {
@@ -139,7 +139,7 @@ export function ReleaseGate({
       icon: "shieldCheck",
       ground: "bg-st-verified-soft text-st-verified",
       title: g.doneTitle,
-      body: released ? (byYou ? g.doneByYou : g.doneAt)(trailTime(released, m)) : "",
+      body: released ? (byYou ? g.doneByYou : g.doneAt)(trailDateTime(released)) : "",
     },
   } as const;
   const { icon, ground, title, body } = head[state];

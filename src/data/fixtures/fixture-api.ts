@@ -17,6 +17,7 @@ import type {
   EvidenceUpload,
   Issue,
   IssueSummary,
+  PublicTrailStep,
   SchoolProfile,
   Session,
   SessionRole,
@@ -31,8 +32,9 @@ import { buildSampleProcurement, type FixtureCase } from "./procurement-seed";
 import {
   buildSampleIssues,
   formatReference,
+  FINANCE_NOTE,
   isFinanceEvent,
-  publicStepOf,
+  publicStep,
   SAMPLE_ACCOUNTS,
   SAMPLE_PASSWORD,
   SAMPLE_SCHOOLS,
@@ -96,6 +98,12 @@ const DOCUMENT_TYPE: Partial<Record<TimelineEventType, string>> = {
   match_recorded: "match_result",
   release_authorised: "release_decision",
 };
+
+/** The procurement documents that hold no price, so a role without prices may have them. */
+const PRICELESS_DOCUMENTS = new Set<TimelineEventType>([
+  "goods_receipt_recorded",
+  "release_authorised",
+]);
 
 /** What a visit keeps: the issues, and the procurement trail of the cases that have one. */
 interface FixtureState {
@@ -203,22 +211,42 @@ export function createFixtureApi(options: FixtureOptions = {}): BonaApi {
     type: TimelineEventType,
     actor: ActorRole,
     note: string,
-    at: IsoDateTime = now(),
   ): TimelineEvent {
     const event: TimelineEvent = {
       id: `${issue.id}-event-${issue.timeline.length + 1}`,
       type,
       note,
       actor,
-      occurredAt: at,
+      occurredAt: now(),
       ledger: { source: "none" },
     };
     issue.timeline.push(event);
     issue.updatedAt = event.occurredAt;
-    // The public trail is the procurement steps of the timeline, and nothing more.
-    const step = publicStepOf(event);
-    if (step) issue.publicTrail = [...(issue.publicTrail ?? []), step];
     return event;
+  }
+
+  /**
+   * Record one procurement step. As on the backend it is not a timeline
+   * entry: it goes on the public trail, with a role, a time and no detail.
+   */
+  function addStep(
+    issue: Issue,
+    type: keyof typeof FINANCE_NOTE,
+    actor: PublicTrailStep["actor"],
+    at: IsoDateTime,
+    outcome?: PublicTrailStep["outcome"],
+  ): PublicTrailStep {
+    const trail = (issue.publicTrail ??= []);
+    const step = publicStep({
+      id: `${issue.id}-step-${trail.length + 1}`,
+      type,
+      actor,
+      occurredAt: at,
+      ledger: { source: "none" },
+      outcome,
+    });
+    trail.push(step);
+    return step;
   }
 
   function attach(
@@ -610,16 +638,17 @@ export function createFixtureApi(options: FixtureOptions = {}): BonaApi {
       const issue = find(issueId);
       const evidence = issue?.evidence.find((item) => item.id === recordId);
       const event = issue?.timeline.find((item) => item.id === recordId);
-      const record = evidence ?? event;
+      const step = issue?.publicTrail?.find((item) => item.eventId === recordId);
+      const record = evidence ?? event ?? step;
       if (!issue || !record || record.ledger.source === "none") return null;
       // A sample has no transaction and no salt. Both say so in every field,
-      // and BonaBlock Verify will refuse them rather than report a match.
+      // and Bona Chain Verify will refuse them rather than report a match.
       const receipt =
         record.ledger.source === "ledger"
           ? copy(record.ledger.receipt)
           : {
               sample: true,
-              note: "Sample receipt from the BonaBlock preview. This is not an Avalanche transaction.",
+              note: "Sample receipt from the Bona Chain preview. This is not an Avalanche transaction.",
               chainId: "bona:memory",
               contractAddress: null,
               txId: null,
@@ -627,24 +656,29 @@ export function createFixtureApi(options: FixtureOptions = {}): BonaApi {
               blockNumber: null,
               blockTimestamp: null,
             };
-      const documentType = event ? DOCUMENT_TYPE[event.type] : undefined;
+      const type = event?.type ?? step?.type;
+      const documentType = type ? DOCUMENT_TYPE[type] : undefined;
       if (!documentType) return { receipt };
-      // A procurement document is for people who may read that trail. Everyone
-      // else gets the receipt alone, as the backend answers them.
-      if (event && isFinanceEvent(event.type)) {
+      // A procurement document is for people who may read that trail, and
+      // without prices only the two that hold none: the goods receipt and the
+      // release decision. Everyone else gets the receipt alone, as the backend
+      // answers them.
+      if (type && isFinanceEvent(type)) {
         const reader = currentSession()?.user;
-        const record = loadState().cases[issue.id];
+        const found = loadState().cases[issue.id];
+        const trail =
+          reader && can(reader.role, "procurement:read") && found
+            ? trailFor(found, issue, reader)
+            : null;
         const allowed =
-          reader && can(reader.role, "procurement:read") && record
-            ? trailFor(record, issue, reader) !== null
-            : false;
+          trail !== null && (trail.pricesVisible || PRICELESS_DOCUMENTS.has(type));
         if (!allowed) return { receipt };
       }
       return {
         receipt,
         document: {
           sample: true,
-          note: "Sample document from the BonaBlock preview. It was never committed to a ledger.",
+          note: "Sample document from the Bona Chain preview. It was never committed to a ledger.",
           type: documentType,
           reportId: issue.id,
           salt: null,
@@ -661,7 +695,7 @@ export function createFixtureApi(options: FixtureOptions = {}): BonaApi {
       issues: load,
       find,
       cases: () => loadState().cases,
-      addEvent,
+      addStep,
     }),
 
     async findEvidenceByDigest(digest) {

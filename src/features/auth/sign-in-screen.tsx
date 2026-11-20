@@ -2,6 +2,7 @@
 
 import { useRouter, useSearchParams } from "next/navigation";
 import { useRef, useState, type FormEvent } from "react";
+import { BrandLogo } from "@/components/brand/brand-logo";
 import { Button, ButtonLink } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { cn } from "@/components/ui/cn";
@@ -163,6 +164,8 @@ export function SignInScreen() {
 
   return (
     <Container size="narrow">
+      {/* The logo above the heading, with its clear space around it. */}
+      <BrandLogo className="mb-5" />
       <PageHeader title={a.title} intro={a.intro} />
 
       {demoAccounts.length > 0 ? (

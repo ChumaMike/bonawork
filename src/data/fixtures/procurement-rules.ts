@@ -217,6 +217,8 @@ export function queueFor(
         }
         break;
       case "receiving_officer":
+        // A receiving officer records deliveries at their own school.
+        if (user.institutionId !== null && user.institutionId !== issue.schoolId) break;
         if (acknowledged(record) && !receivedCurrentVersion(record)) {
           items.push(item("record_receipt", order.acknowledgedAt ?? order.approvedAt));
         }

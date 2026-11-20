@@ -4,20 +4,21 @@ import type { BonaApi } from "../api";
 import type { MoneyTrail, SubmitInvoiceInput } from "../types";
 import { createFixtureApi } from "./fixture-api";
 import { draftInvoiceFromText } from "./invoice-text";
-import { ReleaseBlockedError } from "./procurement-api";
+import { ReleaseBlockedError } from "../http-api";
 import { buildSampleProcurement, CASE_A_LINES } from "./procurement-seed";
 import {
   buildSampleIssues,
   CASE_A_ISSUE_ID as CASE_A,
   CASE_B_ISSUE_ID as CASE_B,
+  isFinanceEvent,
   SAMPLE_ACCOUNTS,
   SAMPLE_PASSWORD,
 } from "./seed";
 
-const BUYER = "buyer@programme.demo";
-const SUPPLIER = "supplier@khumalo.demo";
-const RECEIVER = "receiving@thuto-lesedi.demo";
-const APPROVER = "payments@district.demo";
+const BUYER = "buyer@vaalridge.demo";
+const SUPPLIER = "supplier@emseni-supplies.demo";
+const RECEIVER = "receiving@thandolwethu.demo";
+const APPROVER = "approver@vaalridge.demo";
 const REVIEWER = "reviewer@district.demo";
 const ADMIN = "admin@thuto-lesedi.demo";
 const REPORTER = "parent@community.demo";
@@ -44,7 +45,7 @@ const RIGHT: SubmitInvoiceInput = {
 
 /** One lock too many, at a higher price. */
 const WRONG_LINES = CASE_A_LINES.map((line) =>
-  line.sku === "LOCK-3L"
+  line.sku === "GLASS-4MM"
     ? { ...line, quantity: 4, unitPriceCents: line.unitPriceCents + 5_000 }
     : line,
 );
@@ -73,7 +74,7 @@ describe("sample procurement data", () => {
     for (const role of ["buyer", "supplier", "receiving_officer", "payment_approver"]) {
       const account = SAMPLE_ACCOUNTS.find((a) => a.session.user.role === role);
       expect(account, role).toBeDefined();
-      expect(account!.session.user.displayName).toMatch(/^(Ms|Mr) \w+ \w+$/);
+      expect(account!.session.user.displayName).toMatch(/^(Ms|Mrs|Mr) [A-Z]\w+ /);
     }
   });
 
@@ -115,6 +116,28 @@ describe("sample procurement data", () => {
     ).toBe("matched");
   });
 
+  it("keeps procurement steps off the issue timeline: they are on the trail only", async () => {
+    const api = await as(newApi(), SUPPLIER);
+    const before = (await api.getIssue(CASE_A))!;
+    await api.submitInvoice(CASE_A, RIGHT);
+    const after = (await api.getIssue(CASE_A))!;
+    expect(after.timeline).toEqual(before.timeline);
+    expect(after.publicTrail!.map((step) => step.type)).toEqual([
+      ...before.publicTrail!.map((step) => step.type),
+      "invoice_submitted",
+      "match_recorded",
+    ]);
+    for (const issue of buildSampleIssues()) {
+      expect(issue.timeline.map((event) => event.type).filter(isFinanceEvent)).toEqual(
+        [],
+      );
+    }
+    const school = (await api.getSchool(after.schoolId))!;
+    expect(
+      school.latestUpdates.map((update) => update.event.type).filter(isFinanceEvent),
+    ).toEqual([]);
+  });
+
   it("leaves the report statuses alone: a finance step never verifies a repair", async () => {
     const api = newApi();
     expect((await api.getIssue(CASE_A))?.status).toBe("repair_claimed");
@@ -145,7 +168,7 @@ describe("each step belongs to one role", () => {
   it("refuses a role that tries another role's step", async () => {
     const api = newApi();
     const order = {
-      supplierRef: "SUP-0417",
+      supplierRef: "SUP-2026-0417",
       description: "Unblock the toilets.",
       lines: [{ sku: "A", description: "Work", quantity: 1, unitPriceCents: 100 }],
     };
@@ -215,15 +238,15 @@ describe("each step belongs to one role", () => {
 
   it("shows a supplier its own orders only", async () => {
     const api = await as(newApi(), SUPPLIER);
-    expect((await api.getMoneyTrail(CASE_A))?.order.supplierRef).toBe("SUP-0417");
+    expect((await api.getMoneyTrail(CASE_A))?.order.supplierRef).toBe("SUP-2026-0417");
     // Case B belongs to another supplier: for this one it does not exist.
     expect(await api.getMoneyTrail(CASE_B)).toBeNull();
     expect((await api.listWorkQueue()).map((item) => item.issueId)).toEqual([CASE_A]);
     await expect(api.submitInvoice(CASE_B, RIGHT)).rejects.toMatchObject({
-      code: "not_found",
+      code: "forbidden",
     });
     await expect(api.draftInvoice(CASE_B, "Invoice number: X")).rejects.toMatchObject({
-      code: "not_found",
+      code: "forbidden",
     });
   });
 });
@@ -245,14 +268,14 @@ describe("the work queue shows each person only what needs them", () => {
     const api = await as(newApi(), BUYER);
     await expect(
       api.approveWorkOrder("issue-118", {
-        supplierRef: "SUP-9999",
+        supplierRef: "SUP-2026-9999",
         description: "Unblock four toilets.",
         lines: [{ sku: "A", description: "Work", quantity: 1, unitPriceCents: 100 }],
       }),
     ).rejects.toMatchObject({ code: "invalid_input" });
 
     const approved = await api.approveWorkOrder("issue-118", {
-      supplierRef: "sup-0417",
+      supplierRef: "sup-2026-0417",
       description: "Unblock four toilets in Block B.",
       lines: [
         {
@@ -271,11 +294,11 @@ describe("the work queue shows each person only what needs them", () => {
     });
     expect(approved.stage).toBe("order_approved");
     expect(approved.order.totalCents).toBe(95_000 + 6 * 42_000);
-    expect(approved.order.supplierName).toBe("Khumalo Building Supplies");
+    expect(approved.order.supplierName).toBe("Emseni Building and Electrical Supplies");
     expect(approved.steps.at(-1)).toMatchObject({
       type: "work_order_approved",
       actor: "buyer",
-      actorName: "Ms Lerato Dube",
+      actorName: "Ms Naledi Dlamini",
     });
     expect((await api.listWorkQueue()).map((item) => item.issueId)).not.toContain(
       "issue-118",
@@ -305,6 +328,26 @@ describe("the work queue shows each person only what needs them", () => {
     });
     expect(received.receipts).toHaveLength(1);
     expect(await api.listWorkQueue()).toEqual([]);
+
+    // One work order per report: a second one is refused.
+    await as(api, BUYER);
+    await expect(
+      api.approveWorkOrder("issue-118", {
+        supplierRef: "SUP-2026-0417",
+        description: "Again.",
+        lines: [{ sku: "A", description: "Work", quantity: 1, unitPriceCents: 100 }],
+      }),
+    ).rejects.toMatchObject({ code: "conflict" });
+  });
+
+  it("keeps a receiving officer to deliveries at their own school", async () => {
+    const api = await as(newApi(), RECEIVER);
+    // Case B is at another school.
+    await expect(
+      api.recordGoodsReceipt(CASE_B, {
+        lines: [{ sku: "FENCE-POST", description: "Concrete fence post", quantity: 1 }],
+      }),
+    ).rejects.toMatchObject({ code: "forbidden" });
   });
 });
 
@@ -345,7 +388,7 @@ describe("the rule engine decides whether an invoice matches", () => {
     // The engine is a step of its own on the timeline, written by nobody.
     const steps = matched.steps.slice(-2);
     expect(steps.map((step) => [step.type, step.actor, step.actorName])).toEqual([
-      ["invoice_submitted", "supplier", "Mr Sipho Khumalo"],
+      ["invoice_submitted", "supplier", "Mr Themba Zulu"],
       ["match_recorded", "system", null],
     ]);
     expect(steps[1].occurredAt > steps[0].occurredAt).toBe(true);
@@ -369,7 +412,7 @@ describe("the rule engine decides whether an invoice matches", () => {
     await as(api, RECEIVER);
     const after = await api.recordGoodsReceipt(CASE_A, {
       lines: [
-        { sku: "LOCK-3L", description: "Three-lever mortice lockset", quantity: 0 },
+        { sku: "GLASS-4MM", description: "Clear float glass pane, 4 mm", quantity: 0 },
       ],
     });
     expect(after.receipts).toHaveLength(2);
@@ -431,7 +474,7 @@ describe("the release gate", () => {
     });
 
     await as(api, REVIEWER);
-    await api.verifyCompletion(CASE_A, "Three locks and two closers are fitted.");
+    await api.verifyCompletion(CASE_A, "All three panes are in and sealed.");
     await as(api, APPROVER);
     const ready = (await api.getMoneyTrail(CASE_A))!;
     expect(ready.stage).toBe("ready_for_release");
@@ -443,7 +486,7 @@ describe("the release gate", () => {
     expect(released.steps.at(-1)).toMatchObject({
       type: "release_authorised",
       actor: "payment_approver",
-      actorName: "Mr Thabo Mokoena",
+      actorName: "Mr Pieter van Wyk",
     });
     expect(released.gate.blockers).toEqual([{ code: "already_released" }]);
     // The report status is the reviewer's, not the approver's.
@@ -464,7 +507,7 @@ describe("the release gate", () => {
     const api = await as(newApi(), SUPPLIER);
     await api.submitInvoice(CASE_A, RIGHT);
     await as(api, REVIEWER);
-    await api.disputeCompletion(CASE_A, "One door still does not lock.");
+    await api.disputeCompletion(CASE_A, "One pane is still cracked.");
     await as(api, APPROVER);
     expect((await api.getMoneyTrail(CASE_A))!.gate.blockers).toEqual([
       { code: "repair_not_verified" },
@@ -483,15 +526,15 @@ describe("who sees what", () => {
     for (const email of [BUYER, APPROVER]) {
       const trail = (await trailAs(email))!;
       expect(trail.pricesVisible).toBe(true);
-      expect(trail.order.totalCents).toBe(514_000);
-      expect(trail.order.lines[0].unitPriceCents).toBe(18_500);
-      expect(trail.invoices[0].totalCents).toBe(550_000);
+      expect(trail.order.totalCents).toBe(2_055_000);
+      expect(trail.order.lines[0].unitPriceCents).toBe(115_000);
+      expect(trail.invoices[0].totalCents).toBe(2_095_000);
       expect(trail.invoices[0].match!.reasons[0]).toMatchObject({
         code: "unit_price_mismatch",
-        expected: 18_500,
-        actual: 21_500,
+        expected: 48_000,
+        actual: 52_000,
       });
-      expect(trail.steps.map((step) => step.actorName)).toContain("Ms Lerato Dube");
+      expect(trail.steps.map((step) => step.actorName)).toContain("Ms Naledi Dlamini");
     }
   });
 
@@ -500,7 +543,7 @@ describe("who sees what", () => {
     await api.submitInvoice(CASE_A, WRONG);
     const trail = (await api.getMoneyTrail(CASE_A))!;
     expect(trail.pricesVisible).toBe(true);
-    expect(trail.order.totalCents).toBe(588_500);
+    expect(trail.order.totalCents).toBe(420_000);
     expect(trail.invoices[0].totalCents).toBe(WRONG.totalCents);
   });
 
@@ -512,13 +555,13 @@ describe("who sees what", () => {
       for (const key of PRICE_KEYS) expect(keys.has(key), `${email} ${key}`).toBe(false);
       // The reason is still named; its amounts are gone.
       expect(trail.invoices[0].match!.reasons).toEqual([
-        { code: "unit_price_mismatch", sku: "LED-TUBE", expected: null, actual: null },
+        { code: "unit_price_mismatch", sku: "FENCE-POST", expected: null, actual: null },
         { code: "total_mismatch", sku: null, expected: null, actual: null },
       ]);
-      expect(JSON.stringify(trail)).not.toMatch(/18500|21500|514000|550000/);
-      expect(trail.order.lines.map((line) => line.quantity)).toEqual([12, 2, 6]);
-      expect(trail.order.supplierName).toBe("Mahlangu Electrical");
-      expect(trail.steps[0].actorName).toBe("Ms Lerato Dube");
+      expect(JSON.stringify(trail)).not.toMatch(/48000|52000|2055000|2095000/);
+      expect(trail.order.lines.map((line) => line.quantity)).toEqual([9, 10, 3]);
+      expect(trail.order.supplierName).toBe("Mahlangu Fencing");
+      expect(trail.steps[0].actorName).toBe("Ms Naledi Dlamini");
 
       // The plain explanation is written from what this person may see.
       const api = await as(newApi(), email);
@@ -557,17 +600,17 @@ describe("who sees what", () => {
       // No supplier, no person, no amount, no invoice number, no line item.
       for (const secret of [
         "Mahlangu",
-        "Khumalo",
-        "Dube",
-        "Radebe",
-        "Mokoena",
-        "SUP-0",
+        "Emseni",
+        "Zulu",
+        "Dlamini",
+        "Ngcobo",
+        "van Wyk",
+        "SUP-2",
         "INV-",
-        "LED-TUBE",
-        "18500",
-        "21500",
-        "514000",
-        "550000",
+        "FENCE-POST",
+        "115000",
+        "2055000",
+        "2095000",
         "unitPriceCents",
         "totalCents",
         "actorName",
@@ -602,18 +645,35 @@ describe("who sees what", () => {
       type: "work_order",
       sample: true,
     });
+
+    // Without prices: only the two documents that hold none.
+    await as(api, REVIEWER);
+    const priced = await api.getRecordProof(CASE_B, order.eventId);
+    expect(priced && "document" in priced).toBe(false);
+    const delivery = issue.publicTrail!.find(
+      (step) => step.type === "goods_receipt_recorded",
+    )!;
+    expect((await api.getRecordProof(CASE_B, delivery.eventId))?.document).toMatchObject({
+      type: "goods_receipt",
+    });
+    const release = issue.publicTrail!.find(
+      (step) => step.type === "release_authorised",
+    )!;
+    expect((await api.getRecordProof(CASE_B, release.eventId))?.document).toMatchObject({
+      type: "release_decision",
+    });
   });
 });
 
 describe("the invoice draft never invents a field", () => {
   const TEXT = [
-    "Khumalo Building Supplies",
+    "Emseni Building and Electrical Supplies",
     "Invoice number: INV-2042",
     "Order version: 1",
-    "3 x [LOCK-3L] Three-lever mortice lockset @ R 685.00",
-    "2 x [DOOR-CLS] Hydraulic door closer @ R 1 240.00",
-    "3 x [LAB-FIT] Fitting and labour, per door @ R 450.00",
-    "Total: R 5 885.00",
+    "3 x [GLASS-4MM] Clear float glass pane, 4 mm @ R 650.00",
+    "3 x [PUTTY-KIT] Glazing putty and beading kit @ R 150.00",
+    "3 x [LAB-GLAZE] Glazier labour, per pane @ R 600.00",
+    "Total: R 4 200.00",
   ].join("\n");
 
   it("reads every labelled field of a complete invoice", () => {
@@ -621,7 +681,7 @@ describe("the invoice draft never invents a field", () => {
       invoiceNumber: "INV-2042",
       orderVersion: 1,
       lines: CASE_A_LINES,
-      totalCents: 588_500,
+      totalCents: 420_000,
       missing: [],
     });
   });

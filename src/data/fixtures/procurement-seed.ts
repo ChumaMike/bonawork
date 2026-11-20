@@ -5,13 +5,18 @@
  * here has been written to any blockchain, and no money moves anywhere: the
  * last step of the trail is a release instruction.
  *
- * - Case A (`issue-142`): order approved, acknowledged and delivered; the
- *   repair is claimed. It waits for the supplier's invoice, so the demo can
- *   show a wrong invoice blocked, the right one matched, the release gate
- *   locked until the reviewer verifies, and then the release instruction.
- * - Case B (`issue-143`): finished. Its first invoice was blocked on a price,
- *   the second matched, the repair was verified and the release authorised.
- *   It belongs to another supplier, so the sample supplier cannot see it.
+ * - Case A (`issue-124`, the window panes): order approved, acknowledged and
+ *   delivered; the repair is claimed. It waits for the supplier's invoice, so
+ *   the demo can show a wrong invoice blocked, the right one matched, the
+ *   release gate locked until the reviewer verifies, and then the release
+ *   instruction.
+ * - Case B (`issue-97`, the fence): finished. Its first invoice was blocked on
+ *   a price, the second matched, the repair was verified and the release
+ *   authorised. It belongs to another supplier, so the sample supplier cannot
+ *   see it.
+ *
+ * The people and the supplier are the ones the backend demo seeds, so the
+ * fixture preview and the live demo show the same cast.
  */
 import {
   CURRENCY,
@@ -26,7 +31,7 @@ import {
   type WorkOrder,
 } from "@/shared";
 import { linesTotal } from "@/features/procurement/money";
-import type { Issue, TimelineEventType } from "../types";
+import type { Issue, PublicTrailStep } from "../types";
 import { CASE_A_ISSUE_ID, CASE_B_ISSUE_ID, sampleDigest } from "./seed";
 
 /** Everything the fixture keeps about one case's procurement trail. */
@@ -42,7 +47,7 @@ export interface FixtureCase {
   release: ReleaseInstruction | null;
   /** Who verified the repair. The same person may not authorise the release. */
   reviewerId: string | null;
-  /** The named person behind each procurement step, by timeline event id. Null for the rule engine. */
+  /** The named person behind each step of the trail, by step id. Null for the rule engine. */
   actorNames: Record<string, string | null>;
 }
 
@@ -58,71 +63,73 @@ export interface FixtureSupplier {
 
 export const SAMPLE_SUPPLIERS: FixtureSupplier[] = [
   {
-    ref: "SUP-0417",
-    name: "Khumalo Building Supplies",
+    ref: "SUP-2026-0417",
+    name: "Emseni Building and Electrical Supplies",
     userId: "user-supplier",
-    contact: "Mr Sipho Khumalo",
+    contact: "Mr Themba Zulu",
   },
   {
     // No sign-in account: this supplier exists so that another supplier's order is in the data.
-    ref: "SUP-0522",
-    name: "Mahlangu Electrical",
+    ref: "SUP-2026-0522",
+    name: "Mahlangu Fencing",
     userId: "user-supplier-mahlangu",
     contact: "Ms Zodwa Mahlangu",
   },
 ];
 
-const BUYER = { id: "user-buyer", name: "Ms Lerato Dube" };
-const RECEIVER = { id: "user-receiver", name: "Ms Nomsa Radebe" };
-const APPROVER = { id: "user-approver", name: "Mr Thabo Mokoena" };
+const BUYER = { id: "user-buyer", name: "Ms Naledi Dlamini" };
+const RECEIVER = { id: "user-receiver", name: "Mrs Ayanda Ngcobo" };
+const APPROVER = { id: "user-approver", name: "Mr Pieter van Wyk" };
 const REVIEWER_ID = "user-reviewer";
 
+/** Case A: three window panes, fitted. R4 200,00 in all. */
 export const CASE_A_LINES: OrderLine[] = [
   {
-    sku: "LOCK-3L",
-    description: "Three-lever mortice lockset",
+    sku: "GLASS-4MM",
+    description: "Clear float glass pane, 4 mm",
     quantity: 3,
-    unitPriceCents: 68_500,
+    unitPriceCents: 65_000,
   },
   {
-    sku: "DOOR-CLS",
-    description: "Hydraulic door closer",
-    quantity: 2,
-    unitPriceCents: 124_000,
+    sku: "PUTTY-KIT",
+    description: "Glazing putty and beading kit",
+    quantity: 3,
+    unitPriceCents: 15_000,
   },
   {
-    sku: "LAB-FIT",
-    description: "Fitting and labour, per door",
+    sku: "LAB-GLAZE",
+    description: "Glazier labour, per pane",
     quantity: 3,
-    unitPriceCents: 45_000,
+    unitPriceCents: 60_000,
   },
 ];
 
+/** Case B: about twenty metres of fence. R20 550,00 in all. */
 const CASE_B_LINES: OrderLine[] = [
   {
-    sku: "LED-TUBE",
-    description: "LED tube light fitting, 1.2 m",
-    quantity: 12,
-    unitPriceCents: 18_500,
+    sku: "FENCE-MESH",
+    description: "Welded mesh fence panel, 2.4 m",
+    quantity: 9,
+    unitPriceCents: 115_000,
   },
   {
-    sku: "DB-BRK",
-    description: "Circuit breaker, 20 A",
-    quantity: 2,
-    unitPriceCents: 32_000,
+    sku: "FENCE-POST",
+    description: "Concrete fence post",
+    quantity: 10,
+    unitPriceCents: 48_000,
   },
   {
-    sku: "LAB-ELEC",
-    description: "Electrician labour, per hour",
-    quantity: 6,
-    unitPriceCents: 38_000,
+    sku: "LAB-FENCE",
+    description: "Fencing labour, per day",
+    quantity: 3,
+    unitPriceCents: 180_000,
   },
 ];
 
-/** The moments of an issue's timeline events of one type, oldest first, with their ids. */
-function eventsOf(issue: Issue, type: TimelineEventType) {
-  return issue.timeline
-    .filter((event) => event.type === type)
+/** The steps of one type on an issue's trail, oldest first. */
+function stepsOf(issue: Issue, type: PublicTrailStep["type"]): PublicTrailStep[] {
+  return (issue.publicTrail ?? [])
+    .filter((step) => step.type === type)
     .sort((a, b) => a.occurredAt.localeCompare(b.occurredAt));
 }
 
@@ -132,8 +139,8 @@ function orderFor(
   description: string,
   lines: OrderLine[],
 ): WorkOrder {
-  const approved = eventsOf(issue, "work_order_approved")[0];
-  const acknowledged = eventsOf(issue, "work_order_acknowledged")[0];
+  const approved = stepsOf(issue, "work_order_approved")[0];
+  const acknowledged = stepsOf(issue, "work_order_acknowledged").at(0);
   const id = `${issue.id}-order`;
   return {
     id,
@@ -177,7 +184,7 @@ function receiptFor(issue: Issue, order: WorkOrder, at: IsoDateTime): GoodsRecei
   };
 }
 
-/** Names for every seeded procurement step of an issue, by who acted. */
+/** Names for every seeded step of an issue's trail, by who acted. */
 function namesFor(issue: Issue, supplier: FixtureSupplier): FixtureCase["actorNames"] {
   const byActor: Record<string, string | null> = {
     buyer: BUYER.name,
@@ -196,7 +203,7 @@ function caseA(issue: Issue): FixtureCase {
   const order = orderFor(
     issue,
     supplier,
-    "Replace three classroom door locks and two door closers on the Grade 5 corridor, fitted and tested.",
+    "Replace three broken window panes in the Grade 3A classroom, fitted and sealed.",
     CASE_A_LINES,
   );
   return {
@@ -204,7 +211,7 @@ function caseA(issue: Issue): FixtureCase {
     order,
     invoices: [],
     receipts: [
-      receiptFor(issue, order, eventsOf(issue, "goods_receipt_recorded")[0].occurredAt),
+      receiptFor(issue, order, stepsOf(issue, "goods_receipt_recorded")[0].occurredAt),
     ],
     matches: [],
     release: null,
@@ -218,20 +225,20 @@ function caseB(issue: Issue): FixtureCase {
   const order = orderFor(
     issue,
     supplier,
-    "Replace twelve ceiling light fittings and two circuit breakers in the school hall.",
+    "Rebuild about 20 metres of perimeter fence on the east side, on concrete posts.",
     CASE_B_LINES,
   );
-  const submitted = eventsOf(issue, "invoice_submitted");
-  const matched = eventsOf(issue, "match_recorded");
+  const submitted = stepsOf(issue, "invoice_submitted");
+  const matched = stepsOf(issue, "match_recorded");
   const receipt = receiptFor(
     issue,
     order,
-    eventsOf(issue, "goods_receipt_recorded")[0].occurredAt,
+    stepsOf(issue, "goods_receipt_recorded")[0].occurredAt,
   );
 
-  // The first invoice charged more per light fitting than the order allows.
+  // The first invoice charged more per post than the order allows.
   const overpriced = order.lines.map((line) =>
-    line.sku === "LED-TUBE" ? { ...line, unitPriceCents: 21_500 } : line,
+    line.sku === "FENCE-POST" ? { ...line, unitPriceCents: 52_000 } : line,
   );
   const invoice = (
     number: number,
@@ -279,7 +286,12 @@ function caseB(issue: Issue): FixtureCase {
   };
   const matches = [
     match(1, [
-      { code: "unit_price_mismatch", sku: "LED-TUBE", expected: 18_500, actual: 21_500 },
+      {
+        code: "unit_price_mismatch",
+        sku: "FENCE-POST",
+        expected: 48_000,
+        actual: 52_000,
+      },
       {
         code: "total_mismatch",
         sku: null,
@@ -303,7 +315,7 @@ function caseB(issue: Issue): FixtureCase {
       matchId: matches[1].id,
       reviewId: `${issue.id}-review`,
       authorisedBy: APPROVER.id,
-      createdAt: eventsOf(issue, "release_authorised")[0].occurredAt,
+      createdAt: stepsOf(issue, "release_authorised")[0].occurredAt,
       commitment: sampleDigest(releaseId),
       receipt: null,
     },
