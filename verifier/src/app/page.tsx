@@ -141,7 +141,7 @@ function HowItWorks({ trust }: { trust: Trust }) {
           </dd>
         </dl>
 
-        <h2 className="mt-4 text-base font-semibold">The five answers</h2>
+        <h2 className="mt-4 text-base font-semibold">What each answer means</h2>
         <dl className="mt-1">
           {OUTCOME_GUIDE.map(({ outcome, plain, means }) => (
             <div key={outcome} className="mt-2 first:mt-0">

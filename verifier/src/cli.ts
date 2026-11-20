@@ -11,7 +11,8 @@
  * Environment: VERIFY_RPC_URL, VERIFY_CHAIN_ID, VERIFY_CONTRACT_ADDRESS,
  * VERIFY_FACTORY_ADDRESS (or --factory: accept contracts this BonaChainFactory created).
  *
- * Exit codes: 0 VERIFIED · 1 MISMATCH · 2 NOT_FOUND · 3 REJECTED · 4 CANNOT_VERIFY · 64 usage.
+ * Exit codes: 0 VERIFIED · 1 MISMATCH · 2 NOT_FOUND · 3 REJECTED · 4 CANNOT_VERIFY ·
+ * 5 RECORDED (on the ledger, content not compared: nothing was supplied) · 64 usage.
  */
 import { readFile } from "node:fs/promises";
 import { loadVerifierConfig } from "./lib/config";
@@ -25,6 +26,7 @@ import {
 
 const EXIT: Record<Overall, number> = {
   VERIFIED: 0,
+  RECORDED: 5,
   MISMATCH: 1,
   NOT_FOUND: 2,
   REJECTED: 3,

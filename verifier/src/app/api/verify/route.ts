@@ -15,6 +15,10 @@ import type { Source } from "../../../lib/verify";
  *   `matchPassed` (boolean: the document's outcome is "pass") may be sent so
  *   the ledger's own values are compared with them.
  *
+ * With a receipt and nothing else, the record's presence is checked: the
+ * result is RECORDED and carries the fingerprint the ledger holds, which was
+ * not compared with anything.
+ *
  * Files and documents are hashed in memory and discarded; nothing is stored or
  * logged. The response contains only fingerprints, the tx hash, block,
  * timestamp and the verification steps — never the content.
