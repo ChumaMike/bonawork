@@ -225,6 +225,11 @@ export const PublicTrailStepSchema = z.object({
   occurredAt: IsoDateTimeSchema,
   /** A code-written constant sentence. Never free text, never an amount. */
   note: z.string(),
+  /**
+   * Only on `match_recorded` steps: which way the rule engine decided. It is
+   * not an amount or a name, and the same answer is on the ledger.
+   */
+  outcome: MatchOutcomeSchema.optional(),
   ledger: TrailProofSchema,
 });
 export type PublicTrailStep = z.infer<typeof PublicTrailStepSchema>;

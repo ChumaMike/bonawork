@@ -1,6 +1,11 @@
 import type { ReportStatus } from "../domain";
 import type { Id } from "../primitives";
-import type { MatchResult, ReleaseGate } from "./types";
+import type {
+  MatchResult,
+  ReleaseBlocker,
+  ReleaseBlockerCode,
+  ReleaseGate,
+} from "./types";
 
 export interface ReleaseGateInput {
   /** The report status. Only `verified` lets a release through. */
@@ -30,6 +35,27 @@ export interface ReleaseGateInput {
  * Returns every blocker, in the order of `RELEASE_BLOCKER_CODES`.
  */
 export function releaseGate(input: ReleaseGateInput): ReleaseGate {
-  void input;
-  throw new Error("not implemented");
+  const blockers: ReleaseBlocker[] = [];
+  const block = (code: ReleaseBlockerCode) => blockers.push({ code });
+
+  if (input.reportStatus !== "verified") block("repair_not_verified");
+  if (
+    !input.latestMatch ||
+    input.latestMatch.outcome !== "matched" ||
+    input.latestMatch.orderVersion !== input.orderVersion
+  ) {
+    block("no_matching_invoice");
+  }
+  if (input.acknowledgedVersion !== input.orderVersion) block("order_not_acknowledged");
+  if (input.alreadyReleased) block("already_released");
+
+  const acted = [
+    input.approverId,
+    input.invoicerId,
+    ...input.receiverIds,
+    input.reviewerId,
+  ];
+  if (acted.includes(input.authoriserId)) block("same_person");
+
+  return { open: blockers.length === 0, blockers };
 }
