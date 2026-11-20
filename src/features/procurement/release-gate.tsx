@@ -68,9 +68,9 @@ export function gateChecklist(
 }
 
 const CHECK_STYLE: Record<CheckKind, { icon: IconName; tone: string }> = {
-  done: { icon: "check", tone: "text-st-verified" },
-  problem: { icon: "alert", tone: "text-danger" },
-  waiting: { icon: "clock", tone: "text-accent" },
+  done: { icon: "check", tone: "bg-st-verified-soft text-st-verified" },
+  problem: { icon: "alert", tone: "bg-danger-soft text-danger" },
+  waiting: { icon: "clock", tone: "bg-accent-soft text-accent" },
 };
 
 /**
@@ -130,7 +130,7 @@ export function ReleaseGate({
       body: g.lockedCount(blocking.length),
     },
     open: {
-      icon: "lock",
+      icon: "lockOpen",
       ground: "bg-st-verified-soft text-st-verified",
       title: g.openTitle,
       body: g.openBody,
@@ -193,7 +193,7 @@ export function ReleaseGate({
           role="list"
           aria-label={g.checklist}
           data-testid="gate-checklist"
-          className="flex flex-col gap-2"
+          className="flex flex-col gap-2.5"
         >
           {checks.map((check) => {
             const style = CHECK_STYLE[check.kind];
@@ -204,10 +204,23 @@ export function ReleaseGate({
                 tabIndex={check.key === firstBlockingKey ? -1 : undefined}
                 data-check={check.key}
                 data-kind={check.kind}
-                className="flex items-start gap-2.5 rounded-lg"
+                className="flex items-start gap-3 rounded-lg"
               >
-                <Icon name={style.icon} className={cn("mt-0.5 size-5", style.tone)} />
-                <span className={check.kind === "done" ? "text-muted" : "font-semibold"}>
+                <span
+                  aria-hidden="true"
+                  className={cn(
+                    "flex size-7 shrink-0 items-center justify-center rounded-full",
+                    style.tone,
+                  )}
+                >
+                  <Icon name={style.icon} className="size-4" />
+                </span>
+                <span
+                  className={cn(
+                    "pt-0.5",
+                    check.kind === "done" ? "text-muted" : "font-semibold",
+                  )}
+                >
                   <span className="sr-only">{g.state[check.kind]} </span>
                   {check.text}
                 </span>

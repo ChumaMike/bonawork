@@ -17,9 +17,12 @@ export function CaseLine({
   item: Pick<WorkQueueItem, "reference" | "schoolName">;
 }) {
   return (
-    <p className="flex flex-wrap items-center gap-x-2 text-sm text-muted">
+    <p className="flex flex-col text-sm text-muted sm:flex-row sm:flex-wrap sm:items-center sm:gap-x-2">
       <span className="font-mono">{item.reference}</span>
-      <span aria-hidden="true">·</span>
+      {/* On a phone the two sit on their own lines, so the dot would dangle. */}
+      <span aria-hidden="true" className="hidden sm:inline">
+        ·
+      </span>
       <span>{item.schoolName}</span>
     </p>
   );
@@ -45,7 +48,9 @@ export function NextCard({
     <Card
       data-testid="next-card"
       data-action={item.action}
-      className="flex flex-col gap-3"
+      // Once the release is authorised inside this card, the gate says so itself:
+      // the queue's older "waiting" line would contradict it, so it steps aside.
+      className="flex flex-col gap-3 [&:has([data-gate=authorised])_[data-waiting-line]]:hidden"
     >
       <p className="text-sm font-semibold tracking-wide text-muted uppercase">
         {h.nextForYou}
@@ -54,7 +59,10 @@ export function NextCard({
         <CaseLine item={item} />
         <h2 className="mt-1 text-2xl">{item.title}</h2>
       </div>
-      <p className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted">
+      <p
+        data-waiting-line=""
+        className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted"
+      >
         <StagePill stage={item.stage} />
         <span>{h.waitingSince(timeAgo(item.since, m))}</span>
       </p>

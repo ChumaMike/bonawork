@@ -163,15 +163,17 @@ export function SignInScreen() {
   const passwordInvalid = error !== null && !password;
 
   return (
-    <Container size="narrow">
-      {/* The logo above the heading, with its clear space around it. */}
-      <BrandLogo className="mb-5" />
-      <PageHeader title={a.title} intro={a.intro} />
+    <Container>
+      <div className="mx-auto max-w-2xl">
+        {/* The logo above the heading, with its clear space around it. */}
+        <BrandLogo className="mb-5" />
+        <PageHeader title={a.title} intro={a.intro} />
+      </div>
 
       {demoAccounts.length > 0 ? (
         <section
           aria-labelledby="sample-accounts"
-          className="mb-8 rounded-2xl border border-dashed border-accent bg-accent-soft p-4 sm:p-5"
+          className="mx-auto mb-8 max-w-2xl rounded-2xl border border-dashed border-accent bg-accent-soft p-4 sm:p-5 xl:max-w-5xl"
         >
           <h2 id="sample-accounts" className="font-semibold text-accent">
             {a.sampleTitle}
@@ -187,7 +189,7 @@ export function SignInScreen() {
                 <h3 className="mt-4 text-sm font-semibold tracking-wide text-muted uppercase">
                   {s.groups[group.id]}
                 </h3>
-                <ul className="mt-2 grid gap-2 md:grid-cols-2">
+                <ul className="mt-2 grid gap-2 md:grid-cols-2 xl:grid-cols-3">
                   {accounts.map((account) => {
                     const entering = demoFor?.email === account.email && busy;
                     const step = s.step[account.role as keyof typeof s.step];
@@ -220,8 +222,11 @@ export function SignInScreen() {
                                 </span>
                               ) : null}
                             </span>
-                            <span className="block text-sm break-all text-muted">
-                              {account.displayName} · {account.email}
+                            <span className="block text-sm text-muted">
+                              {account.displayName}
+                            </span>
+                            <span className="block truncate font-mono text-xs text-muted">
+                              {account.email}
                             </span>
                             <span className="mt-1 block text-sm">
                               {a.roleCan[account.role]}
@@ -248,7 +253,11 @@ export function SignInScreen() {
         </section>
       ) : null}
 
-      <form onSubmit={submit} noValidate className="flex flex-col gap-6">
+      <form
+        onSubmit={submit}
+        noValidate
+        className="mx-auto flex max-w-2xl flex-col gap-6"
+      >
         <Field id="sign-in-email" label={a.email} hint={a.emailHint}>
           <Input
             id="sign-in-email"
@@ -313,7 +322,7 @@ export function SignInScreen() {
         <p className="text-sm text-muted">{a.sessionNote}</p>
       </form>
 
-      <p className="mt-8 text-muted">{a.noAccountNeeded}</p>
+      <p className="mx-auto mt-8 max-w-2xl text-muted">{a.noAccountNeeded}</p>
     </Container>
   );
 }

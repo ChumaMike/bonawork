@@ -159,10 +159,11 @@ export function SiteHeader() {
           ) : null}
           {school ? (
             // Phones have no room beside the wordmark; the page title names the school there.
+            // Between lg and xl the menu needs the room too, so the header stays on one row.
             <Link
               href={`/schools/${school.id}`}
               data-testid="school-context"
-              className="hidden min-h-11 max-w-56 items-center gap-1.5 rounded-full bg-brand-soft px-3 text-sm font-semibold text-brand-strong sm:inline-flex lg:max-w-xs"
+              className="hidden min-h-11 max-w-56 items-center gap-1.5 rounded-full bg-brand-soft px-3 text-sm font-semibold text-brand-strong sm:inline-flex lg:hidden xl:inline-flex"
             >
               <Icon name="mapPin" className="size-4 shrink-0" />
               <span className="truncate">{m.nav.atSchool(school.name)}</span>
@@ -234,21 +235,24 @@ function AccountArea({ compact = false }: { compact?: boolean }) {
         className="inline-flex min-h-11 min-w-0 items-center gap-2 rounded-lg px-1.5 hover:bg-brand-soft"
       >
         <Avatar name={session.user.displayName} size="sm" />
-        <span className="flex min-w-0 flex-col text-left leading-tight">
+        <span
+          className={cn(
+            "flex min-w-0 text-left leading-tight",
+            // On a phone the account sits on its own row: name and role side by side.
+            compact ? "items-center gap-2" : "flex-col",
+          )}
+        >
           <span
             className={cn(
               "truncate text-sm font-semibold",
-              compact ? "max-w-24" : "whitespace-nowrap",
+              compact ? "max-w-40" : "whitespace-nowrap",
             )}
           >
             {session.user.displayName}
           </span>
-          {/* Phones have no room for the role line; it stays in the link's label. */}
-          {compact ? null : (
-            <span className="inline-flex w-fit items-center rounded-full bg-earth-soft px-2 text-xs font-semibold whitespace-nowrap text-earth-strong">
-              {role}
-            </span>
-          )}
+          <span className="inline-flex w-fit shrink-0 items-center rounded-full bg-earth-soft px-2 text-xs font-semibold whitespace-nowrap text-earth-strong">
+            {role}
+          </span>
         </span>
       </Link>
       {compact ? null : (

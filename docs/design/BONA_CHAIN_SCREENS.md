@@ -220,7 +220,7 @@ of the rows never changes, even when the delivery is recorded before the invoice
 ```
 (●)  Work order approved                       <- h3, font-semibold
  |   [Programme buyer]  ·  20 Nov, 09:14       <- Badge + <time>
- |   [ On Avalanche Fuji ✓ ]  See proof        <- LedgerChip + ProofButton
+ |   [ On Avalanche Fuji ✓ ]  Show proof        <- LedgerChip + ProofButton
  |
 (◌)  Supplier acknowledged the order   [Next]
  ┆   Waiting for the supplier to acknowledge the order.
@@ -233,7 +233,7 @@ of the rows never changes, even when the delivery is recorded before the invoice
   last done row. A blocked row keeps a solid rail above it and a dashed one below.
 - The role is a `Badge` in the `earth` tone. The time is a `<time datetime>`: relative when
   under a day old ("2 hours ago"), otherwise "20 Nov, 09:14".
-- The proof chip is the existing `LedgerChip` plus `ProofButton` ("See proof"), from
+- The proof chip is the existing `LedgerChip` plus `ProofButton` ("Show proof"), from
   `TrailProof`: a `ledger` receipt reads "On Avalanche Fuji"; `simulated` reads
   "Simulated record" and never shows a transaction; `none` reads "Not recorded yet".
 - At 1440 px the trail keeps a reading width (`max-w-xl`); it does not stretch.

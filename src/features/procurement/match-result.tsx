@@ -49,9 +49,14 @@ export function MatchResult({
         aria-labelledby={`match-${match.id}`}
         className="flex gap-3 rounded-2xl border border-st-verified bg-st-verified-soft p-4"
       >
-        <Icon name="shieldCheck" className="mt-0.5 size-6 text-st-verified" />
+        <span
+          aria-hidden="true"
+          className="flex size-11 shrink-0 items-center justify-center rounded-full bg-surface text-st-verified"
+        >
+          <Icon name="shieldCheck" className="size-6" />
+        </span>
         <div className="min-w-0">
-          <h3 id={`match-${match.id}`} className="text-lg font-semibold">
+          <h3 id={`match-${match.id}`} className="text-xl font-semibold">
             {t.matchedTitle}
           </h3>
           <p>{t.matchedBody}</p>
@@ -69,9 +74,14 @@ export function MatchResult({
       className="flex flex-col gap-4"
     >
       <div className="flex gap-3">
-        <Icon name="alert" className="mt-0.5 size-6 text-danger" />
+        <span
+          aria-hidden="true"
+          className="flex size-11 shrink-0 items-center justify-center rounded-full bg-danger text-on-brand"
+        >
+          <Icon name="alert" className="size-6" />
+        </span>
         <div className="min-w-0">
-          <h3 id={`match-${match.id}`} className="text-lg font-semibold">
+          <h3 id={`match-${match.id}`} className="text-xl font-semibold">
             {t.blockedTitle}
           </h3>
           <p>

@@ -3,6 +3,41 @@
 Branch `design/brand`, worktree `BonaChain-design`. Newest entry first. The coordinator merges;
 nothing here has been pushed, merged or deployed.
 
+## 4. Polish pass on the real screens (deliverable C)
+
+Done on `main` at `2b156a9`, on the fixture data, walking the demo path as every role at 390,
+768 and 1440 px. The walk found no sideways scroll, no touch target under 44 px and no script
+error on any screen, so the pass is small and visual.
+
+**What changed** (class names, layout markup and one new icon; no data types, API calls,
+routes, rules or wording files)
+
+| File                                        | Change                                                                                                                                                                                                                                               |
+| ------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `src/components/ui/icon.tsx`                | New icon `lockOpen`.                                                                                                                                                                                                                                 |
+| `src/features/procurement/release-gate.tsx` | The gate shows an open padlock when the release can be authorised. Each checklist row has a round marker: done, waiting or problem.                                                                                                                  |
+| `src/features/procurement/work-queue.tsx`   | The reference and the school no longer leave a dangling dot on a phone. Once the release is authorised inside the card, the queue's older "Ready for release · Waiting since" line is hidden (CSS only), so the card no longer contradicts the gate. |
+| `src/features/procurement/match-result.tsx` | The outcome icon sits in a filled circle (red for blocked), and the heading is one size larger.                                                                                                                                                      |
+| `src/features/auth/sign-in-screen.tsx`      | The demo cards use three columns from 1280 px; the panel may be wider than the form. The name and the address each get a line, so an address never breaks mid-word.                                                                                  |
+| `src/components/chrome.tsx`                 | Phone header: the role is shown beside the signed-in name. Case pages: the "At <school>" pill is hidden between 1024 and 1279 px, so the header stays on one row.                                                                                    |
+
+**Left alone, on purpose**
+
+- The sticky action bar on phones and the toast region: both need new behaviour, not styling.
+  Success messages show inline and read well.
+- The verifier app (`verifier/**`): another builder is editing it. Its header still shows the
+  old brick logo; that swap is the one brand item still open.
+- Wording that belongs to builder C in `src/i18n/en.ts`: the sign-in intro still reads "For
+  school administrators, independent reviewers and registered reporters", which leaves out
+  the four new roles; and the manifest description still describes BonaBlock.
+- "In plain words" under a blocked invoice repeats the reason list word for word when Bona AI
+  is off. It is correct, only repetitive; the fix is in the explanation text, not the layout.
+
+**Checks**: `pnpm check` passed (589 app tests, 149 verifier tests). Browser tests passed on
+the local fixture app: the procurement demo path, journeys, accessibility and staff. Those
+tests rewrite `docs/screenshots/frontend/*.png`; I restored the files, so the commit does not
+touch them.
+
 ## 3. The logo (deliverable A, second half)
 
 The owner picked **Seeing links** on 20 November (option 1 on the options page; the pick is
