@@ -134,7 +134,7 @@ export const procurement = {
     title: "The work order",
     supplierRef: "Supplier reference",
     supplierRefHint:
-      "The registration reference of the supplier who will do the work, for example SUP-0417.",
+      "The registration reference of the supplier who will do the work, for example SUP-2026-0417.",
     scope: "Scope of work",
     scopeHint:
       "What must be done, in plain words. The supplier and the school will read this.",

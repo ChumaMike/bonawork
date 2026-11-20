@@ -9,6 +9,7 @@ import { Icon } from "@/components/ui/icon";
 import { LoadError, Loading, Notice } from "@/components/ui/page";
 import { StatusPill } from "@/components/ui/status-pill";
 import { ApiError, getApi } from "@/data/api";
+import { ReleaseBlockedError } from "@/data/http-api";
 import { useSession } from "@/data/session";
 import type { Issue, MoneyTrail } from "@/data/types";
 import { useQuery } from "@/data/use-query";
@@ -367,6 +368,7 @@ function ReleaseBody({
   const [conflict, setConflict] = useState(false);
 
   if (!trail) return <NotYours />;
+  const shown = trail;
 
   async function authorise() {
     try {
@@ -376,7 +378,11 @@ function ReleaseBody({
       update(next);
     } catch (cause) {
       setConflict(true);
-      // The gate was shut after all: show what the backend says now.
+      // The gate was shut after all. Lock the card with the blockers the
+      // backend returned, then show the case as it stands now.
+      if (cause instanceof ReleaseBlockedError) {
+        update({ ...shown, gate: { open: false, blockers: cause.blockers } });
+      }
       if (cause instanceof ApiError && cause.code === "conflict") {
         const fresh = await getApi()
           .getMoneyTrail(issue.id)

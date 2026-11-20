@@ -97,16 +97,23 @@ interface SeedEvent {
   actor: ActorRole;
   daysAgo: number;
   note: string;
-  /** Only on a rule-engine step: which way it decided. */
-  outcome?: PublicTrailStep["outcome"];
 }
 
 type FinanceEventType = PublicTrailStep["type"];
 
+/** One procurement step of a sample case. It carries a role, a time and nothing private. */
+interface SeedStep {
+  type: FinanceEventType;
+  actor: PublicTrailStep["actor"];
+  daysAgo: number;
+  /** Only on a rule-engine step: which way it decided. */
+  outcome?: PublicTrailStep["outcome"];
+}
+
 /**
  * The sentence written on each procurement step. These are constants written
  * by code: no amount, no supplier name and no person's name ever appears in
- * one, because the public timeline carries them.
+ * one, because the public trail carries them.
  */
 export const FINANCE_NOTE: Record<FinanceEventType, string> = {
   work_order_approved: "A programme buyer approved a work order for this repair.",
@@ -120,37 +127,45 @@ export const FINANCE_NOTE: Record<FinanceEventType, string> = {
     "A payment approver authorised the release instruction. No money moves on this platform.",
 };
 
-/** True for the procurement steps of a timeline. */
+/** True for the type of a procurement step. */
 export function isFinanceEvent(type: TimelineEventType): type is FinanceEventType {
   return type in FINANCE_NOTE;
 }
 
 /**
- * The public view of one procurement step: role, time and proof. A rule-engine
- * step also says which way it decided. Nothing else. Null for any other event.
+ * One procurement step as anyone may see it: role, time and proof. A
+ * rule-engine step also says which way it decided. Nothing else.
+ *
+ * As on the backend, a procurement step is never an entry of the issue's
+ * timeline: it exists only on the public trail and in the staff money trail.
  */
-export function publicStepOf(
-  event: TimelineEvent,
-  outcome?: PublicTrailStep["outcome"],
-): PublicTrailStep | null {
-  if (!isFinanceEvent(event.type)) return null;
+export function publicStep(input: {
+  id: string;
+  type: FinanceEventType;
+  actor: PublicTrailStep["actor"];
+  occurredAt: IsoDateTime;
+  ledger: LedgerRecord;
+  outcome?: PublicTrailStep["outcome"];
+}): PublicTrailStep {
   return {
-    eventId: event.id,
-    type: event.type,
-    actor: event.actor as PublicTrailStep["actor"],
-    occurredAt: event.occurredAt,
-    note: FINANCE_NOTE[event.type],
-    ...(event.type === "match_recorded" && outcome ? { outcome } : {}),
-    ledger: event.ledger,
+    eventId: input.id,
+    type: input.type,
+    actor: input.actor,
+    occurredAt: input.occurredAt,
+    note: FINANCE_NOTE[input.type],
+    ...(input.type === "match_recorded" && input.outcome
+      ? { outcome: input.outcome }
+      : {}),
+    ledger: input.ledger,
   };
 }
 
-const finance = (
+const step = (
   type: FinanceEventType,
   actor: PublicTrailStep["actor"],
   daysAgo: number,
   outcome?: PublicTrailStep["outcome"],
-): SeedEvent => ({ type, actor, daysAgo, note: FINANCE_NOTE[type], outcome });
+): SeedStep => ({ type, actor, daysAgo, outcome });
 
 interface SeedEvidence {
   purpose: EvidencePurpose;
@@ -180,6 +195,8 @@ interface SeedIssue {
   evidence: SeedEvidence[];
   /** Show the sample "recorded" design for this issue. Still not a real record. */
   simulatedLedger?: boolean;
+  /** The procurement steps of the case, oldest first. Never part of `events`. */
+  steps?: SeedStep[];
 }
 
 const schoolLevel = (name: string): Issue["authority"] => ({
@@ -278,6 +295,12 @@ const SEED_ISSUES: SeedIssue[] = [
     evidence: [
       { purpose: "problem", addedBy: "community", daysAgo: 8 },
       { purpose: "repair_claim", addedBy: "school_admin", daysAgo: 1 },
+    ],
+    // Case A: glass ordered, acknowledged and delivered. No invoice yet.
+    steps: [
+      step("work_order_approved", "buyer", 6),
+      step("work_order_acknowledged", "supplier", 5),
+      step("goods_receipt_recorded", "receiving_officer", 2),
     ],
   },
   {
@@ -403,6 +426,17 @@ const SEED_ISSUES: SeedIssue[] = [
       { purpose: "repair_claim", addedBy: "school_admin", daysAgo: 10 },
       { purpose: "review", addedBy: "reviewer", daysAgo: 6 },
     ],
+    // Case B: the first invoice was blocked, the second matched, the release is authorised.
+    steps: [
+      step("work_order_approved", "buyer", 36),
+      step("work_order_acknowledged", "supplier", 35),
+      step("goods_receipt_recorded", "receiving_officer", 19),
+      step("invoice_submitted", "supplier", 18),
+      step("match_recorded", "system", 17.99, "blocked"),
+      step("invoice_submitted", "supplier", 16),
+      step("match_recorded", "system", 15.99, "matched"),
+      step("release_authorised", "payment_approver", 5),
+    ],
   },
   {
     number: 102,
@@ -522,120 +556,19 @@ const SEED_ISSUES: SeedIssue[] = [
     ],
     evidence: [{ purpose: "problem", addedBy: "community", daysAgo: 6 }],
   },
-  /*
-   * The two procurement cases. Their orders, invoices and receipts are in
-   * `procurement-seed.ts`; the steps below are what the public timeline shows.
-   */
-  {
-    // Case A: order approved, acknowledged and delivered. Ready for an invoice.
-    number: 142,
-    schoolId: "thuto-lesedi-primary",
-    category: "safety",
-    title: "Classroom doors in Grade 5 do not lock",
-    location: "Grade 5 corridor, first floor",
-    description:
-      "Three classroom doors cannot be locked and two slam shut in the wind. Bags have gone missing during break and a child had fingers caught in a door.",
-    status: "repair_claimed",
-    endorsements: 18,
-    authority: districtLevel("Sample District A"),
-    review: { state: "awaiting", daysAgo: 2 },
-    events: [
-      {
-        type: "reported",
-        actor: "community",
-        daysAgo: 21,
-        note: "Reported by a caregiver with one photo.",
-      },
-      {
-        type: "assessment_started",
-        actor: "school_admin",
-        daysAgo: 19,
-        note: "The caretaker checked every door on the corridor. Three locks and two closers must be replaced.",
-      },
-      finance("work_order_approved", "buyer", 16),
-      finance("work_order_acknowledged", "supplier", 15),
-      {
-        type: "progress_recorded",
-        actor: "school_admin",
-        daysAgo: 6,
-        note: "The supplier is booked to fit the new locks and closers this week.",
-      },
-      finance("goods_receipt_recorded", "receiving_officer", 4),
-      {
-        type: "repair_claimed",
-        actor: "school_admin",
-        daysAgo: 2,
-        note: "The school says three new locks and two door closers were fitted. An independent reviewer has been asked to check.",
-      },
-    ],
-    evidence: [
-      { purpose: "problem", addedBy: "community", daysAgo: 21 },
-      { purpose: "repair_claim", addedBy: "school_admin", daysAgo: 2 },
-    ],
-  },
-  {
-    // Case B: release authorised, with a blocked first invoice in its history.
-    number: 143,
-    schoolId: "thuto-lesedi-primary",
-    category: "electricity",
-    title: "Ceiling lights in the school hall do not work",
-    location: "School hall",
-    description:
-      "Most of the ceiling lights in the hall are dead. Assemblies and exams in the hall happen in poor light on cloudy days.",
-    status: "independently_verified",
-    endorsements: 15,
-    authority: districtLevel("Sample District A"),
-    review: {
-      state: "verified",
-      daysAgo: 9,
-      note: "I counted twelve working light fittings in the hall and tested both breakers.",
-    },
-    simulatedLedger: true,
-    events: [
-      {
-        type: "reported",
-        actor: "community",
-        daysAgo: 34,
-        note: "Reported by a caregiver with one photo.",
-      },
-      {
-        type: "assessment_started",
-        actor: "school_admin",
-        daysAgo: 32,
-        note: "The school confirmed that twelve light fittings and two breakers must be replaced.",
-      },
-      finance("work_order_approved", "buyer", 30),
-      finance("work_order_acknowledged", "supplier", 29),
-      finance("goods_receipt_recorded", "receiving_officer", 21),
-      finance("invoice_submitted", "supplier", 20),
-      finance("match_recorded", "system", 19.99, "blocked"),
-      finance("invoice_submitted", "supplier", 18),
-      finance("match_recorded", "system", 17.99, "matched"),
-      {
-        type: "repair_claimed",
-        actor: "school_admin",
-        daysAgo: 12,
-        note: "The school says the hall lights were replaced.",
-      },
-      {
-        type: "verified",
-        actor: "reviewer",
-        daysAgo: 9,
-        note: "I counted twelve working light fittings in the hall and tested both breakers.",
-      },
-      finance("release_authorised", "payment_approver", 8),
-    ],
-    evidence: [
-      { purpose: "problem", addedBy: "community", daysAgo: 34 },
-      { purpose: "repair_claim", addedBy: "school_admin", daysAgo: 12 },
-      { purpose: "review", addedBy: "reviewer", daysAgo: 9 },
-    ],
-  },
 ];
 
-/** The fixture ids of the two procurement cases. */
-export const CASE_A_ISSUE_ID = "issue-142";
-export const CASE_B_ISSUE_ID = "issue-143";
+/**
+ * The two issues that carry a procurement trail (`procurement-seed.ts`).
+ * Nothing about their public record changes: the steps are on the trail only.
+ *
+ * - Case A, the window panes: repair claimed; order approved, acknowledged and
+ *   delivered. It waits for the supplier's invoice.
+ * - Case B, the fence: verified, and its release authorised, after a first
+ *   invoice that the rules blocked.
+ */
+export const CASE_A_ISSUE_ID = "issue-124";
+export const CASE_B_ISSUE_ID = "issue-97";
 
 /**
  * Sample sign-in accounts. They exist only in the fixture layer; the real
@@ -693,11 +626,11 @@ export const SAMPLE_ACCOUNTS: { email: string; session: Session }[] = [
   },
   /* The four procurement roles. Each is a named, invented person. */
   {
-    email: "buyer@programme.demo",
+    email: "buyer@vaalridge.demo",
     session: {
       user: {
         id: "user-buyer",
-        displayName: "Ms Lerato Dube",
+        displayName: "Ms Naledi Dlamini",
         role: "buyer",
         institutionId: null,
       },
@@ -705,11 +638,11 @@ export const SAMPLE_ACCOUNTS: { email: string; session: Session }[] = [
     },
   },
   {
-    email: "supplier@khumalo.demo",
+    email: "supplier@emseni-supplies.demo",
     session: {
       user: {
         id: "user-supplier",
-        displayName: "Mr Sipho Khumalo",
+        displayName: "Mr Themba Zulu",
         role: "supplier",
         institutionId: null,
       },
@@ -717,23 +650,24 @@ export const SAMPLE_ACCOUNTS: { email: string; session: Session }[] = [
     },
   },
   {
-    email: "receiving@thuto-lesedi.demo",
+    // The receiving officer works at the school the goods are delivered to.
+    email: "receiving@thandolwethu.demo",
     session: {
       user: {
         id: "user-receiver",
-        displayName: "Ms Nomsa Radebe",
+        displayName: "Mrs Ayanda Ngcobo",
         role: "receiving_officer",
-        institutionId: null,
+        institutionId: "thuto-lesedi-primary",
       },
       permissions: ["receipt:record", "procurement:read"],
     },
   },
   {
-    email: "payments@district.demo",
+    email: "approver@vaalridge.demo",
     session: {
       user: {
         id: "user-approver",
-        displayName: "Mr Thabo Mokoena",
+        displayName: "Mr Pieter van Wyk",
         role: "payment_approver",
         institutionId: null,
       },
@@ -815,8 +749,15 @@ export function buildSampleIssues(now: number = Date.now()): Issue[] {
         : null,
       timeline,
       evidence,
-      publicTrail: timeline.flatMap(
-        (event, index) => publicStepOf(event, seed.events[index].outcome) ?? [],
+      publicTrail: (seed.steps ?? []).map((entry, index) =>
+        publicStep({
+          id: `${id}-step-${index + 1}`,
+          type: entry.type,
+          actor: entry.actor,
+          occurredAt: iso(entry.daysAgo),
+          ledger,
+          outcome: entry.outcome,
+        }),
       ),
     };
   });

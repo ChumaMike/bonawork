@@ -191,3 +191,8 @@ const dayAndTime = new Intl.DateTimeFormat("en-ZA", {
   minute: "2-digit",
   hour12: false,
 });
+
+// The day and the time, always in full: "20 Nov, 09:14". For a sentence such as "Authorised on ...".
+export function trailDateTime(iso: string): string {
+  return dayAndTime.format(new Date(iso));
+}

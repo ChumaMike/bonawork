@@ -20,24 +20,19 @@ import {
   type Invoice,
   type IsoDateTime,
   type Permission,
-  type WorkOrder,
 } from "@/shared";
 import { linesTotal } from "@/features/procurement/money";
 import type { BonaApi } from "../api";
 import { ApiError } from "../errors";
-import type {
-  ActorRole,
-  Issue,
-  MoneyTrail,
-  ReleaseBlocker,
-  Session,
-  TimelineEvent,
-  TimelineEventType,
-} from "../types";
+import { ReleaseBlockedError } from "../http-api";
+import type { Issue, MoneyTrail, PublicTrailStep, Session } from "../types";
 import { draftInvoiceFromText } from "./invoice-text";
 import { gateFor, latestMatch, queueFor, trailFor } from "./procurement-rules";
 import { SAMPLE_SUPPLIERS, type FixtureCase } from "./procurement-seed";
 import { FINANCE_NOTE, sampleDigest } from "./seed";
+
+type FinanceStep = keyof typeof FINANCE_NOTE;
+type User = Session["user"];
 
 /** What the procurement methods need from the fixture they live in. */
 export interface ProcurementContext {
@@ -48,13 +43,14 @@ export interface ProcurementContext {
   issues(): Issue[];
   find(idOrReference: string): Issue | undefined;
   cases(): Record<string, FixtureCase>;
-  addEvent(
+  /** Record one step on the public trail. It is never a timeline entry. */
+  addStep(
     issue: Issue,
-    type: TimelineEventType,
-    actor: ActorRole,
-    note: string,
-    at?: IsoDateTime,
-  ): TimelineEvent;
+    type: FinanceStep,
+    actor: PublicTrailStep["actor"],
+    at: IsoDateTime,
+    outcome?: PublicTrailStep["outcome"],
+  ): PublicTrailStep;
 }
 
 export type ProcurementMethods = Pick<
@@ -69,19 +65,6 @@ export type ProcurementMethods = Pick<
   | "explainMismatch"
   | "authoriseRelease"
 >;
-
-/** A refused release carries the reasons, as the backend's 409 does. */
-export class ReleaseBlockedError extends ApiError {
-  constructor(readonly blockers: ReleaseBlocker[]) {
-    super(
-      "conflict",
-      `The release cannot be authorised yet: ${blockers.map((blocker) => blocker.code).join(", ")}.`,
-    );
-  }
-}
-
-type FinanceEvent = keyof typeof FINANCE_NOTE;
-type User = Session["user"];
 
 export function createProcurementMethods(ctx: ProcurementContext): ProcurementMethods {
   function requirePermission(permission: Permission): User {
@@ -99,14 +82,26 @@ export function createProcurementMethods(ctx: ProcurementContext): ProcurementMe
     return issue;
   }
 
-  /** The case as this person may act on it. Another supplier's order does not exist for a supplier. */
+  /**
+   * The case as this person may see it. A report without a work order is
+   * "not found"; another supplier's order is refused.
+   */
   function caseOf(issue: Issue, user: User): FixtureCase {
     const record = ctx.cases()[issue.id];
-    const hidden = user.role === "supplier" && record?.order.supplierId !== user.id;
-    if (!record || hidden) {
-      throw new ApiError("not_found", "This report has no work order you can see.");
+    if (!record) {
+      throw new ApiError("not_found", "This report has no work order yet.");
+    }
+    if (user.role === "supplier" && record.order.supplierId !== user.id) {
+      throw new ApiError("forbidden", "This work order is not yours.");
     }
     return record;
+  }
+
+  /** A receiving officer records deliveries at their own school, and nowhere else. */
+  function atOwnSchool(issue: Issue, user: User): void {
+    if (user.institutionId !== null && user.institutionId !== issue.schoolId) {
+      throw new ApiError("forbidden", "This delivery is at another school.");
+    }
   }
 
   function stillOpen(record: FixtureCase): void {
@@ -132,18 +127,19 @@ export function createProcurementMethods(ctx: ProcurementContext): ProcurementMe
     }
   }
 
-  /** Write one procurement step on the public timeline and remember who took it. */
+  /** Write one step on the trail and remember, for staff, who took it. */
   function step(
     issue: Issue,
     record: FixtureCase,
-    type: FinanceEvent,
-    actor: ActorRole,
+    type: FinanceStep,
+    actor: PublicTrailStep["actor"],
     name: string | null,
-    at?: IsoDateTime,
-  ): TimelineEvent {
-    const event = ctx.addEvent(issue, type, actor, FINANCE_NOTE[type], at);
-    record.actorNames[event.id] = name;
-    return event;
+    at: IsoDateTime,
+    outcome?: PublicTrailStep["outcome"],
+  ): PublicTrailStep {
+    const written = ctx.addStep(issue, type, actor, at, outcome);
+    record.actorNames[written.eventId] = name;
+    return written;
   }
 
   /** Run the rule engine over one invoice and record what it found. */
@@ -162,7 +158,7 @@ export function createProcurementMethods(ctx: ProcurementContext): ProcurementMe
         .map((earlier) => earlier.invoiceNumber),
       receipts: record.receipts,
     });
-    // One millisecond after the step that caused it, so the timeline keeps them in order.
+    // One millisecond after the step that caused it, so the trail keeps them in order.
     const at = new Date(Date.parse(after) + 1).toISOString();
     const id = `${issue.id}-match-${record.matches.length + 1}`;
     const seen = record.receipts.findLast(
@@ -182,17 +178,13 @@ export function createProcurementMethods(ctx: ProcurementContext): ProcurementMe
       commitment: sampleDigest(id),
       receipt: null,
     });
-    const recorded = step(issue, record, "match_recorded", "system", null, at);
     // The public may know which way the rules decided, and nothing about why.
-    const shown = issue.publicTrail?.find((entry) => entry.eventId === recorded.id);
-    if (shown) shown.outcome = verdict.outcome;
+    step(issue, record, "match_recorded", "system", null, at, verdict.outcome);
   }
 
   function trail(record: FixtureCase, issue: Issue, user: User): MoneyTrail {
     const visible = trailFor(record, issue, user);
-    if (!visible) {
-      throw new ApiError("not_found", "This report has no work order you can see.");
-    }
+    if (!visible) throw new ApiError("forbidden", "This work order is not yours.");
     return structuredClone(visible);
   }
 
@@ -209,6 +201,7 @@ export function createProcurementMethods(ctx: ProcurementContext): ProcurementMe
       const issue = ctx.find(issueId);
       const record = issue ? ctx.cases()[issue.id] : undefined;
       if (!issue || !record) return null;
+      // Null too for an order this person may not see, as the port says.
       const visible = trailFor(record, issue, user);
       return visible ? structuredClone(visible) : null;
     },
@@ -228,40 +221,38 @@ export function createProcurementMethods(ctx: ProcurementContext): ProcurementMe
           "No supplier is registered with that reference.",
         );
       }
+      const cases = ctx.cases();
+      if (cases[issue.id]) {
+        throw new ApiError("conflict", "This report already has a work order.");
+      }
       if (issue.status === "declined") {
         throw new ApiError("conflict", "A declined report cannot have a work order.");
       }
 
-      const cases = ctx.cases();
-      const existing = cases[issue.id];
-      if (existing) stillOpen(existing);
       const at = ctx.now();
-      const id = existing?.order.id ?? `${issue.id}-order`;
-      const version = (existing?.order.version ?? 0) + 1;
-      const approved: WorkOrder = {
-        id,
-        reportId: issue.id,
-        institutionId: issue.schoolId,
-        supplierId: supplier.userId,
-        supplierName: supplier.name,
-        supplierRef: supplier.ref,
-        version,
-        description: order.description,
-        lines: order.lines,
-        totalCents: linesTotal(order.lines),
-        currency: CURRENCY,
-        approvedBy: user.id,
-        approvedAt: at,
-        // A new version must be acknowledged again: the earlier acknowledgement stays on the old version.
-        acknowledgedVersion: existing?.order.acknowledgedVersion ?? null,
-        acknowledgedBy: existing?.order.acknowledgedBy ?? null,
-        acknowledgedAt: existing?.order.acknowledgedAt ?? null,
-        commitment: sampleDigest(`${id}-v${version}`),
-        receipt: null,
-      };
-      const record: FixtureCase = existing ?? {
+      const id = `${issue.id}-order`;
+      const record: FixtureCase = {
         issueId: issue.id,
-        order: approved,
+        order: {
+          id,
+          reportId: issue.id,
+          institutionId: issue.schoolId,
+          supplierId: supplier.userId,
+          supplierName: supplier.name,
+          supplierRef: supplier.ref,
+          version: 1,
+          description: order.description,
+          lines: order.lines,
+          totalCents: linesTotal(order.lines),
+          currency: CURRENCY,
+          approvedBy: user.id,
+          approvedAt: at,
+          acknowledgedVersion: null,
+          acknowledgedBy: null,
+          acknowledgedAt: null,
+          commitment: sampleDigest(`${id}-v1`),
+          receipt: null,
+        },
         invoices: [],
         receipts: [],
         matches: [],
@@ -269,7 +260,6 @@ export function createProcurementMethods(ctx: ProcurementContext): ProcurementMe
         reviewerId: null,
         actorNames: {},
       };
-      record.order = approved;
       cases[issue.id] = record;
       step(issue, record, "work_order_approved", "buyer", user.displayName, at);
       ctx.save();
@@ -346,6 +336,7 @@ export function createProcurementMethods(ctx: ProcurementContext): ProcurementMe
       const user = requirePermission("receipt:record");
       const issue = issueOf(issueId);
       const record = caseOf(issue, user);
+      atOwnSchool(issue, user);
       stillOpen(record);
       const details = parse(RecordGoodsReceiptInputSchema, input);
       uniqueSkus(details.lines);

@@ -23,13 +23,23 @@ import { buildTrailRows, invoiceOutcomes, trailTime, type TrailRow } from "./tra
 /** The report's own records that are anchored as a commitment document anyone may check. */
 const REPORT_DOCUMENTS = new Set<TimelineEventType>(["reported", "verified", "disputed"]);
 /** The procurement steps anchored as a document. Only people who may read the trail get it. */
-const FINANCE_DOCUMENTS = new Set<TimelineEventType>([
+const FINANCE_DOCUMENTS: ReadonlySet<TimelineEventType> = new Set<TimelineEventType>([
   "work_order_approved",
   "invoice_submitted",
   "goods_receipt_recorded",
   "match_recorded",
   "release_authorised",
 ]);
+/**
+ * The two of those documents that hold no price. A reader without prices is
+ * offered only these: the backend refuses them the body of the others, and a
+ * button that would fail is not shown.
+ */
+const PRICELESS_DOCUMENTS: ReadonlySet<TimelineEventType> = new Set<TimelineEventType>([
+  "goods_receipt_recorded",
+  "release_authorised",
+]);
+const NO_DOCUMENTS: ReadonlySet<TimelineEventType> = new Set<TimelineEventType>();
 
 const link =
   "inline-flex min-h-11 cursor-pointer items-center gap-1.5 font-semibold text-brand-strong underline-offset-4 hover:underline";
@@ -102,8 +112,8 @@ function TrailList({
   /** The sentence under a done or blocked row, where it has one. */
   sentences: Partial<Record<TrailRowKey, string>>;
   extras?: Partial<Record<TrailRowKey, RowExtras>>;
-  /** True only for people who may read the procurement documents. */
-  financeDocuments: boolean;
+  /** The procurement steps whose document this reader may open. Empty for the public. */
+  financeDocuments: ReadonlySet<TimelineEventType>;
   earlierBlocked: number;
   /** The earlier attempts, for staff. */
   earlierDetail?: ReactNode;
@@ -120,8 +130,7 @@ function TrailList({
         const role = row.key === "match" ? m.procurement.rules : m.actor[row.actor];
         const sentence = row.record ? sentences[row.key] : t.waiting[row.key];
         const withDocument = row.record
-          ? REPORT_DOCUMENTS.has(row.record.type) ||
-            (financeDocuments && FINANCE_DOCUMENTS.has(row.record.type))
+          ? REPORT_DOCUMENTS.has(row.record.type) || financeDocuments.has(row.record.type)
           : false;
         return (
           <li
@@ -262,7 +271,7 @@ export function PublicTrail({
       <TrailList
         issueId={issueId}
         rows={rows}
-        financeDocuments={false}
+        financeDocuments={NO_DOCUMENTS}
         earlierBlocked={earlier}
         sentences={{
           // Blocked or matched comes from the step's `outcome`, never from its words.
@@ -395,7 +404,7 @@ export function StaffTrail({
       <TrailList
         issueId={trail.issueId}
         rows={rows}
-        financeDocuments
+        financeDocuments={trail.pricesVisible ? FINANCE_DOCUMENTS : PRICELESS_DOCUMENTS}
         extras={extras}
         earlierBlocked={earlier.length}
         earlierDetail={
