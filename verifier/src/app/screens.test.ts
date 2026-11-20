@@ -115,7 +115,7 @@ describe("opened with nothing", () => {
         onPaste: noop,
       }),
     );
-    expect(html).toContain("Scan the code on a BonaBlock record");
+    expect(html).toContain("Scan the code on a Bona Chain record");
     expect(html).toContain("Paste a receipt instead");
     expect(html).toContain("Avalanche Fuji test network");
     expect(html).not.toContain("could not be read");
@@ -155,9 +155,9 @@ describe("paste a receipt instead", () => {
     expect(words(html)).not.toMatch(TECHNICAL);
   });
 
-  it("names the test network and makes no claim about BonaBlock", () => {
+  it("names the test network and makes no claim about Bona Chain", () => {
     expect(html).toContain(
-      "This site does not ask BonaBlock anything. It reads the Avalanche Fuji test network itself.",
+      "This site does not ask Bona Chain anything. It reads the Avalanche Fuji test network itself.",
     );
   });
 });
@@ -241,7 +241,7 @@ describe("the answer", () => {
       "Avalanche has this exact photo on record. It has not been changed.",
     );
     expect(seen).toMatch(/Recorded<\/dt>.*18 Nov 2026/s);
-    expect(seen).toMatch(/By the BonaBlock contract<\/dt>.*Yes/s);
+    expect(seen).toMatch(/By the Bona Chain contract<\/dt>.*Yes/s);
     expect(seen).toMatch(/Network<\/dt>.*Avalanche Fuji test network/s);
     expect(seen).toContain("See it on Snowtrace");
     expect(seen).toContain(`href="https://testnet.snowtrace.io/tx/${TX}"`);
@@ -278,14 +278,14 @@ describe("the answer", () => {
     const html = draw(
       createElement(ResultView, { outcome, trust: { ...trust, contract: null } }),
     );
-    expect(closed(html)).toMatch(/By the BonaBlock contract<\/dt>.*Not checked here/s);
+    expect(closed(html)).toMatch(/By the Bona Chain contract<\/dt>.*Not checked here/s);
   });
 
   it("gives each of the five results its own plain words", () => {
     const cases: [Overall, StepId, string][] = [
       ["MISMATCH", "event", "Not the same"],
       ["NOT_FOUND", "event", "No record found"],
-      ["REJECTED", "contract", "Not a BonaBlock record"],
+      ["REJECTED", "contract", "Not a Bona Chain record"],
       ["CANNOT_VERIFY", "network", "Could not check right now"],
     ];
     for (const [overall, failed, title] of cases) {
@@ -300,7 +300,7 @@ describe("the answer", () => {
       expect(seen).toContain(`data-outcome="${overall}"`);
       expect(seen).toContain(`>${title}</h2>`);
       expect(seen).not.toContain(">Verified<");
-      expect(seen).not.toContain("By the BonaBlock contract");
+      expect(seen).not.toContain("By the Bona Chain contract");
       expect(seen.includes("Try again")).toBe(overall === "CANNOT_VERIFY");
       expect(html.slice(html.indexOf("<details"))).toContain(overall);
     }

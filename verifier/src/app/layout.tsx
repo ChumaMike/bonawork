@@ -16,9 +16,9 @@ const display = Bricolage_Grotesque({
 });
 
 export const metadata: Metadata = {
-  title: "BonaBlock Verify",
+  title: "Bona Chain Verify",
   description:
-    "Independently check that a BonaBlock receipt matches the evidence you hold, by reading the Avalanche network directly.",
+    "Independently check that a Bona Chain receipt matches the evidence you hold, by reading the Avalanche network directly.",
 };
 
 export const viewport: Viewport = {

@@ -41,7 +41,7 @@ function usage(): never {
       "              RepairClaimed, RepairVerified, RepairDisputed receipts)",
       "  (neither)   ReportAcknowledged receipts: give --report-id",
       "",
-      "Reads Avalanche through VERIFY_RPC_URL (default: public Fuji RPC). Never calls BonaBlock.",
+      "Reads Avalanche through VERIFY_RPC_URL (default: public Fuji RPC). Never calls Bona Chain.",
     ].join("\n"),
   );
   process.exit(64);
@@ -114,7 +114,7 @@ async function main(): Promise<number> {
 
 function printHuman(result: VerifyResult, rpcUrl: string): void {
   const mark = { pass: "✓", fail: "✗", skip: "–" } as const;
-  console.log(`BonaBlock Verify — RPC ${rpcUrl} (chain ${result.verifier.chainId})`);
+  console.log(`Bona Chain Verify — RPC ${rpcUrl} (chain ${result.verifier.chainId})`);
   console.log(
     `Expected contract: ${result.verifier.expectedContractAddress ?? "(not pinned; using the receipt's)"}`,
   );
@@ -137,7 +137,7 @@ function printHuman(result: VerifyResult, rpcUrl: string): void {
   console.log(`RESULT: ${result.overall} — ${OVERALL_LABEL[result.overall]}`);
   console.log(result.summary);
   console.log(
-    "This tool talks only to the Avalanche network. BonaBlock's servers are not involved.",
+    "This tool talks only to the Avalanche network. Bona Chain's servers are not involved.",
   );
 }
 

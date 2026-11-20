@@ -91,7 +91,7 @@ async function runCheck({
     return {
       ok: false,
       message:
-        "The report id is not in the right form. Clear it, or copy it again from BonaBlock.",
+        "The report id is not in the right form. Clear it, or copy it again from Bona Chain.",
     };
   }
 
@@ -260,11 +260,11 @@ export function Checker({
       setOutcome({ kind: "sample", receipt: next.receipt });
     } else if (next.kind === "document") {
       setReceiptProblem(
-        "That is the record's details, not its receipt. In BonaBlock, tap Copy receipt on the record, then paste again.",
+        "That is the record's details, not its receipt. In Bona Chain, tap Copy receipt on the record, then paste again.",
       );
     } else {
       setReceiptProblem(
-        "That is not a BonaBlock receipt. In BonaBlock, tap Copy receipt on the record, then paste again.",
+        "That is not a Bona Chain receipt. In Bona Chain, tap Copy receipt on the record, then paste again.",
       );
     }
   }
@@ -343,8 +343,8 @@ export function Checker({
         <PasteBox
           buttonLabel="Paste the record's details"
           primary={fromLink}
-          hint="In BonaBlock, tap Copy document on the same record first. The details stay on your device."
-          emptyHint="In BonaBlock, tap Copy document on the same record first."
+          hint="In Bona Chain, tap Copy document on the same record first. The details stay on your device."
+          emptyHint="In Bona Chain, tap Copy document on the same record first."
           fieldLabel="The record's details"
           uploadLabel="Upload the saved details"
           problem={doc.problem}
@@ -384,7 +384,7 @@ export function Checker({
               spellCheck={false}
             />
             <p id={ids.reportHelp} className="mt-1 text-sm text-muted">
-              The report&rsquo;s long id from BonaBlock: letters and numbers with dashes.
+              The report&rsquo;s long id from Bona Chain: letters and numbers with dashes.
               Leave it empty to check only that the acknowledgement was recorded.
             </p>
           </details>
@@ -427,7 +427,7 @@ export function Checker({
       ) : (
         <>
           <p className="mt-2 text-muted">
-            This site does not ask BonaBlock anything. It reads the {trust.network}{" "}
+            This site does not ask Bona Chain anything. It reads the {trust.network}{" "}
             itself.
           </p>
 
@@ -455,8 +455,8 @@ export function Checker({
               <PasteBox
                 buttonLabel="Paste receipt"
                 primary
-                hint="In BonaBlock, tap Copy receipt on any record first."
-                emptyHint="In BonaBlock, tap Copy receipt on a record first."
+                hint="In Bona Chain, tap Copy receipt on any record first."
+                emptyHint="In Bona Chain, tap Copy receipt on a record first."
                 fieldLabel="Receipt"
                 uploadLabel="Upload a receipt file"
                 problem={receiptProblem}

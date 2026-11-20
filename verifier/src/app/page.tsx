@@ -52,7 +52,7 @@ export default async function Page() {
               <circle cx="20" cy="20" r="2.1" className="fill-brand" />
             </svg>
             <span className="font-display text-xl font-bold tracking-tight text-ink">
-              Bona<span className="text-earth">Block</span>{" "}
+              Bona <span className="text-earth">Chain</span>{" "}
               <span className="font-semibold">Verify</span>
             </span>
           </span>
@@ -118,11 +118,11 @@ function HowItWorks({ trust }: { trust: Trust }) {
           Your device works out the fingerprint of the photo or document you choose: a
           short code that changes if anything in the file changes. Only that fingerprint
           is sent to this site. This site then reads the {trust.network} and compares the
-          fingerprint with what was recorded there. BonaBlock&rsquo;s servers are not
+          fingerprint with what was recorded there. Bona Chain&rsquo;s servers are not
           asked anything.
         </p>
         <p className="mt-2">
-          Receipts from BonaBlock&rsquo;s practice data are not on any network. This site
+          Receipts from Bona Chain&rsquo;s practice data are not on any network. This site
           says so, and does not call the network for them.
         </p>
 

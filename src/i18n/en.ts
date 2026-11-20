@@ -16,6 +16,11 @@ import type {
 } from "@/data/types";
 import { procurement } from "./en-procurement";
 
+/** The product. Every message that names it uses this constant, so the name lives in one place. */
+export const PRODUCT = "Bona Chain";
+/** The separate site that checks a record against the ledger without asking this one. */
+export const VERIFIER = "Bona Chain Verify";
+
 const plural = (count: number, one: string, many: string) =>
   `${count} ${count === 1 ? one : many}`;
 
@@ -23,8 +28,8 @@ export const en = {
   /** The procurement screens. Edit `./en-procurement.ts`, not this entry. */
   procurement,
   brand: {
-    name: "BonaBlock",
-    forSchools: "BonaBlock for Schools",
+    name: PRODUCT,
+    forSchools: `${PRODUCT} for Schools`,
     assistant: "Bona AI",
     tagline: "See it. Report it. Prove it.",
     principleReport: "A report is not protection.",
@@ -189,7 +194,7 @@ export const en = {
     supplier: "Supplier",
     receiving_officer: "Receiving officer",
     payment_approver: "Payment approver",
-    system: "BonaBlock",
+    system: `${PRODUCT} rules`,
   } satisfies Record<ActorRole, string>,
 
   event: {
@@ -205,8 +210,8 @@ export const en = {
     work_order_approved: "Work order approved",
     work_order_acknowledged: "Supplier acknowledged the order",
     invoice_submitted: "Invoice submitted",
-    goods_receipt_recorded: "Goods receipt recorded",
-    match_recorded: "Three-way match recorded",
+    goods_receipt_recorded: "Delivery recorded",
+    match_recorded: "Invoice checked against order and delivery",
     payment_dispute_opened: "Payment dispute opened",
     payment_dispute_closed: "Payment dispute closed",
     release_authorised: "Release authorised",
@@ -248,13 +253,12 @@ export const en = {
     proofTitle: (what: string) => `Proof for ${what}`,
     proofIntro: "What was written to the public record, and how to check it yourself.",
     checkElsewhere: "Check it on a separate site",
-    checkElsewhereHelp:
-      "BonaBlock Verify does not ask BonaBlock anything. It reads the Avalanche record itself. Scan the code with a phone camera, or open the link.",
+    checkElsewhereHelp: `${VERIFIER} does not ask ${PRODUCT} anything. It reads the Avalanche record itself. Scan the code with a phone camera, or open the link.`,
     technical: "Technical details",
-    technicalHelp: "For people who want the raw record to paste into BonaBlock Verify.",
+    technicalHelp: `For people who want the raw record to paste into ${VERIFIER}.`,
     copyReceipt: "Copy receipt",
     receiptCopied: "Receipt copied",
-    openInVerify: "Open in BonaBlock Verify",
+    openInVerify: `Open in ${VERIFIER}`,
     receiptMissing: "There is no receipt for this yet.",
     copyDocument: "Copy document",
     documentCopied: "Document copied",
@@ -277,7 +281,7 @@ export const en = {
 
   landing: {
     photoNote: "AI-generated illustration",
-    eyebrow: "BonaBlock for Schools",
+    eyebrow: `${PRODUCT} for Schools`,
     title: "See it. Report it. Prove it.",
     intro:
       "Report a problem at your school, see what is being done, and check that the record was never changed.",
@@ -297,21 +301,91 @@ export const en = {
       title: "See all problems",
       body: "What people have reported, at every school.",
     },
-    howTitle: "How BonaBlock works",
+    browseSchools: "See all schools",
+    howTitle: `What ${PRODUCT} does`,
     steps: [
       {
-        title: "See it",
-        body: "Find your school and see the problems people have already reported.",
+        title: "Report",
+        body: "Anyone can report a broken toilet, a leak or an unsafe wall at a school, and add a photo. No account is needed.",
       },
       {
-        title: "Report it",
-        body: "Describe the problem and add a photo. If it is already reported, add your voice.",
+        title: "Check",
+        body: "Fixing it takes several people. Each one does a single step, and no one checks their own work.",
       },
       {
-        title: "Prove it",
-        body: "Every step is kept on a public record. A repair only counts when an independent reviewer confirms it.",
+        title: "Prove",
+        body: "Every step is recorded on a public test network. Anyone can check that the record was never changed.",
       },
     ],
+    /**
+     * The trail in plain words: the report, then the seven steps. `event` is
+     * the row title (from `event` above) and `actor` the role label.
+     */
+    trail: {
+      title: "From a report to a checked repair",
+      intro:
+        "One problem, seven steps after the report. Each step belongs to one role, and each leaves a record anyone can check.",
+      start: "Start",
+      step: (number: number) => `Step ${number}`,
+      rows: [
+        {
+          event: "reported",
+          actor: "community",
+          body: "Someone at the school or in the community reports the problem and adds a photo.",
+        },
+        {
+          event: "work_order_approved",
+          actor: "buyer",
+          body: "A programme buyer approves a work order: what must be fixed and what is needed for it.",
+        },
+        {
+          event: "work_order_acknowledged",
+          actor: "supplier",
+          body: "The supplier confirms that it has seen the order and accepts it.",
+        },
+        {
+          event: "invoice_submitted",
+          actor: "supplier",
+          body: "The supplier sends its invoice for the work.",
+        },
+        {
+          event: "goods_receipt_recorded",
+          actor: "receiving_officer",
+          body: "A receiving officer at the school records what really arrived.",
+        },
+        {
+          event: "match_recorded",
+          actor: "system",
+          body: "Rules written in code compare the invoice with the order and the delivery. If anything differs, the invoice is blocked until the supplier corrects it.",
+        },
+        {
+          event: "verified",
+          actor: "reviewer",
+          body: "An independent reviewer, never the school itself, checks that the repair was really done.",
+        },
+        {
+          event: "release_authorised",
+          actor: "payment_approver",
+          body: "Only then can a payment approver authorise the release. This person took none of the earlier steps.",
+        },
+      ] satisfies Array<{ event: TimelineEventType; actor: ActorRole; body: string }>,
+      noMoney:
+        "No real money moves. This runs on a test network, and the last step records an instruction, not a payment.",
+      privacy:
+        "The public sees each step, the role that took it, the time and the proof. Amounts and names are not public.",
+    },
+    /** One finished case, shown as its public trail. */
+    showcase: {
+      title: "A finished case: who did what, and the proof",
+      intro:
+        "This case comes from the demo data. Its trail shows each step, the role that took it, the time and the proof. Amounts and names are not public.",
+      caseAt: (reference: string, school: string) => `${reference} at ${school}`,
+      blocked:
+        "The invoice did not match the order and the delivery. The supplier had to send a corrected invoice.",
+      matched: "The invoice matches the order and the delivery.",
+      released: "An instruction, not a payment.",
+      open: "Open this case",
+    },
     principleTitle: "Our rule",
     recentTitle: "Recent public issues",
     seeAll: "See all issues",
@@ -324,7 +398,7 @@ export const en = {
     none: "No school matches that search. Check the spelling or try the town name.",
     learners: (count: number) => `${count.toLocaleString("en-ZA")} learners`,
     participating: "Participating school",
-    participatingHelp: "This school responds to reports on BonaBlock.",
+    participatingHelp: `This school responds to reports on ${PRODUCT}.`,
     invited: "Not participating yet",
     invitedHelp:
       "This school has been invited. Reports are still public and stay on the record.",
@@ -555,7 +629,7 @@ export const en = {
       "Keep your original files. Their fingerprints are how you can prove later that nothing was changed.",
     track: "Follow this report",
     share: "Share",
-    shareText: (reference: string) => `My BonaBlock report ${reference}`,
+    shareText: (reference: string) => `My ${PRODUCT} report ${reference}`,
     shareCopied: "Link copied",
     screenshotHint: "Take a screenshot of this slip. It is your proof that you reported.",
     print: "Print",
@@ -664,7 +738,7 @@ export const en = {
       payment_approver:
         "Authorise the release instruction once the repair is verified. No money moves here.",
     } satisfies Record<SessionRole, string>,
-    emailHint: "The address your BonaBlock account was set up with.",
+    emailHint: `The address your ${PRODUCT} account was set up with.`,
     passwordNext: "Now your password.",
     showPassword: "Show password",
     hidePassword: "Hide password",
@@ -916,18 +990,16 @@ export const en = {
     matchTitle: "This file matches the record",
     matchBody: "It is exactly the file that was added to this issue.",
     noMatchTitle: "No matching record",
-    noMatchBody:
-      "This exact file is not in BonaBlock. If the file was edited, resaved or sent through a chat app, its fingerprint changes.",
+    noMatchBody: `This exact file is not in ${PRODUCT}. If the file was edited, resaved or sent through a chat app, its fingerprint changes.`,
     ledgerTitle: "Blockchain check",
     again: "Check another file",
     howTitle: "How this works",
     how: [
       "Your device works out the file's fingerprint. The file is not uploaded.",
       "The fingerprint is compared with the fingerprints recorded for each issue.",
-      "When a fingerprint is recorded on Avalanche, anyone can check it without trusting BonaBlock.",
+      `When a fingerprint is recorded on Avalanche, anyone can check it without trusting ${PRODUCT}.`,
     ],
-    independentNote:
-      "BonaBlock Verify, a separate tool, does the blockchain part of this check without using this website.",
+    independentNote: `${VERIFIER}, a separate tool, does the blockchain part of this check without using this website.`,
     stepsTitle: "What happened",
     stepFingerprint: "Your phone made its fingerprint",
     stepFingerprintDone: "The file was read here. Nothing was uploaded.",
@@ -941,12 +1013,10 @@ export const en = {
     stepChainSkipped: "Skipped: there was no record to check.",
     matchPlain:
       "Your file is exactly the one on record. Nobody has changed it since it was added.",
-    noMatchPlain:
-      "Either this file was never added to BonaBlock, or it was changed after it was added. Try the original file from the phone that took it.",
+    noMatchPlain: `Either this file was never added to ${PRODUCT}, or it was changed after it was added. Try the original file from the phone that took it.`,
     receiptTitle: "Have a receipt?",
-    receiptBody:
-      "BonaBlock Verify is a separate tool that reads Avalanche directly. Paste a receipt there to check it without trusting this website.",
-    openVerify: "Open BonaBlock Verify",
+    receiptBody: `${VERIFIER} is a separate tool that reads Avalanche directly. Paste a receipt there to check it without trusting this website.`,
+    openVerify: `Open ${VERIFIER}`,
     sampleNote:
       "This record is a sample from the preview. It is not a real Avalanche transaction.",
     print: "Print this result",
@@ -1072,7 +1142,7 @@ export const en = {
         ],
       },
       fallback: {
-        title: "How BonaBlock works",
+        title: `How ${PRODUCT} works`,
         tips: [
           "Find your school, report a problem, then follow what is done about it.",
           "Stuck? Ask Bona AI a question below.",

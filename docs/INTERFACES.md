@@ -93,7 +93,7 @@ Email, phone and credentials are backend-only and never appear in a shared type.
 
 `CHAIN_ROLE_CODE` gives the ABI numbers: registrar 1, school_admin 2, reviewer 3.
 A visitor who is not signed in has no role. They can read public pages, submit
-a report, add evidence of the problem to a report, and use BonaBlock Verify.
+a report, add evidence of the problem to a report, and use Bona Chain Verify.
 They cannot endorse. The platform's registrar key signs for them, as it does
 for a signed-in reporter.
 
@@ -237,7 +237,7 @@ is short and guessable and an unsalted hash could be brute-forced.
 
 The backend stores each document with its salt (table `commitment_documents`).
 `GET /api/issues/:id/documents/:recordId` returns the document, its commitment
-and its receipt. BonaBlock Verify recomputes the hash from the document and
+and its receipt. Bona Chain Verify recomputes the hash from the document and
 compares it with the chain.
 
 ## 10. Case events and blockchain receipts
@@ -376,7 +376,7 @@ In `.env.example`, validated by `src/server/env.ts`. None is required locally.
 | Frontend | `NEXT_PUBLIC_API_SOURCE` (`live` calls the API; anything else shows browser fixtures)                                                                                                                     |
 
 The three keys must be different, are server-side only, and must never hold
-real funds. BonaBlock Verify reads only `VERIFY_RPC_URL`, `VERIFY_CHAIN_ID` and
+real funds. Bona Chain Verify reads only `VERIFY_RPC_URL`, `VERIFY_CHAIN_ID` and
 `VERIFY_CONTRACT_ADDRESS`. The contracts package has its own
 `contracts/.env.example`. The README describes each variable.
 

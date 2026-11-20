@@ -341,7 +341,7 @@ test("sample data is never shown as a real blockchain record", async ({ page }) 
   ).toBeVisible();
 });
 
-test("a receipt can be copied and taken to BonaBlock Verify", async ({
+test("a receipt can be copied and taken to Bona Chain Verify", async ({
   page,
   context,
 }) => {
@@ -370,7 +370,7 @@ test("a receipt can be copied and taken to BonaBlock Verify", async ({
   await expect(
     sheet
       .getByTestId("receipt-actions")
-      .getByRole("link", { name: "Open in BonaBlock Verify" }),
+      .getByRole("link", { name: "Open in Bona Chain Verify" }),
   ).toHaveAttribute("href", process.env.NEXT_PUBLIC_VERIFY_URL || "/verify");
   // A sample has no transaction, so there is no link or code to the independent verifier.
   await expect(sheet.getByTestId("verify-link")).toHaveCount(0);
