@@ -22,7 +22,11 @@ No code, type, route or wording file was touched.
 from the spec. Every sentence the screens need is written out there; they belong in
 `src/i18n/en-procurement.ts`, which is still empty.
 
-**The coordinator must decide** (details under "Open points" in the spec):
+**Decided by the coordinator on 20 November**: all three points below were accepted and passed
+to builders A, B and C. Where the build brief and the spec differ, the brief wins on behaviour
+and the spec wins on wording and layout.
+
+**The three points** (details under "Open points" in the spec):
 
 1. `PublicTrailStep` has no machine-readable outcome for `match_recorded`, so the public trail
    cannot show a blocked invoice without comparing `note` text. Suggested: an optional
@@ -44,6 +48,12 @@ from the spec. Every sentence the screens need is written out there; they belong
   <https://claude.ai/artifact/KBrAqoD794zvefGbin2UYK>. The pick is stored in that page's
   database: collection `picks`, document `main`, fields `logo` (`rings`, `link`, `trail` or
   `bc`), `note`, `updatedAt`.
+
+- `docs/design/brand/build-logo.mjs`: builds the logo files for the picked mark
+  (`node docs/design/brand/build-logo.mjs <rings|link|trail|bc>`). It writes the mark, the
+  light and dark logo, `public/icon.svg` and `public/icon-maskable.svg`. The name is drawn as
+  outlines, so the files need no font. It has been run for all four marks into a temporary
+  folder and checked by eye; it has not been run into `public/` yet.
 
 **Waiting on the owner**: the pick. The final logo files, `<BrandLogo>`, the icons, the
 manifest name and `docs/design/BRAND.md` follow once it is made.
