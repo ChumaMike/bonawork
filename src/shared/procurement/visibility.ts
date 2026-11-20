@@ -1,5 +1,5 @@
 import type { UserRole } from "../roles";
-import type { MoneyTrail } from "./types";
+import type { MatchReason, MatchReasonCode, MoneyTrail, TrailLine } from "./types";
 
 /**
  * How much of a case's procurement trail a signed-in role may see:
@@ -44,7 +44,53 @@ export function redactMoneyTrail(
   trail: MoneyTrail,
   visibility: ProcurementVisibility,
 ): MoneyTrail | null {
-  void trail;
-  void visibility;
-  throw new Error("not implemented");
+  if (visibility === "none") return null;
+  if (visibility === "full" || visibility === "own_orders") return trail;
+  return {
+    ...trail,
+    pricesVisible: false,
+    order: {
+      id: trail.order.id,
+      version: trail.order.version,
+      description: trail.order.description,
+      supplierName: trail.order.supplierName,
+      supplierRef: trail.order.supplierRef,
+      lines: trail.order.lines.map(withoutPrice),
+      currency: trail.order.currency,
+      approvedAt: trail.order.approvedAt,
+      acknowledged: trail.order.acknowledged,
+      acknowledgedAt: trail.order.acknowledgedAt,
+    },
+    invoices: trail.invoices.map((invoice) => ({
+      id: invoice.id,
+      invoiceNumber: invoice.invoiceNumber,
+      orderVersion: invoice.orderVersion,
+      lines: invoice.lines.map(withoutPrice),
+      aiDrafted: invoice.aiDrafted,
+      submittedAt: invoice.submittedAt,
+      match: invoice.match
+        ? { ...invoice.match, reasons: redactReasons(invoice.match.reasons) }
+        : null,
+    })),
+  };
+}
+
+/** The reason codes whose `expected` and `actual` are amounts in cents. */
+export const PRICE_REASON_CODES: readonly MatchReasonCode[] = [
+  "unit_price_mismatch",
+  "total_mismatch",
+];
+
+/** Price reasons keep their code and line, and lose their numbers. */
+export function redactReasons(reasons: readonly MatchReason[]): MatchReason[] {
+  return reasons.map((reason) =>
+    PRICE_REASON_CODES.includes(reason.code)
+      ? { code: reason.code, sku: reason.sku, expected: null, actual: null }
+      : { ...reason },
+  );
+}
+
+/** Rebuilt field by field, so a price can never ride along on a spread. */
+function withoutPrice(line: TrailLine): TrailLine {
+  return { sku: line.sku, description: line.description, quantity: line.quantity };
 }
