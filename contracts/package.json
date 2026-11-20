@@ -1,0 +1,35 @@
+{
+  "name": "@bona/contracts",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "On-chain contracts for BonaBlock (BonaRegistry on Avalanche Fuji).",
+  "scripts": {
+    "build": "hardhat compile",
+    "test": "hardhat test",
+    "typecheck": "hardhat compile && tsc --noEmit",
+    "abi": "hardhat compile && node scripts/export-abi.mjs && hardhat run scripts/export-abi.ts",
+    "demo:unauthorised-closure": "hardhat run scripts/demo-unauthorised-closure.ts",
+    "deploy:local": "hardhat run scripts/deploy.ts",
+    "deploy:fuji": "hardhat run scripts/deploy.ts --network fuji",
+    "roles:fuji": "hardhat run scripts/grant-roles.ts --network fuji",
+    "setup:fuji": "hardhat run scripts/setup-fuji.ts --network fuji",
+    "fund:fuji": "hardhat run scripts/fund-roles.ts --network fuji",
+    "anchor-check:fuji": "hardhat run scripts/anchor-check.ts --network fuji",
+    "export:abi": "hardhat run scripts/export-abi.ts",
+    "gas:report": "hardhat run scripts/gas-report.ts",
+    "verify:fuji": "hardhat verify --network fuji 0xa8BB5Dc1c031d850AB32768Ed020e9aA604e1aae 0x7EF27429B03C264296eb96be49F0f7315587483F"
+  },
+  "devDependencies": {
+    "@nomicfoundation/hardhat-ethers": "^4.2.2",
+    "@nomicfoundation/hardhat-toolbox-mocha-ethers": "^4.0.0",
+    "@types/chai": "^5",
+    "@types/mocha": "^10",
+    "@types/node": "^22",
+    "chai": "^5",
+    "ethers": "^6",
+    "hardhat": "^3.22.0",
+    "mocha": "^12.0.3",
+    "typescript": "^5"
+  }
+}

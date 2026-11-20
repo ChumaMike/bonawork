@@ -1,0 +1,309 @@
+/**
+ * BonaBlock database schema (Drizzle ORM, PostgreSQL dialect).
+ *
+ * Runs unchanged on Postgres (`DATABASE_URL`) and on PGlite (local
+ * development and tests). Rows parse with the shared schemas in `@/shared`:
+ * timestamps are stored as ISO-8601 UTC text so both drivers return exactly
+ * the wire format; receipts and commitment documents are stored as JSON.
+ *
+ * `case_events` is append-only: the application never updates or deletes a
+ * row except to attach the ledger receipt once the write is anchored.
+ */
+import {
+  boolean,
+  index,
+  integer,
+  jsonb,
+  pgTable,
+  serial,
+  text,
+  uniqueIndex,
+  uuid,
+} from "drizzle-orm/pg-core";
+import type {
+  BlockchainReceipt,
+  CaseEventType,
+  ClaimOutcome,
+  CommitmentDocument,
+  EvidenceKind,
+  ReportCategory,
+  ReportStatus,
+  UserRole,
+} from "../src/shared";
+
+const receipt = () => jsonb("receipt").$type<BlockchainReceipt | null>();
+/** ISO-8601 UTC text, set by the application. */
+const isoNow = () => text("created_at").notNull();
+
+/* --------------------------------- Schools --------------------------------- */
+
+export const institutions = pgTable(
+  "institutions",
+  {
+    id: uuid("id").primaryKey(),
+    /** URL-friendly id kept so links written against the fixtures still resolve. */
+    slug: text("slug").notNull(),
+    kind: text("kind").notNull().default("school"),
+    name: text("name").notNull(),
+    province: text("province").notNull(),
+    district: text("district").notNull(),
+    town: text("town").notNull(),
+    externalRef: text("external_ref"),
+    phase: text("phase")
+      .notNull()
+      .$type<"primary" | "secondary" | "combined" | "special">(),
+    learnerCount: integer("learner_count"),
+    participation: text("participation")
+      .notNull()
+      .$type<"participating" | "invited">()
+      .default("invited"),
+    participatingSince: text("participating_since"),
+    about: text("about").notNull().default(""),
+    createdAt: isoNow(),
+  },
+  (t) => [uniqueIndex("institutions_slug_idx").on(t.slug)],
+);
+
+/* ---------------------------------- Users ---------------------------------- */
+
+export const users = pgTable(
+  "users",
+  {
+    id: uuid("id").primaryKey(),
+    email: text("email").notNull(),
+    passwordHash: text("password_hash").notNull(),
+    role: text("role").notNull().$type<UserRole>(),
+    institutionId: uuid("institution_id").references(() => institutions.id),
+    /** Real name. Shown only to the user, school administrators and reviewers. */
+    displayName: text("display_name").notNull(),
+    /** What the public sees, e.g. "Reporter R-7F3A". */
+    publicLabel: text("public_label").notNull(),
+    createdAt: isoNow(),
+  },
+  (t) => [uniqueIndex("users_email_idx").on(t.email)],
+);
+
+/* --------------------------------- Reports --------------------------------- */
+
+export const reports = pgTable(
+  "reports",
+  {
+    id: uuid("id").primaryKey(),
+    reference: text("reference").notNull(),
+    institutionId: uuid("institution_id")
+      .notNull()
+      .references(() => institutions.id),
+    category: text("category").notNull().$type<ReportCategory>(),
+    title: text("title").notNull(),
+    description: text("description").notNull(),
+    location: text("location").notNull().default(""),
+    status: text("status").notNull().$type<ReportStatus>(),
+    endorsementCount: integer("endorsement_count").notNull().default(0),
+    hasInterimProtection: boolean("has_interim_protection").notNull().default(false),
+    /** Null when submitted anonymously: the reporter is simply not stored. */
+    reporterId: uuid("reporter_id").references(() => users.id),
+    commitment: text("commitment").notNull(),
+    receipt: receipt(),
+    createdAt: text("created_at").notNull(),
+    updatedAt: text("updated_at").notNull(),
+  },
+  (t) => [
+    uniqueIndex("reports_reference_idx").on(t.reference),
+    index("reports_institution_idx").on(t.institutionId),
+  ],
+);
+
+/* ------------------------------- Case events ------------------------------- */
+
+export const caseEvents = pgTable(
+  "case_events",
+  {
+    id: uuid("id").primaryKey(),
+    reportId: uuid("report_id")
+      .notNull()
+      .references(() => reports.id),
+    sequence: integer("sequence").notNull(),
+    type: text("type").notNull().$type<CaseEventType>(),
+    actorId: uuid("actor_id").references(() => users.id),
+    actorRole: text("actor_role").notNull().$type<UserRole>(),
+    occurredAt: text("occurred_at").notNull(),
+    subjectId: uuid("subject_id"),
+    anchoredValue: text("anchored_value"),
+    statusTo: text("status_to").$type<"in_progress" | "rejected" | null>(),
+    reason: text("reason"),
+    /** Human-readable note shown in the timeline (never written on-chain). */
+    note: text("note").notNull().default(""),
+    receipt: receipt(),
+  },
+  (t) => [uniqueIndex("case_events_report_sequence_idx").on(t.reportId, t.sequence)],
+);
+
+/* --------------------------------- Evidence -------------------------------- */
+
+export const evidenceCommitments = pgTable(
+  "evidence_commitments",
+  {
+    id: uuid("id").primaryKey(),
+    reportId: uuid("report_id")
+      .notNull()
+      .references(() => reports.id),
+    /** 1-based position in the report's evidence history. */
+    version: integer("version").notNull(),
+    algorithm: text("algorithm").notNull().default("sha256"),
+    digest: text("digest").notNull(),
+    kind: text("kind").notNull().$type<EvidenceKind>(),
+    /** Frontend purpose (problem, progress, repair_claim, review). */
+    purpose: text("purpose").notNull(),
+    sizeBytes: integer("size_bytes").notNull(),
+    mediaType: text("media_type").notNull(),
+    uploadedBy: uuid("uploaded_by").references(() => users.id),
+    uploadedByRole: text("uploaded_by_role").notNull().$type<UserRole>(),
+    /** Private storage key. Never returned by the API. */
+    storageKey: text("storage_key").notNull(),
+    createdAt: text("created_at").notNull(),
+    receipt: receipt(),
+  },
+  (t) => [
+    uniqueIndex("evidence_report_digest_idx").on(t.reportId, t.digest),
+    index("evidence_digest_idx").on(t.digest),
+  ],
+);
+
+/* ------------------------------- Endorsements ------------------------------ */
+
+export const endorsements = pgTable(
+  "endorsements",
+  {
+    id: uuid("id").primaryKey(),
+    reportId: uuid("report_id")
+      .notNull()
+      .references(() => reports.id),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id),
+    createdAt: text("created_at").notNull(),
+  },
+  (t) => [uniqueIndex("endorsements_report_user_idx").on(t.reportId, t.userId)],
+);
+
+/* ----------------------- Protection, claims and reviews -------------------- */
+
+export const interimProtections = pgTable("interim_protections", {
+  id: uuid("id").primaryKey(),
+  reportId: uuid("report_id")
+    .notNull()
+    .references(() => reports.id),
+  measure: text("measure").notNull(),
+  recordedBy: uuid("recorded_by")
+    .notNull()
+    .references(() => users.id),
+  createdAt: text("created_at").notNull(),
+  commitment: text("commitment").notNull(),
+  receipt: receipt(),
+});
+
+export const repairClaims = pgTable("repair_claims", {
+  id: uuid("id").primaryKey(),
+  reportId: uuid("report_id")
+    .notNull()
+    .references(() => reports.id),
+  index: integer("index").notNull(),
+  summary: text("summary").notNull(),
+  claimedBy: uuid("claimed_by")
+    .notNull()
+    .references(() => users.id),
+  outcome: text("outcome").notNull().$type<ClaimOutcome>().default("pending"),
+  createdAt: text("created_at").notNull(),
+  commitment: text("commitment").notNull(),
+  receipt: receipt(),
+});
+
+export const independentReviews = pgTable("independent_reviews", {
+  id: uuid("id").primaryKey(),
+  reportId: uuid("report_id")
+    .notNull()
+    .references(() => reports.id),
+  claimId: uuid("claim_id")
+    .notNull()
+    .references(() => repairClaims.id),
+  reviewerId: uuid("reviewer_id")
+    .notNull()
+    .references(() => users.id),
+  outcome: text("outcome").notNull().$type<"verified" | "disputed">(),
+  findings: text("findings").notNull(),
+  evidenceIds: jsonb("evidence_ids").notNull().$type<string[]>().default([]),
+  createdAt: text("created_at").notNull(),
+  commitment: text("commitment").notNull(),
+  receipt: receipt(),
+});
+
+/* --------------------------- Commitment documents -------------------------- */
+
+/** The salted JSON each on-chain commitment hashes. Keyed by the record it belongs to. */
+export const commitmentDocuments = pgTable("commitment_documents", {
+  recordId: uuid("record_id").primaryKey(),
+  reportId: uuid("report_id")
+    .notNull()
+    .references(() => reports.id),
+  type: text("type").notNull().$type<CommitmentDocument["type"]>(),
+  commitment: text("commitment").notNull(),
+  document: jsonb("document").notNull().$type<CommitmentDocument>(),
+  createdAt: text("created_at").notNull(),
+});
+
+/* -------------------------------- Ledger jobs ------------------------------ */
+
+export type LedgerOperation =
+  | "registerReport"
+  | "registerEvidence"
+  | "acknowledgeReport"
+  | "recordInterimProtection"
+  | "claimRepair"
+  | "verifyRepair"
+  | "disputeRepair";
+
+/** Which record receives the receipt besides the case event (`event` = the event only). */
+export type LedgerTargetKind =
+  "report" | "evidence" | "protection" | "claim" | "review" | "event";
+
+/**
+ * A ledger write that could not be sent (RPC down, ledger not configured).
+ * Replayed in creation order by `POST /api/ledger/retry`. The payload holds
+ * only what the `LedgerPort` call takes: UUIDs and 0x digests.
+ */
+export const ledgerJobs = pgTable(
+  "ledger_jobs",
+  {
+    id: uuid("id").primaryKey(),
+    /** Creation order; jobs are replayed in this order so a report is registered before its evidence. */
+    position: serial("position").notNull(),
+    reportId: uuid("report_id")
+      .notNull()
+      .references(() => reports.id),
+    operation: text("operation").notNull().$type<LedgerOperation>(),
+    payload: jsonb("payload").notNull().$type<Record<string, string>>(),
+    targetKind: text("target_kind").notNull().$type<LedgerTargetKind>(),
+    targetId: uuid("target_id").notNull(),
+    eventId: uuid("event_id")
+      .notNull()
+      .references(() => caseEvents.id),
+    status: text("status").notNull().$type<"pending" | "failed" | "done" | "rejected">(),
+    attempts: integer("attempts").notNull().default(0),
+    lastError: text("last_error"),
+    createdAt: text("created_at").notNull(),
+    updatedAt: text("updated_at").notNull(),
+  },
+  (t) => [index("ledger_jobs_status_idx").on(t.status)],
+);
+
+export type InstitutionRow = typeof institutions.$inferSelect;
+export type UserRow = typeof users.$inferSelect;
+export type ReportRow = typeof reports.$inferSelect;
+export type CaseEventRow = typeof caseEvents.$inferSelect;
+export type EvidenceRow = typeof evidenceCommitments.$inferSelect;
+export type EndorsementRow = typeof endorsements.$inferSelect;
+export type InterimProtectionRow = typeof interimProtections.$inferSelect;
+export type RepairClaimRow = typeof repairClaims.$inferSelect;
+export type IndependentReviewRow = typeof independentReviews.$inferSelect;
+export type CommitmentDocumentRow = typeof commitmentDocuments.$inferSelect;
+export type LedgerJobRow = typeof ledgerJobs.$inferSelect;

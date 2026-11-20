@@ -1,0 +1,329 @@
+@import "tailwindcss";
+
+/*
+ * BonaBlock design tokens. Documented in docs/design/DESIGN_LANGUAGE.md.
+ * Components use these names only, never raw colour values.
+ * Every text/background pair below passes 4.5:1 (scripts/design/contrast.mts).
+ */
+@theme {
+  /*
+   * Stone and umber. The colours are measured from the photographs, which are
+   * brick, khaki, dust and shade: pale stone paper, very dark brown for ink and
+   * buttons, sand and saddle brown for accents. The pictures carry the colour.
+   */
+  --color-canvas: #f3f1ec;
+  --color-surface: #ffffff;
+  --color-sunken: #eae4d8;
+  --color-ink: #231a13;
+  --color-muted: #62584e;
+  --color-faint: #766b5f;
+  --color-line: #e0dad0;
+  --color-line-strong: #8d8375;
+
+  /* Brand: dark umber, the darkest tone in the pictures. Buttons and links. */
+  --color-brand: #2f231a;
+  --color-brand-strong: #1c140e;
+  --color-brand-soft: #eae4d8;
+  --color-on-brand: #f6efe4;
+
+  /* Earth: saddle brown, the commonest colour in the photographs */
+  --color-earth: #7a4b24;
+  --color-earth-strong: #5c3717;
+  --color-earth-soft: #f0e4d2;
+
+  /* Accent: ochre for attention */
+  --color-accent: #7a4e0c;
+  --color-accent-strong: #5d3b07;
+  --color-accent-soft: #f1e4cc;
+
+  /* Sand: a highlight for empty states and gentle emphasis, never for text */
+  --color-sun: #d4af78;
+  --color-sun-soft: #f5ecd9;
+
+  /* Danger: face-brick red */
+  --color-danger: #9b2f1f;
+  --color-danger-strong: #782316;
+  --color-danger-soft: #f6e1dc;
+
+  /* One colour pair per public status. Always shown with an icon and a label. */
+  --color-st-reported: #4a4640;
+  --color-st-reported-soft: #e8e5df;
+  --color-st-assess: #35566e;
+  --color-st-assess-soft: #dfe8ee;
+  --color-st-address: #7a4e0c;
+  --color-st-address-soft: #f1e4cc;
+  --color-st-claimed: #5a4866;
+  --color-st-claimed-soft: #e9e3ea;
+  --color-st-verified: #45502e;
+  --color-st-verified-soft: #e1e5d2;
+  --color-st-disputed: #9b2f1f;
+  --color-st-disputed-soft: #f6e1dc;
+  --color-st-declined: #4b4038;
+  --color-st-declined-soft: #ebe5dc;
+
+  /* Type: Hanken Grotesk for reading, Bricolage Grotesque for headings */
+  --font-sans: var(--font-body), ui-sans-serif, system-ui, "Segoe UI", Roboto, sans-serif;
+  --font-display:
+    var(--font-display), var(--font-body), ui-sans-serif, system-ui, "Segoe UI",
+    sans-serif;
+  --font-mono: var(--font-mono), ui-monospace, "Cascadia Mono", Consolas, monospace;
+
+  /* Fluid type scale: phones get the first value, desktops the last */
+  --text-xs: clamp(0.8125rem, 0.78rem + 0.15vw, 0.875rem);
+  --text-sm: clamp(0.9rem, 0.86rem + 0.2vw, 0.95rem);
+  --text-base: clamp(1rem, 0.96rem + 0.2vw, 1.0625rem);
+  --text-lg: clamp(1.125rem, 1.05rem + 0.35vw, 1.25rem);
+  --text-xl: clamp(1.25rem, 1.15rem + 0.5vw, 1.5rem);
+  --text-2xl: clamp(1.5rem, 1.3rem + 0.9vw, 1.875rem);
+  --text-3xl: clamp(1.875rem, 1.55rem + 1.4vw, 2.5rem);
+  --text-4xl: clamp(2.25rem, 1.8rem + 2vw, 3.25rem);
+  --text-5xl: clamp(2.75rem, 2.1rem + 2.8vw, 4rem);
+  --text-6xl: clamp(3.25rem, 2.4rem + 3.6vw, 4.75rem);
+
+  /* Radius, shadow, focus */
+  --radius-sm: 0.375rem;
+  --radius-md: 0.625rem;
+  --radius-lg: 0.875rem;
+  --radius-xl: 1.125rem;
+  --radius-2xl: 1.25rem;
+  --radius-3xl: 1.75rem;
+
+  /* Cards are flat: a hairline, no shadow. Only things that float keep one. */
+  --shadow-card: 0 0 0 0 rgb(35 26 19 / 0);
+  --shadow-raised: 0 2px 4px rgb(35 26 19 / 0.08), 0 12px 32px rgb(35 26 19 / 0.12);
+  --shadow-sheet: 0 -8px 32px rgb(35 26 19 / 0.2);
+
+  --ring-focus: 3px;
+
+  /* Phone bottom bar: 56 px plus the device's safe area */
+  --spacing-bottom-bar: 4rem;
+}
+
+/* Dark mode: the same names, tuned so every pair still passes 4.5:1. */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --color-canvas: #17120e;
+    --color-surface: #211a14;
+    --color-sunken: #100c09;
+    --color-ink: #f3ece0;
+    --color-muted: #c4b9a9;
+    --color-faint: #a69b8b;
+    --color-line: #3a3027;
+    --color-line-strong: #7d7162;
+
+    --color-brand: #e9dcc6;
+    --color-brand-strong: #f6eedf;
+    --color-brand-soft: #2e251c;
+    --color-on-brand: #231a13;
+
+    --color-earth: #e0a877;
+    --color-earth-strong: #efc49d;
+    --color-earth-soft: #35261a;
+
+    --color-accent: #e6b566;
+    --color-accent-strong: #f1cd8f;
+    --color-accent-soft: #33270f;
+
+    --color-sun: #c9a064;
+    --color-sun-soft: #2d2413;
+
+    --color-danger: #ff9d8f;
+    --color-danger-strong: #ffb9ae;
+    --color-danger-soft: #3b1b16;
+
+    --color-st-reported: #c9c3b9;
+    --color-st-reported-soft: #2c2823;
+    --color-st-assess: #a3c4dc;
+    --color-st-assess-soft: #1c2a35;
+    --color-st-address: #e6b566;
+    --color-st-address-soft: #33270f;
+    --color-st-claimed: #cdb9dc;
+    --color-st-claimed-soft: #2c2334;
+    --color-st-verified: #b9c79a;
+    --color-st-verified-soft: #232b17;
+    --color-st-disputed: #ff9d8f;
+    --color-st-disputed-soft: #3b1b16;
+    --color-st-declined: #cfc6ba;
+    --color-st-declined-soft: #2e2924;
+
+    --shadow-card: 0 0 0 0 rgb(0 0 0 / 0);
+    --shadow-raised: 0 2px 4px rgb(0 0 0 / 0.35), 0 12px 32px rgb(0 0 0 / 0.4);
+    --shadow-sheet: 0 -8px 32px rgb(0 0 0 / 0.5);
+  }
+}
+
+html {
+  /* 17 px at the default zoom: body text never drops under 16 px on a phone. */
+  font-size: 106.25%;
+  scroll-padding-top: 5rem;
+  color-scheme: light dark;
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  background: var(--color-canvas);
+  color: var(--color-ink);
+  line-height: 1.55;
+  overflow-wrap: anywhere;
+}
+
+h1,
+h2,
+h3 {
+  font-family: var(--font-display);
+  font-weight: 700;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+  text-wrap: balance;
+}
+
+h4,
+h5,
+h6 {
+  line-height: 1.25;
+  text-wrap: balance;
+}
+
+p,
+li {
+  text-wrap: pretty;
+}
+
+/* One visible focus ring everywhere: 3 px, offset, in the brand colour. */
+:focus-visible {
+  outline: var(--ring-focus) solid var(--color-brand);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+
+/* On a brand-coloured control the ring would vanish, so it turns to ink. */
+.bg-brand:focus-visible,
+.bg-earth:focus-visible,
+.bg-danger:focus-visible {
+  outline-color: var(--color-ink);
+}
+
+::selection {
+  background: var(--color-sun-soft);
+  color: var(--color-ink);
+}
+
+dialog::backdrop {
+  background: rgb(35 26 19 / 0.55);
+}
+
+/* Touch targets never shrink below 44 px even when a page forgets. */
+button,
+[role="button"],
+input[type="checkbox"],
+input[type="radio"] {
+  touch-action: manipulation;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+@media (forced-colors: active) {
+  :focus-visible {
+    outline-color: Highlight;
+  }
+}
+
+@media print {
+  .no-print {
+    display: none !important;
+  }
+  body {
+    background: #fff;
+    color: #000;
+  }
+}
+
+/* Keyframes used by Skeleton and Toast; reduced-motion zeroes them above. */
+@keyframes bona-shimmer {
+  from {
+    background-position: 200% 0;
+  }
+  to {
+    background-position: -200% 0;
+  }
+}
+
+/*
+ * The Bona buddy panels open from the buddy button in the bottom-right
+ * corner. The sign preview gets a bigger, springier entrance with a slight
+ * turn, so it reads as the figure stepping in. Reduced motion zeroes both.
+ */
+.bona-pop {
+  transform-origin: bottom right;
+  animation: bona-pop 220ms cubic-bezier(0.2, 0.9, 0.3, 1.15) both;
+}
+.bona-pop-sign {
+  transform-origin: bottom right;
+  animation: bona-pop-sign 480ms cubic-bezier(0.18, 1.25, 0.4, 1) both;
+}
+@keyframes bona-pop {
+  from {
+    opacity: 0;
+    transform: translateY(0.75rem) scale(0.85);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes bona-pop-sign {
+  0% {
+    opacity: 0;
+    transform: translate(0.5rem, 1rem) scale(0.3) rotate(-8deg);
+    filter: blur(6px);
+  }
+  60% {
+    opacity: 1;
+    filter: blur(0);
+  }
+  100% {
+    opacity: 1;
+    transform: none;
+    filter: none;
+  }
+}
+
+@keyframes bona-rise {
+  from {
+    opacity: 0;
+    transform: translateY(0.5rem);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/*
+ * A photograph that melts into the page instead of sitting on it as a block:
+ * full strength at the top, gone by the bottom edge. The page colour shows
+ * through, so it works on canvas and on surface, in light and in dark.
+ */
+@utility photo-blend {
+  -webkit-mask-image: linear-gradient(to bottom, #000 0%, #000 34%, transparent 94%);
+  mask-image: linear-gradient(to bottom, #000 0%, #000 34%, transparent 94%);
+}
+
+/* The same, for a picture beside text on wide screens: it fades towards the text. */
+@utility photo-blend-side {
+  -webkit-mask-image: linear-gradient(to left, #000 0%, #000 45%, transparent 100%);
+  mask-image: linear-gradient(to left, #000 0%, #000 45%, transparent 100%);
+}
+
+@utility bottom-bar-pad {
+  padding-bottom: calc(var(--spacing-bottom-bar) + env(safe-area-inset-bottom, 0px));
+}

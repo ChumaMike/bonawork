@@ -1,0 +1,18 @@
+node_modules/
+artifacts/
+cache/
+types/
+coverage/
+
+# Standalone lockfile from installing inside this worktree; the workspace root owns the lockfile.
+pnpm-lock.yaml
+
+# Signing keys never get committed — only the example.
+.env*
+!.env.example
+
+# Local (simulated network) deployments are throwaway; Fuji deployments are committed.
+deployments/31337.json
+
+# pnpm writes this when installing standalone; contracts must stay a member of the root workspace.
+pnpm-workspace.yaml

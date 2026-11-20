@@ -1,0 +1,85 @@
+@import "tailwindcss";
+
+/* Design tokens: the same stone-and-umber values as the BonaBlock web app (src/app/globals.css),
+   so the verifier reads as part of one product. It shares no code with it.
+   Components use these names only, never raw colour values. */
+@theme {
+  /* Surfaces and text: pale stone paper, dark umber ink */
+  --color-canvas: #f3f1ec;
+  --color-surface: #ffffff;
+  --color-sunken: #eae4d8;
+  --color-ink: #231a13;
+  --color-muted: #62584e;
+  --color-line: #e0dad0;
+  --color-line-strong: #8d8375;
+
+  /* Brand: dark umber for buttons and links, saddle brown and ochre for accents */
+  --color-brand: #2f231a;
+  --color-brand-strong: #1c140e;
+  --color-brand-soft: #eae4d8;
+  --color-on-brand: #f6efe4;
+  --color-earth: #7a4b24;
+  --color-sun: #d4af78;
+  --color-accent: #7a4e0c;
+  --color-accent-soft: #f1e4cc;
+  --color-danger: #9b2f1f;
+  --color-danger-soft: #f6e1dc;
+  /* "Verified" keeps a colour of its own: olive, the shade under the trees */
+  --color-good: #45502e;
+  --color-good-soft: #e1e5d2;
+
+  --font-sans:
+    var(--font-body), ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
+    sans-serif;
+  --font-display:
+    var(--font-display), var(--font-body), ui-sans-serif, system-ui, "Segoe UI",
+    sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+
+  /* Cards are flat: a hairline, no shadow. */
+  --shadow-card: 0 0 0 0 rgb(35 26 19 / 0);
+}
+
+html {
+  /* Slightly larger than the browser default: easier for older readers. */
+  font-size: 106.25%;
+}
+
+body {
+  background: var(--color-canvas);
+  color: var(--color-ink);
+  line-height: 1.55;
+}
+
+h1,
+h2,
+h3 {
+  font-family: var(--font-display);
+  letter-spacing: -0.02em;
+  line-height: 1.12;
+  text-wrap: balance;
+}
+
+:focus-visible {
+  outline: 3px solid var(--color-brand);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+@media print {
+  .no-print,
+  video {
+    display: none !important;
+  }
+  body {
+    background: #ffffff;
+  }
+}

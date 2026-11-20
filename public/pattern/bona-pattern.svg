@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="128" viewBox="0 0 256 128" role="img" aria-label="BonaBlock geometric pattern: stepped pyramids and chevrons">
+  <!-- Straight-line geometry in the spirit of Ndebele and Basotho design. Original work. -->
+  <defs>
+    <pattern id="bona-tile" width="64" height="64" patternUnits="userSpaceOnUse">
+      <path d="M8 28h48v-8h-8v-8h-8V4H24v8h-8v8H8z" fill="#0f5c45" fill-opacity="0.9"/>
+      <path d="M28 12h8v8h-8z" fill="#9a4a2e" fill-opacity="0.8"/>
+      <polyline points="0,46 16,34 32,46 48,34 64,46" fill="none" stroke="#0f5c45" stroke-width="3.5" stroke-linejoin="miter"/>
+      <polyline points="0,58 16,46 32,58 48,46 64,58" fill="none" stroke="#8f4a07" stroke-width="2" stroke-opacity="0.7" stroke-linejoin="miter"/>
+    </pattern>
+  </defs>
+  <rect width="256" height="128" fill="#f7f3ea"/>
+  <rect width="256" height="128" fill="url(#bona-tile)"/>
+</svg>

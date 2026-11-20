@@ -1,0 +1,38 @@
+# dependencies
+node_modules/
+
+# next.js / build output
+.next/
+out/
+build/
+dist/
+*.tsbuildinfo
+next-env.d.ts
+
+# tests
+coverage/
+test-results/
+playwright-report/
+
+# env files — only the example is committed
+.env*
+!.env.example
+
+# private evidence must never be committed
+.evidence/
+
+# local PGlite database (DATABASE_URL unset)
+.data/
+
+# worktrees created by Claude Code sessions
+.claude/worktrees/
+
+# source photographs: `pnpm images` writes the committed variants next to them
+public/images/raw/*
+!public/images/raw/.gitkeep
+
+# misc
+.DS_Store
+*.pem
+*.log
+.vercel

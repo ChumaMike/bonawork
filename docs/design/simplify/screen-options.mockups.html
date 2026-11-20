@@ -1,0 +1,695 @@
+<title>BonaBlock Screen Options</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Inter:wght@400;500;600;700&display=swap">
+<style>
+/* Layout: one section per screen in the order a person meets them; each section is a wrapping
+   row of phone frames (Today, then options) with a pick button under each. Tokens are BonaBlock's own. */
+:root {
+  --bg: #f7f3ea; --surface: #fffdf8; --sunken: #efe9db; --ink: #17221d; --muted: #4a5751; --faint: #6b7670;
+  --line: #d8d1bf; --line-strong: #857f72; --brand: #0f5c45; --brand-soft: #dfeee6; --on-brand: #ffffff;
+  --earth: #9a4a2e; --earth-soft: #f6e4da; --sun: #f0b640; --sun-soft: #fdf1d2; --danger: #a3261d;
+  --display: "Fraunces", Georgia, "Times New Roman", serif;
+  --body: "Inter", ui-sans-serif, system-ui, "Segoe UI", Roboto, sans-serif;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #121a16; --surface: #1a2520; --sunken: #0e1512; --ink: #eef2ec; --muted: #b6c1ba; --faint: #93a099;
+  --line: #2f3d36; --line-strong: #5d6b64; --brand: #62c6a1; --brand-soft: #1d3a2f; --on-brand: #06231a;
+  --earth: #e39a7a; --earth-soft: #3a241b; --sun: #f0b640; --sun-soft: #3a2f12; --danger: #f08a80; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --bg: #121a16; --surface: #1a2520; --sunken: #0e1512; --ink: #eef2ec; --muted: #b6c1ba; --faint: #93a099;
+  --line: #2f3d36; --line-strong: #5d6b64; --brand: #62c6a1; --brand-soft: #1d3a2f; --on-brand: #06231a;
+  --earth: #e39a7a; --earth-soft: #3a241b; --sun: #f0b640; --sun-soft: #3a2f12; --danger: #f08a80; color-scheme: dark }
+{{IMAGE_VARS}}
+
+* { box-sizing: border-box }
+body { background: var(--bg); color: var(--ink); font: 16px/1.55 var(--body); margin: 0 }
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--bg) }
+.wrap { max-width: 1240px; margin: 0 auto; padding-block: 28px 56px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)) }
+h1, h2, h3 { font-family: var(--display); font-weight: 600; text-wrap: balance; margin: 0; line-height: 1.15 }
+h1 { font-size: clamp(1.9rem, 1.4rem + 2vw, 2.75rem) }
+h2 { font-size: clamp(1.4rem, 1.2rem + 0.9vw, 1.8rem) }
+p { margin: 0 }
+.eyebrow { color: var(--brand); font-weight: 600; font-size: 0.9rem }
+.lede { max-width: 62ch; color: var(--muted); font-size: 1.05rem; margin-top: 10px }
+.rules { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 12px; margin-top: 22px; padding: 0; list-style: none }
+.rules li { border-top: 3px solid var(--sun); padding-top: 10px; font-size: 0.95rem; color: var(--muted) }
+.rules b { display: block; color: var(--ink) }
+
+.jump { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; background: var(--bg); border-bottom: 1px solid var(--line); margin-top: 26px }
+.jump div { display: flex; gap: 8px; overflow-x: auto; padding-block: 10px; scrollbar-width: thin }
+.jump a { flex: none; text-decoration: none; color: var(--muted); border: 1px solid var(--line); border-radius: 999px; padding: 6px 12px; font-size: 0.875rem; font-weight: 500; background: var(--surface) }
+.jump a.done { color: var(--brand); border-color: var(--brand); background: var(--brand-soft) }
+.jump a.done::before { content: "✓ " }
+.jump a:focus-visible, .pick:focus-visible, .copy:focus-visible, textarea:focus-visible { outline: 3px solid var(--sun); outline-offset: 2px }
+
+section { padding-top: 44px; scroll-margin-top: 70px }
+.shead { display: flex; flex-direction: column; gap: 6px; max-width: 70ch }
+.shead p { color: var(--muted) }
+.opts { display: flex; flex-wrap: wrap; gap: 28px 24px; margin-top: 22px; align-items: stretch }
+.opt { margin: 0; width: 276px; max-width: 100%; display: flex; flex-direction: column; gap: 10px }
+.olab { display: flex; align-items: center; gap: 8px; min-height: 50px }
+.olab b { line-height: 1.25 }
+.oltr { width: 28px; height: 28px; border-radius: 50%; background: var(--ink); color: var(--bg); display: grid; place-items: center; font-weight: 700; font-size: 0.85rem; flex: none }
+.today .oltr { background: var(--sunken); color: var(--muted); width: auto; padding: 0 10px; border-radius: 999px }
+.olab b { font-size: 1rem }
+.rec { margin-left: auto; font-style: normal; font-size: 0.75rem; font-weight: 600; color: var(--earth); background: var(--earth-soft); border-radius: 999px; padding: 3px 9px }
+.ocap { font-size: 0.9rem; color: var(--muted) }
+.ocap b { color: var(--ink); font-weight: 600 }
+.pick { margin-top: auto; font: 600 0.95rem var(--body); min-height: 46px; border-radius: 12px; border: 2px solid var(--brand); background: transparent; color: var(--brand); cursor: pointer }
+.pick:hover { background: var(--brand-soft) }
+.opt.is-picked .pick { background: var(--brand); color: var(--on-brand) }
+.opt.is-picked .phone, .opt.is-picked .mini { box-shadow: 0 0 0 4px var(--bg), 0 0 0 8px var(--brand) }
+.newf { font-size: 0.75rem; font-weight: 600; color: var(--muted); border: 1px dashed var(--line-strong); border-radius: 999px; padding: 2px 8px; margin-left: auto }
+
+/* ---------- phone frame: always the product's light look ---------- */
+.phone, .mini {
+  --bg: #f7f3ea; --surface: #fffdf8; --sunken: #efe9db; --ink: #17221d; --muted: #4a5751; --faint: #6b7670;
+  --line: #d8d1bf; --line-strong: #857f72; --brand: #0f5c45; --brand-soft: #dfeee6; --on-brand: #ffffff;
+  --earth: #9a4a2e; --sun: #f0b640; --danger: #a3261d;
+  background: var(--bg); color: var(--ink); font: 11.5px/1.4 var(--body);
+}
+.phone { width: 276px; max-width: 100%; height: 552px; border: 6px solid #17221d; border-radius: 30px; overflow: hidden; display: flex; flex-direction: column; position: relative }
+.mini { width: 276px; max-width: 100%; border: 1px solid var(--line); border-radius: 16px; padding: 12px; display: flex; flex-direction: column; gap: 8px }
+.shot { flex: 1; background: var(--shot) top center / 100% auto no-repeat }
+.more { position: absolute; inset: auto 0 0; padding: 46px 10px 12px; text-align: center; font-weight: 600; color: #17221d; background: linear-gradient(to top, #f7f3ea 55%, transparent) }
+.pbar { height: 40px; flex: none; display: flex; align-items: center; gap: 6px; padding: 0 12px; background: var(--surface); border-bottom: 1px solid var(--line) }
+.mk { width: 20px; height: 20px; border-radius: 6px; background: var(--brand); position: relative; flex: none }
+.mk::after { content: ""; position: absolute; inset: 6px 4px; border-radius: 50%; background: var(--surface) }
+.pbar b { font: 600 14px var(--display) } .pbar b span { color: var(--brand) }
+.pbar u { margin-left: auto; text-decoration: none; font-weight: 600; font-size: 11px }
+.back { font-weight: 600; color: var(--brand); display: flex; align-items: center; gap: 2px }
+.scr { flex: 1; min-height: 0; overflow: hidden; padding: 12px; display: flex; flex-direction: column; gap: 10px }
+.h { font: 600 19px/1.15 var(--display) } .h2 { font: 600 14px/1.2 var(--display) } .big { font-size: 22px }
+.m { color: var(--muted) } .s { font-size: 10.5px } .c { text-align: center }
+.ico { width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; flex: none }
+.btn { min-height: 40px; border-radius: 12px; background: var(--brand); color: var(--on-brand); font-weight: 600; font-size: 12.5px; display: flex; align-items: center; justify-content: center; gap: 6px; padding: 0 10px; text-align: center; flex: none }
+.btn.o { background: transparent; border: 1.5px solid var(--brand); color: var(--brand) }
+.btn.d { background: transparent; border: 1.5px solid var(--danger); color: var(--danger) }
+.btn.tall { min-height: 48px; font-size: 13.5px } .btn.sm { min-height: 32px; font-size: 11px }
+.inp { min-height: 40px; border: 1.5px solid var(--line-strong); border-radius: 12px; background: var(--surface); padding: 0 12px; color: var(--faint); display: flex; align-items: center; gap: 6px; flex: none }
+.inp.area { min-height: 62px; align-items: flex-start; padding-top: 9px; color: var(--ink) }
+.ph { border-radius: 14px; background: var(--sunken) center / cover no-repeat; flex: none }
+.tile { display: flex; align-items: center; gap: 10px; padding: 12px; border: 1.5px solid var(--line); border-radius: 14px; background: var(--surface) }
+.tile.p { background: var(--brand); border-color: var(--brand); color: var(--on-brand) }
+.tile b { display: block; font-size: 13px } .tile small { color: var(--muted); font-size: 10.5px } .tile.p small { color: #d5e9df }
+.ic { width: 34px; height: 34px; border-radius: 50%; background: var(--brand-soft); color: var(--brand); display: grid; place-items: center; flex: none }
+.tile.p .ic { background: #2b7a60; color: #fff }
+.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px } .grid3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px }
+.sq { border: 1.5px solid var(--line); border-radius: 14px; background: var(--surface); padding: 10px 8px; display: flex; flex-direction: column; align-items: center; gap: 6px; font-weight: 600; text-align: center }
+.sq.on { border-color: var(--brand); background: var(--brand-soft) }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 10px; display: flex; flex-direction: column; gap: 6px }
+.note { background: #fbead0; border: 1px solid #e6c48f; color: #6f3905; border-radius: 12px; padding: 9px }
+.pill { display: inline-flex; align-items: center; gap: 4px; padding: 3px 8px; border-radius: 999px; font-size: 10px; font-weight: 600; white-space: nowrap; align-self: flex-start }
+.claimed { background: #efe6f9; color: #66389b } .verified { background: #dcefe5; color: #0f5c45 } .reported { background: #e7eaed; color: #3d4852 } .address { background: #fbead4; color: #8a4500 } .late { background: #fbe4e1; color: #a3261d }
+.row { display: flex; align-items: center; gap: 8px; padding: 9px 0; border-bottom: 1px solid var(--line) } .row:last-child { border-bottom: 0 }
+.grow { flex: 1; min-width: 0 } .row b { display: block }
+.num { text-align: center; padding: 8px 4px } .num b { font: 600 20px var(--display); display: block }
+.tabs { display: flex; border-bottom: 1px solid var(--line); gap: 14px; font-weight: 600; color: var(--muted) } .tabs span { padding-bottom: 6px } .tabs .on { color: var(--brand); border-bottom: 2.5px solid var(--brand) }
+.seg { display: grid; grid-template-columns: 1fr 1fr; background: var(--sunken); border-radius: 10px; padding: 3px; font-weight: 600; text-align: center } .seg span { padding: 6px; border-radius: 8px; color: var(--muted) } .seg .on { background: var(--surface); color: var(--ink) }
+.path { display: flex; flex-direction: column } .stop { display: flex; gap: 10px; padding-bottom: 12px; position: relative }
+.stop::before { content: ""; position: absolute; left: 9px; top: 20px; bottom: 0; width: 2px; background: var(--line) } .stop:last-child::before { display: none }
+.dot { width: 20px; height: 20px; border-radius: 50%; border: 2px solid var(--line-strong); background: var(--surface); flex: none; display: grid; place-items: center; color: #fff }
+.stop.done .dot { background: var(--brand); border-color: var(--brand) } .stop.now .dot { border-color: #66389b; background: #efe6f9; box-shadow: 0 0 0 3px #efe6f9 }
+.dots { display: flex; gap: 5px; align-items: center } .dots i { width: 22px; height: 5px; border-radius: 3px; background: var(--line) } .dots .on { background: var(--brand) }
+.chip { border: 1.5px solid var(--line); border-radius: 999px; padding: 5px 9px; font-weight: 600; background: var(--surface) } .chip.on { border-color: var(--brand); background: var(--brand-soft); color: var(--brand) }
+.wrapc { display: flex; flex-wrap: wrap; gap: 6px }
+.bub { max-width: 82%; padding: 8px 10px; border-radius: 14px; background: var(--surface); border: 1px solid var(--line) } .bub.me { align-self: flex-end; background: var(--brand); color: #fff; border-color: var(--brand) }
+.dash { border: 2px dashed var(--line-strong); border-radius: 14px; padding: 14px 10px; display: flex; flex-direction: column; align-items: center; gap: 6px; text-align: center; background: var(--surface) }
+.ok { width: 44px; height: 44px; border-radius: 50%; background: var(--brand); color: #fff; display: grid; place-items: center; align-self: center } .ok .ico { width: 24px; height: 24px; stroke-width: 2.6 }
+.ref { font: 700 17px ui-monospace, "Cascadia Mono", Consolas, monospace; letter-spacing: 0.02em }
+.code { font: 10px ui-monospace, Consolas, monospace; color: var(--muted); word-break: break-all }
+.pact { flex: none; display: flex; gap: 8px; padding: 8px 12px; background: var(--surface); border-top: 1px solid var(--line) } .pact .btn { flex: 1 }
+.pnav { flex: none; display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; background: var(--surface); border-top: 1px solid var(--line); padding: 6px 4px 8px }
+.pnav span { display: flex; flex-direction: column; align-items: center; gap: 2px; font-size: 9.5px; font-weight: 600; color: var(--muted) } .pnav .on { color: var(--brand) } .pnav .ico { width: 17px; height: 17px }
+.pnav.big3 span { font-size: 11px } .pnav.big3 .ico { width: 20px; height: 20px }
+.fl { display: flex; align-items: center; gap: 6px } .sb { justify-content: space-between } .mt { margin-top: auto }
+
+/* ---------- picks summary ---------- */
+.sum { margin-top: 56px; border-top: 3px solid var(--brand); padding-top: 22px; display: grid; gap: 22px; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) }
+@media (max-width: 760px) { .sum { grid-template-columns: minmax(0, 1fr) } }
+.sum ul { list-style: none; padding: 0; margin: 12px 0 0; display: grid; gap: 6px }
+.sum li { display: flex; justify-content: space-between; gap: 12px; border-bottom: 1px solid var(--line); padding-bottom: 6px }
+.sum li span:last-child { font-weight: 600 } .sum li .none { color: var(--faint); font-weight: 400 }
+textarea { width: 100%; min-height: 130px; margin-top: 12px; border-radius: 12px; border: 1.5px solid var(--line-strong); background: var(--surface); color: var(--ink); font: 1rem/1.5 var(--body); padding: 12px; resize: vertical }
+.copy { margin-top: 12px; font: 600 0.95rem var(--body); min-height: 46px; padding: 0 18px; border-radius: 12px; border: 0; background: var(--brand); color: var(--on-brand); cursor: pointer }
+.state { margin-top: 10px; font-size: 0.9rem; color: var(--muted) }
+@media (prefers-reduced-motion: no-preference) { .pick, .jump a { transition: background-color 0.15s, color 0.15s } }
+</style>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+  <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></symbol>
+  <symbol id="i-list" viewBox="0 0 24 24"><path d="M8 6h12M8 12h12M8 18h12M4 6h.01M4 12h.01M4 18h.01"/></symbol>
+  <symbol id="i-chat" viewBox="0 0 24 24"><path d="M4 5h16v11H9l-5 4z"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></symbol>
+  <symbol id="i-chev" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></symbol>
+  <symbol id="i-back" viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"/></symbol>
+  <symbol id="i-home" viewBox="0 0 24 24"><path d="M4 11l8-7 8 7v9h-5v-6H9v6H4z"/></symbol>
+  <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></symbol>
+  <symbol id="i-drop" viewBox="0 0 24 24"><path d="M12 3c4 5 6 8 6 11a6 6 0 0 1-12 0c0-3 2-6 6-11z"/></symbol>
+  <symbol id="i-wc" viewBox="0 0 24 24"><path d="M6 4h5v7H6zM6 11h12a5 5 0 0 1-5 6H9a3 3 0 0 1-3-3zM9 17v3M14 17v3"/></symbol>
+  <symbol id="i-bolt" viewBox="0 0 24 24"><path d="M13 3L5 14h6l-1 7 8-11h-6z"/></symbol>
+  <symbol id="i-bldg" viewBox="0 0 24 24"><path d="M5 21V7l7-4 7 4v14M9 21v-5h6v5M9 10h.01M15 10h.01"/></symbol>
+  <symbol id="i-shield" viewBox="0 0 24 24"><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/><path d="M9 12l2 2 4-4"/></symbol>
+  <symbol id="i-book" viewBox="0 0 24 24"><path d="M4 5a2 2 0 0 1 2-2h13v16H6a2 2 0 0 0-2 2zM19 19v2H6"/></symbol>
+  <symbol id="i-users" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.5-4 3-6 6.5-6s6 2 6.5 6M16 5a3.5 3.5 0 0 1 0 6.5M18 14c2 .7 3.2 2.6 3.5 6"/></symbol>
+  <symbol id="i-cam" viewBox="0 0 24 24"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></symbol>
+  <symbol id="i-file" viewBox="0 0 24 24"><path d="M6 3h8l4 4v14H6zM14 3v4h4"/></symbol>
+  <symbol id="i-mic" viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></symbol>
+</svg>
+
+<div class="wrap">
+  <header>
+    <p class="eyebrow">BonaBlock for Schools · screen options</p>
+    <h1>Fewer things on each screen</h1>
+    <p class="lede">These are simpler versions of every screen a person passes through, drawn in the colours the app already uses. Each one shows only the first screen of a phone, because that is what a parent, a gogo or a caretaker sees before scrolling. Tap <b>Choose</b> under the ones you prefer. Your picks are saved, and Claude reads them to build the real thing.</p>
+    <ul class="rules">
+      <li><b>One main button per screen</b>The thing most people came to do is the biggest thing on the page.</li>
+      <li><b>The answer first</b>The first screen says what is going on. Details open when asked for.</li>
+      <li><b>Big text, big targets</b>Sized for a thumb, sunlight and tired eyes.</li>
+      <li><b>Plain words</b>Fingerprints and transaction codes stay behind a Proof button.</li>
+    </ul>
+  </header>
+
+  <nav class="jump" aria-label="Screens"><div id="jump"></div></nav>
+
+  <!-- ============ HOME ============ -->
+  <section id="s-home" data-name="Home">
+    <div class="shead"><h2>1. Home</h2><p>Today the home page is {{LEN:home}} phone screens long: a photo, a search box, four picture cards, a carousel, how it works and the rule. A first-time visitor has to work out where to tap.</p></div>
+    <div class="opts">
+      <figure class="opt today" data-opt="Today"><figcaption class="olab"><span class="oltr">Today</span></figcaption>
+        <div class="phone"><div class="shot" style="--shot: var(--t-home)"></div><div class="more">{{LEN:home}} screens of scrolling</div></div>
+        <p class="ocap">What is live now.</p><button class="pick" type="button">Keep today's</button></figure>
+
+      <figure class="opt" data-opt="A"><figcaption class="olab"><span class="oltr">A</span><b>One question</b><em class="rec">Recommended</em></figcaption>
+        <div class="phone"><div class="pbar"><i class="mk"></i><b>Bona<span>Block</span></b><u>Sign in</u></div>
+          <div class="scr">
+            <div><p class="m s" style="font-weight:600;color:var(--brand)">BonaBlock for Schools</p><p class="h big">What do you need today?</p></div>
+            <div class="tile p"><span class="ic"><svg class="ico"><use href="#i-plus"/></svg></span><span><b>Report a problem</b><small>About 3 minutes. No account.</small></span></div>
+            <div class="tile"><span class="ic"><svg class="ico"><use href="#i-bldg"/></svg></span><span><b>See problems at a school</b><small>What was reported and what is being done</small></span></div>
+            <div class="tile"><span class="ic"><svg class="ico"><use href="#i-search"/></svg></span><span><b>Check on my report</b><small>Use the number on your receipt</small></span></div>
+            <p class="c m mt">Not sure? <b style="color:var(--brand)">Ask Bona AI</b></p>
+          </div>
+          <div class="pnav big3"><span class="on"><svg class="ico"><use href="#i-home"/></svg>Home</span><span><svg class="ico"><use href="#i-plus"/></svg>Report</span><span><svg class="ico"><use href="#i-list"/></svg>My reports</span></div></div>
+        <p class="ocap"><b>Three big buttons and nothing else.</b> Photos, recent problems and "how it works" move to their own pages. Least to read, hardest to get lost in.</p><button class="pick" type="button">Choose A</button></figure>
+
+      <figure class="opt" data-opt="B"><figcaption class="olab"><span class="oltr">B</span><b>Your school first</b></figcaption>
+        <div class="phone"><div class="pbar"><i class="mk"></i><b>Bona<span>Block</span></b><u>Sign in</u></div>
+          <div class="scr">
+            <div class="ph" style="height:104px;background-image:var(--p-hero)"></div>
+            <p class="h">Which school is it about?</p>
+            <div class="inp"><svg class="ico"><use href="#i-search"/></svg>School name or town</div>
+            <div class="btn tall">Find school</div>
+            <div class="card" style="padding:4px 10px"><div class="row"><svg class="ico"><use href="#i-bldg"/></svg><span class="grow"><b>Thandolwethu Primary</b><span class="m s">Vaal Ridge · 4 open problems</span></span><svg class="ico"><use href="#i-chev"/></svg></div>
+            <div class="row"><svg class="ico"><use href="#i-bldg"/></svg><span class="grow"><b>Thuto-Lesedi Primary</b><span class="m s">Soweto · 2 open problems</span></span><svg class="ico"><use href="#i-chev"/></svg></div></div>
+            <p class="c m mt"><b style="color:var(--brand)">Check on my report</b> · <b style="color:var(--brand)">Ask Bona AI</b></p>
+          </div></div>
+        <p class="ocap"><b>Pick the school, then everything happens there.</b> Keeps one warm photo. One extra step before reporting, but the person never sees problems from other schools.</p><button class="pick" type="button">Choose B</button></figure>
+
+      <figure class="opt" data-opt="C"><figcaption class="olab"><span class="oltr">C</span><b>Today, trimmed</b></figcaption>
+        <div class="phone"><div class="pbar"><i class="mk"></i><b>Bona<span>Block</span></b><u>Sign in</u></div>
+          <div class="scr">
+            <div class="ph" style="height:84px;background-image:var(--p-hero)"></div>
+            <p class="h">See it. Report it. Prove it.</p>
+            <div class="inp"><svg class="ico"><use href="#i-search"/></svg>Find your school</div>
+            <div class="grid2">
+              <div class="sq on"><span class="ic"><svg class="ico"><use href="#i-plus"/></svg></span>Report a problem</div>
+              <div class="sq"><span class="ic"><svg class="ico"><use href="#i-search"/></svg></span>Track a report</div>
+              <div class="sq"><span class="ic"><svg class="ico"><use href="#i-list"/></svg></span>Public issues</div>
+              <div class="sq"><span class="ic"><svg class="ico"><use href="#i-chat"/></svg></span>Ask Bona AI</div>
+            </div>
+          </div>
+          <div class="pnav"><span class="on"><svg class="ico"><use href="#i-home"/></svg>Home</span><span><svg class="ico"><use href="#i-plus"/></svg>Report</span><span><svg class="ico"><use href="#i-search"/></svg>Track</span><span><svg class="ico"><use href="#i-chat"/></svg>Ask Bona AI</span></div></div>
+        <p class="ocap"><b>Same page, half the length.</b> Keeps the tagline and all four actions, drops the photo cards and carousel. Smallest change, still five things asking for attention.</p><button class="pick" type="button">Choose C</button></figure>
+    </div>
+  </section>
+
+  <!-- ============ SCHOOL ============ -->
+  <section id="s-school" data-name="School page">
+    <div class="shead"><h2>2. A school's page</h2><p>Today: {{LEN:school}} screens. People arrive here to do one of two things: report something, or see whether a problem they know about is already listed.</p></div>
+    <div class="opts">
+      <figure class="opt today" data-opt="Today"><figcaption class="olab"><span class="oltr">Today</span></figcaption>
+        <div class="phone"><div class="shot" style="--shot: var(--t-school)"></div><div class="more">{{LEN:school}} screens of scrolling</div></div>
+        <p class="ocap">What is live now.</p><button class="pick" type="button">Keep today's</button></figure>
+
+      <figure class="opt" data-opt="A"><figcaption class="olab"><span class="oltr">A</span><b>Button, three numbers, list</b><em class="rec">Recommended</em></figcaption>
+        <div class="phone"><div class="pbar"><span class="back"><svg class="ico"><use href="#i-back"/></svg>Schools</span></div>
+          <div class="scr">
+            <div class="ph" style="height:70px;background-image:var(--p-school)"></div>
+            <div><p class="h">Thandolwethu Primary School</p><p class="m">Vaal Ridge · 842 learners</p></div>
+            <div class="btn tall"><svg class="ico"><use href="#i-plus"/></svg>Report a problem here</div>
+            <div class="grid3"><div class="card num"><b>4</b><span class="m s">Open</span></div><div class="card num"><b>1</b><span class="m s">Waiting for a check</span></div><div class="card num"><b>6</b><span class="m s">Confirmed fixed</span></div></div>
+            <p class="h2">Open problems</p>
+            <div class="card" style="padding:2px 10px"><div class="row"><svg class="ico"><use href="#i-wc"/></svg><span class="grow"><b>Girls' toilets blocked</b><span class="m s">7 people affected</span></span><span class="pill claimed">Repair claimed</span></div>
+            <div class="row"><svg class="ico"><use href="#i-drop"/></svg><span class="grow"><b>Tap by the gate leaking</b><span class="m s">3 people affected</span></span><span class="pill reported">Reported</span></div></div>
+          </div></div>
+        <p class="ocap"><b>The report button sits above everything.</b> Three numbers tell the school's story at a glance; problems are plain rows with one status word each.</p><button class="pick" type="button">Choose A</button></figure>
+
+      <figure class="opt" data-opt="B"><figcaption class="olab"><span class="oltr">B</span><b>Just the list</b></figcaption>
+        <div class="phone"><div class="pbar"><span class="back"><svg class="ico"><use href="#i-back"/></svg>Schools</span></div>
+          <div class="scr">
+            <div><p class="h">Thandolwethu Primary School</p><p class="m">Vaal Ridge</p></div>
+            <div class="seg"><span class="on">Open (4)</span><span>Fixed (6)</span></div>
+            <div class="card" style="flex-direction:row;align-items:center;gap:10px"><div class="ph" style="width:52px;height:52px;background-image:var(--p-toilet)"></div><span class="grow"><b>Girls' toilets blocked</b><br><span class="pill claimed" style="margin-top:4px">Repair claimed</span></span><svg class="ico"><use href="#i-chev"/></svg></div>
+            <div class="card" style="flex-direction:row;align-items:center;gap:10px"><div class="ph" style="width:52px;height:52px;background-image:var(--p-water)"></div><span class="grow"><b>Tap by the gate leaking</b><br><span class="pill reported" style="margin-top:4px">Reported</span></span><svg class="ico"><use href="#i-chev"/></svg></div>
+            <div class="card" style="flex-direction:row;align-items:center;gap:10px"><div class="ph" style="width:52px;height:52px;background-image:var(--p-shelf)"></div><span class="grow"><b>Broken window, Grade 3</b><br><span class="pill address" style="margin-top:4px">Being fixed</span></span><svg class="ico"><use href="#i-chev"/></svg></div>
+          </div>
+          <div class="pact"><div class="btn tall"><svg class="ico"><use href="#i-plus"/></svg>Report a problem here</div></div></div>
+        <p class="ocap"><b>Problems with pictures, two tabs, button always at the thumb.</b> Easier to recognise a problem by its picture. No numbers, so the overall state of the school is less obvious.</p><button class="pick" type="button">Choose B</button></figure>
+    </div>
+  </section>
+
+  <!-- ============ CASE ============ -->
+  <section id="s-case" data-name="A problem">
+    <div class="shead"><h2>3. One problem</h2><p>The heaviest page today: {{LEN:case}} screens, eleven separate boxes. The one question people bring is "has it been fixed, and who says so?"</p></div>
+    <div class="opts">
+      <figure class="opt today" data-opt="Today"><figcaption class="olab"><span class="oltr">Today</span></figcaption>
+        <div class="phone"><div class="shot" style="--shot: var(--t-case)"></div><div class="more">{{LEN:case}} screens of scrolling</div></div>
+        <p class="ocap">What is live now.</p><button class="pick" type="button">Keep today's</button></figure>
+
+      <figure class="opt" data-opt="A"><figcaption class="olab"><span class="oltr">A</span><b>Answer first, rest folded</b><em class="rec">Recommended</em></figcaption>
+        <div class="phone"><div class="pbar"><span class="back"><svg class="ico"><use href="#i-back"/></svg>Thandolwethu Primary</span></div>
+          <div class="scr">
+            <p class="h">Girls' toilets blocked and floor wet</p>
+            <div class="card" style="background:#efe6f9;border-color:#d9c7ee"><span class="pill claimed" style="background:#fff">Repair claimed</span><p style="font-size:13px;font-weight:600;line-height:1.35">The school says this is fixed. Nobody independent has checked yet.</p><p class="m s">Until someone checks, treat it as not fixed.</p></div>
+            <div class="btn tall"><svg class="ico"><use href="#i-users"/></svg>I'm affected too · 7</div>
+            <div class="card" style="padding:2px 10px">
+              <div class="row"><span class="grow"><b>What is wrong</b></span><svg class="ico"><use href="#i-chev"/></svg></div>
+              <div class="row"><span class="grow"><b>What has happened</b><span class="m s">4 steps so far</span></span><svg class="ico"><use href="#i-chev"/></svg></div>
+              <div class="row"><span class="grow"><b>Photos and proof</b><span class="m s">5 photos</span></span><svg class="ico"><use href="#i-chev"/></svg></div>
+              <div class="row"><span class="grow"><b>Who must fix it</b></span><svg class="ico"><use href="#i-chev"/></svg></div>
+            </div>
+          </div></div>
+        <p class="ocap"><b>One sentence answers the question, one button, four rows that open.</b> Goes from five screens to one. People who want the full timeline need one extra tap.</p><button class="pick" type="button">Choose A</button></figure>
+
+      <figure class="opt" data-opt="B"><figcaption class="olab"><span class="oltr">B</span><b>Follow the path</b></figcaption>
+        <div class="phone"><div class="pbar"><span class="back"><svg class="ico"><use href="#i-back"/></svg>Thandolwethu Primary</span></div>
+          <div class="scr">
+            <p class="h">Girls' toilets blocked and floor wet</p>
+            <div class="path">
+              <div class="stop done"><span class="dot"><svg class="ico" style="width:11px;height:11px"><use href="#i-check"/></svg></span><span><b>Reported</b><br><span class="m s">By a community member, 9 days ago</span></span></div>
+              <div class="stop done"><span class="dot"><svg class="ico" style="width:11px;height:11px"><use href="#i-check"/></svg></span><span><b>School looked at it</b><br><span class="m s">Plumber booked, 6 days ago</span></span></div>
+              <div class="stop now"><span class="dot"></span><span><b>School says it is fixed</b><br><span class="m s">Yesterday. Not checked yet.</span></span></div>
+              <div class="stop"><span class="dot"></span><span><b class="m">Checked by an independent reviewer</b><br><span class="m s">Still to come</span></span></div>
+            </div>
+            <div class="note s"><b>No temporary safety step recorded.</b> A report on its own does not make anyone safe.</div>
+          </div>
+          <div class="pact"><div class="btn"><svg class="ico"><use href="#i-users"/></svg>Affected too · 7</div><div class="btn o"><svg class="ico"><use href="#i-cam"/></svg>Add photo</div></div></div>
+        <p class="ocap"><b>The whole story as four stops on a line.</b> Shows clearly that the last stop is still empty. More to read than A, and the two actions share the bottom bar.</p><button class="pick" type="button">Choose B</button></figure>
+
+      <figure class="opt" data-opt="C"><figcaption class="olab"><span class="oltr">C</span><b>Three tabs</b></figcaption>
+        <div class="phone"><div class="pbar"><span class="back"><svg class="ico"><use href="#i-back"/></svg>Thandolwethu Primary</span></div>
+          <div class="scr">
+            <div class="ph" style="height:74px;background-image:var(--p-toilet)"></div>
+            <p class="h">Girls' toilets blocked and floor wet</p>
+            <span class="pill claimed">Repair claimed · not checked yet</span>
+            <div class="tabs"><span class="on">Summary</span><span>Timeline</span><span>Proof</span></div>
+            <p>Two toilets in the girls' block do not flush and the floor is wet. Learners are using the staff toilets.</p>
+            <div class="fl m"><svg class="ico"><use href="#i-users"/></svg><b style="color:var(--ink)">7 people</b> say this affects them</div>
+            <div class="btn tall mt">I'm affected too</div>
+          </div></div>
+        <p class="ocap"><b>Keeps the picture; splits the page into Summary, Timeline and Proof.</b> Familiar pattern, but tabs are easy to miss for people new to smartphones.</p><button class="pick" type="button">Choose C</button></figure>
+    </div>
+  </section>
+
+  <!-- ============ REPORT ============ -->
+  <section id="s-report" data-name="Reporting">
+    <div class="shead"><h2>4. Reporting a problem</h2><p>Today it is five steps, each with explanations, hints and notices around the one thing being asked ({{LEN:report}} screens for the describe step alone).</p></div>
+    <div class="opts">
+      <figure class="opt today" data-opt="Today"><figcaption class="olab"><span class="oltr">Today</span></figcaption>
+        <div class="phone"><div class="shot" style="--shot: var(--t-report)"></div><div class="more">{{LEN:report}} screens for this step</div></div>
+        <p class="ocap">What is live now.</p><button class="pick" type="button">Keep today's</button></figure>
+
+      <figure class="opt" data-opt="A"><figcaption class="olab"><span class="oltr">A</span><b>One question per screen</b><em class="rec">Recommended</em></figcaption>
+        <div class="phone"><div class="pbar"><span class="back"><svg class="ico"><use href="#i-back"/></svg>Back</span><u class="m">Step 2 of 4</u></div>
+          <div class="scr">
+            <div class="dots"><i class="on"></i><i class="on"></i><i></i><i></i></div>
+            <p class="h big">What is the problem about?</p>
+            <div class="grid2">
+              <div class="sq"><span class="ic"><svg class="ico"><use href="#i-drop"/></svg></span>Water</div>
+              <div class="sq on"><span class="ic"><svg class="ico"><use href="#i-wc"/></svg></span>Toilets</div>
+              <div class="sq"><span class="ic"><svg class="ico"><use href="#i-bolt"/></svg></span>Electricity</div>
+              <div class="sq"><span class="ic"><svg class="ico"><use href="#i-bldg"/></svg></span>Buildings</div>
+              <div class="sq"><span class="ic"><svg class="ico"><use href="#i-shield"/></svg></span>Safety</div>
+              <div class="sq"><span class="ic"><svg class="ico"><use href="#i-book"/></svg></span>Books and desks</div>
+            </div>
+          </div>
+          <div class="pact"><div class="btn tall">Continue</div></div></div>
+        <p class="ocap"><b>School, then type, then what is wrong, then a photo.</b> Each screen asks one thing with big targets. Four taps of Continue, but nothing to read around the question.</p><button class="pick" type="button">Choose A</button></figure>
+
+      <figure class="opt" data-opt="B"><figcaption class="olab"><span class="oltr">B</span><b>One short form</b></figcaption>
+        <div class="phone"><div class="pbar"><span class="back"><svg class="ico"><use href="#i-back"/></svg>Back</span><b style="margin-left:auto;font:600 12px var(--body)">Report a problem</b></div>
+          <div class="scr">
+            <div class="fl sb"><span><span class="m s">School</span><br><b>Thandolwethu Primary</b></span><b style="color:var(--brand)">Change</b></div>
+            <div><p style="font-weight:600;margin-bottom:5px">What is wrong?</p><div class="inp area">The girls' toilets are blocked and the floor is wet</div></div>
+            <div class="wrapc"><span class="chip">Water</span><span class="chip on">Toilets</span><span class="chip">Electricity</span><span class="chip">Buildings</span><span class="chip">Safety</span><span class="chip">Books</span></div>
+            <div class="dash"><svg class="ico" style="width:20px;height:20px"><use href="#i-cam"/></svg><b>Add a photo</b><span class="m s">Optional. It stays private.</span></div>
+          </div>
+          <div class="pact"><div class="btn tall">Send report</div></div></div>
+        <p class="ocap"><b>Everything on one screen, one Send button.</b> Fastest for confident users. Smaller targets and more on screen at once, which is the thing you said feels like a lot.</p><button class="pick" type="button">Choose B</button></figure>
+
+      <figure class="opt" data-opt="C"><figcaption class="olab"><span class="oltr">C</span><b>Tell Bona AI</b><span class="newf">New work</span></figcaption>
+        <div class="phone"><div class="pbar"><span class="back"><svg class="ico"><use href="#i-back"/></svg>Back</span><b style="margin-left:auto;font:600 12px var(--body)">Bona AI</b></div>
+          <div class="scr" style="gap:8px">
+            <div class="bub">Hello. Which school is it about?</div>
+            <div class="bub me">Thandolwethu Primary</div>
+            <div class="bub">What is wrong there?</div>
+            <div class="bub me">The girls' toilets are blocked</div>
+            <div class="bub">Someone already reported this and 7 people are affected. Is yours the same problem?</div>
+            <div class="grid2"><div class="btn sm">Yes, add me</div><div class="btn o sm">No, it's different</div></div>
+          </div>
+          <div class="pact"><div class="inp grow" style="min-height:36px">Type or speak…</div><div class="ic" style="background:var(--brand);color:#fff"><svg class="ico"><use href="#i-mic"/></svg></div></div></div>
+        <p class="ocap"><b>A conversation instead of a form, with a microphone.</b> Kindest for people who struggle with forms or reading. The assistant exists but cannot file a report yet, so this is the most new work.</p><button class="pick" type="button">Choose C</button></figure>
+    </div>
+  </section>
+
+  <!-- ============ RECEIPT ============ -->
+  <section id="s-receipt" data-name="After reporting">
+    <div class="shead"><h2>5. After sending a report</h2><p>Today: {{LEN:receipt}} screens of receipt, including fingerprints and blockchain details. The person needs two things: proof it went through, and the number to follow it with.</p></div>
+    <div class="opts">
+      <figure class="opt today" data-opt="Today"><figcaption class="olab"><span class="oltr">Today</span></figcaption>
+        <div class="phone"><div class="shot" style="--shot: var(--t-receipt)"></div><div class="more">{{LEN:receipt}} screens of scrolling</div></div>
+        <p class="ocap">What is live now.</p><button class="pick" type="button">Keep today's</button></figure>
+
+      <figure class="opt" data-opt="A"><figcaption class="olab"><span class="oltr">A</span><b>Done, and what happens next</b><em class="rec">Recommended</em></figcaption>
+        <div class="phone"><div class="pbar"><i class="mk"></i><b>Bona<span>Block</span></b></div>
+          <div class="scr">
+            <span class="ok" style="margin-top:6px"><svg class="ico"><use href="#i-check"/></svg></span>
+            <p class="h big c">Report received</p>
+            <div class="card c" style="align-items:center"><span class="m s">Your number. Keep it.</span><span class="ref">BB-2026-000141</span><div class="btn o sm" style="padding:0 16px">Copy number</div></div>
+            <p class="h2">What happens next</p>
+            <div class="fl" style="align-items:flex-start"><b style="color:var(--brand)">1</b><span>The school is told today.</span></div>
+            <div class="fl" style="align-items:flex-start"><b style="color:var(--brand)">2</b><span>You can follow it any time with your number.</span></div>
+            <div class="fl" style="align-items:flex-start"><b style="color:var(--brand)">3</b><span>A repair only counts once an independent reviewer confirms it.</span></div>
+          </div>
+          <div class="pact"><div class="btn tall">Follow this report</div></div></div>
+        <p class="ocap"><b>A tick, the number, three lines.</b> The record on Avalanche is still made; its details sit behind "Proof" on the report itself.</p><button class="pick" type="button">Choose A</button></figure>
+
+      <figure class="opt" data-opt="B"><figcaption class="olab"><span class="oltr">B</span><b>A ticket to keep</b></figcaption>
+        <div class="phone"><div class="pbar"><i class="mk"></i><b>Bona<span>Block</span></b></div>
+          <div class="scr">
+            <p class="h">Here is your receipt</p>
+            <div class="card" style="border-style:dashed;border-width:1.5px;border-color:var(--line-strong);gap:8px">
+              <div class="fl sb"><span class="m s">Report number</span><span class="pill verified"><svg class="ico" style="width:11px;height:11px"><use href="#i-check"/></svg>Recorded</span></div>
+              <span class="ref">BB-2026-000141</span>
+              <div class="row" style="border-top:1px dashed var(--line-strong);border-bottom:0;padding-bottom:0"><span class="grow"><span class="m s">School</span><b>Thandolwethu Primary</b></span></div>
+              <div class="fl sb"><span><span class="m s">Problem</span><br><b>Girls' toilets blocked</b></span><span style="text-align:right"><span class="m s">Sent</span><br><b>18 Nov, 10:17</b></span></div>
+            </div>
+            <div class="grid2"><div class="btn o">Copy number</div><div class="btn o">Show proof</div></div>
+            <p class="m s">Take a screenshot of this page. It is your proof that you reported.</p>
+          </div>
+          <div class="pact"><div class="btn tall">Follow this report</div></div></div>
+        <p class="ocap"><b>Looks like a slip from a shop or clinic.</b> Something people already know to keep and photograph. Says less about what happens next.</p><button class="pick" type="button">Choose B</button></figure>
+    </div>
+  </section>
+
+  <!-- ============ ADMIN ============ -->
+  <section id="s-admin" data-name="School staff">
+    <div class="shead"><h2>6. School staff: reports to handle</h2><p>Today: {{LEN:admin}} screens of cards, each with several buttons. A principal or secretary opens this between other duties.</p></div>
+    <div class="opts">
+      <figure class="opt today" data-opt="Today"><figcaption class="olab"><span class="oltr">Today</span></figcaption>
+        <div class="phone"><div class="shot" style="--shot: var(--t-admin)"></div><div class="more">{{LEN:admin}} screens of scrolling</div></div>
+        <p class="ocap">What is live now.</p><button class="pick" type="button">Keep today's</button></figure>
+
+      <figure class="opt" data-opt="A"><figcaption class="olab"><span class="oltr">A</span><b>One report at a time</b></figcaption>
+        <div class="phone"><div class="pbar"><i class="mk"></i><b>Thandolwethu Primary</b><u>Sign out</u></div>
+          <div class="scr">
+            <div><p class="h">3 reports need your reply</p><p class="m">Oldest first</p></div>
+            <div class="card" style="gap:8px"><span class="pill late"><svg class="ico" style="width:11px;height:11px"><use href="#i-clock"/></svg>Waiting 3 days</span><p class="h2">Tap by the gate is leaking</p><p class="m">Water runs all day near the entrance.</p><div class="fl m"><svg class="ico"><use href="#i-users"/></svg>3 people affected · 1 photo</div></div>
+            <div class="btn tall">We are looking into it</div>
+            <div class="btn o">This is not ours to fix</div>
+            <p class="c mt" style="font-weight:600;color:var(--brand)">Skip to the next one · 2 more</p>
+          </div></div>
+        <p class="ocap"><b>Shows the most urgent report and two answers.</b> Hard to do the wrong thing. No overview of everything that is open.</p><button class="pick" type="button">Choose A</button></figure>
+
+      <figure class="opt" data-opt="B"><figcaption class="olab"><span class="oltr">B</span><b>Short list by urgency</b><em class="rec">Recommended</em></figcaption>
+        <div class="phone"><div class="pbar"><i class="mk"></i><b>Thandolwethu Primary</b><u>Sign out</u></div>
+          <div class="scr" style="gap:8px">
+            <p class="h2">Reply needed · 2</p>
+            <div class="card" style="padding:2px 10px"><div class="row"><span class="grow"><b>Tap by the gate is leaking</b><span class="s" style="color:var(--danger);font-weight:600">Waiting 3 days</span></span><svg class="ico"><use href="#i-chev"/></svg></div><div class="row"><span class="grow"><b>Classroom light not working</b><span class="m s">Waiting 1 day</span></span><svg class="ico"><use href="#i-chev"/></svg></div></div>
+            <p class="h2">Being fixed · 2</p>
+            <div class="card" style="padding:2px 10px"><div class="row"><span class="grow"><b>Broken window, Grade 3</b><span class="m s">Glass ordered</span></span><svg class="ico"><use href="#i-chev"/></svg></div><div class="row"><span class="grow"><b>Fence gap by the field</b><span class="m s">Quote received</span></span><svg class="ico"><use href="#i-chev"/></svg></div></div>
+            <p class="h2">Waiting for a reviewer · 1</p>
+            <div class="card" style="padding:2px 10px"><div class="row"><span class="grow"><b>Girls' toilets blocked</b><span class="m s">You said fixed yesterday</span></span><svg class="ico"><use href="#i-chev"/></svg></div></div>
+          </div></div>
+        <p class="ocap"><b>Three groups, one line per report, buttons only after you open one.</b> The whole school on one screen, with the late ones in red. Staff do need the overview.</p><button class="pick" type="button">Choose B</button></figure>
+    </div>
+  </section>
+
+  <!-- ============ REVIEWER ============ -->
+  <section id="s-reviewer" data-name="Reviewer">
+    <div class="shead"><h2>7. Independent reviewer: checking a repair</h2><p>Today: {{LEN:reviewer}} screens per decision. The reviewer stands at the school with a phone and has to answer one thing: is it really fixed?</p></div>
+    <div class="opts">
+      <figure class="opt today" data-opt="Today"><figcaption class="olab"><span class="oltr">Today</span></figcaption>
+        <div class="phone"><div class="shot" style="--shot: var(--t-reviewer)"></div><div class="more">{{LEN:reviewer}} screens of scrolling</div></div>
+        <p class="ocap">What is live now.</p><button class="pick" type="button">Keep today's</button></figure>
+
+      <figure class="opt" data-opt="A"><figcaption class="olab"><span class="oltr">A</span><b>Before, after, decide</b><em class="rec">Recommended</em></figcaption>
+        <div class="phone"><div class="pbar"><span class="back"><svg class="ico"><use href="#i-back"/></svg>To check · 1 of 2</span></div>
+          <div class="scr">
+            <p class="h">Girls' toilets blocked</p>
+            <div class="grid2"><div><div class="ph" style="height:74px;background-image:var(--p-toilet)"></div><p class="s c" style="font-weight:600;margin-top:4px">The problem</p></div><div><div class="ph" style="height:74px;background-image:var(--p-review)"></div><p class="s c" style="font-weight:600;margin-top:4px">The school's repair</p></div></div>
+            <div class="card"><span class="m s">The school says</span><p>"All three toilets were unblocked and the cistern replaced."</p></div>
+            <div><p style="font-weight:600;margin-bottom:5px">What did you see?</p><div class="inp area" style="color:var(--faint);min-height:48px">Write one or two sentences</div></div>
+          </div>
+          <div class="pact"><div class="btn tall">Yes, it is fixed</div><div class="btn d tall">No, not fixed</div></div></div>
+        <p class="ocap"><b>Two pictures side by side, the school's words, a note, two buttons.</b> The whole decision on one screen. What goes on the public record is shown after tapping, as a confirm step.</p><button class="pick" type="button">Choose A</button></figure>
+
+      <figure class="opt" data-opt="B"><figcaption class="olab"><span class="oltr">B</span><b>Three checks, then decide</b><span class="newf">New work</span></figcaption>
+        <div class="phone"><div class="pbar"><span class="back"><svg class="ico"><use href="#i-back"/></svg>To check · 1 of 2</span></div>
+          <div class="scr">
+            <p class="h">Girls' toilets blocked</p>
+            <p class="m">Answer these at the school.</p>
+            <div class="card" style="padding:4px 10px">
+              <div class="row"><span class="grow"><b>I am at the school now</b></span><span class="chip on">Yes</span><span class="chip">No</span></div>
+              <div class="row"><span class="grow"><b>The repair matches what the school says</b></span><span class="chip">Yes</span><span class="chip on">No</span></div>
+              <div class="row"><span class="grow"><b>It is safe for learners to use</b></span><span class="chip">Yes</span><span class="chip">No</span></div>
+            </div>
+            <div class="dash"><svg class="ico" style="width:20px;height:20px"><use href="#i-cam"/></svg><b>Take a photo of what you see</b></div>
+          </div>
+          <div class="pact"><div class="btn tall" style="opacity:0.45">Record my decision</div></div></div>
+        <p class="ocap"><b>Walks the reviewer through the visit.</b> More consistent reviews and a clearer reason for each decision. Slower, and the checklist is a new feature.</p><button class="pick" type="button">Choose B</button></figure>
+    </div>
+  </section>
+
+  <!-- ============ VERIFY ============ -->
+  <section id="s-verify" data-name="Check a file">
+    <div class="shead"><h2>8. Check a file, inside the app</h2><p>Today: {{LEN:verify}} screens, with steps, fingerprints and the blockchain panel all visible. The person wants a yes or a no.</p></div>
+    <div class="opts">
+      <figure class="opt today" data-opt="Today"><figcaption class="olab"><span class="oltr">Today</span></figcaption>
+        <div class="phone"><div class="shot" style="--shot: var(--t-verify)"></div><div class="more">{{LEN:verify}} screens of scrolling</div></div>
+        <p class="ocap">What is live now.</p><button class="pick" type="button">Keep today's</button></figure>
+
+      <figure class="opt" data-opt="A"><figcaption class="olab"><span class="oltr">A</span><b>One box, one answer</b><em class="rec">Recommended</em></figcaption>
+        <div class="phone"><div class="pbar"><i class="mk"></i><b>Bona<span>Block</span></b></div>
+          <div class="scr">
+            <p class="h">Is this the real photo?</p>
+            <p class="m">Choose a photo or document. It never leaves your phone.</p>
+            <div class="dash" style="padding:10px"><b>toilets-block-b.jpg</b><span class="m s">Tap to choose another file</span></div>
+            <div class="card c" style="background:#dcefe5;border-color:#b5d9c6;align-items:center;gap:8px;padding:14px 10px"><span class="ok"><svg class="ico"><use href="#i-check"/></svg></span><p style="font:600 15px var(--display)">Yes. This is the same file that was recorded.</p><p class="s">Recorded on 18 Nov for report BB-2026-000042. It has not been changed.</p></div>
+            <div class="btn o">Show the proof</div>
+          </div></div>
+        <p class="ocap"><b>A big green yes or a big red no.</b> The fingerprint and the Avalanche record open from "Show the proof" for judges and anyone who wants them.</p><button class="pick" type="button">Choose A</button></figure>
+
+      <figure class="opt" data-opt="B"><figcaption class="olab"><span class="oltr">B</span><b>Explain as it goes</b></figcaption>
+        <div class="phone"><div class="pbar"><i class="mk"></i><b>Bona<span>Block</span></b></div>
+          <div class="scr">
+            <p class="h">Check a file</p>
+            <div class="path">
+              <div class="stop done"><span class="dot"><svg class="ico" style="width:11px;height:11px"><use href="#i-check"/></svg></span><span><b>You chose a file</b><br><span class="m s">toilets-block-b.jpg</span></span></div>
+              <div class="stop done"><span class="dot"><svg class="ico" style="width:11px;height:11px"><use href="#i-check"/></svg></span><span><b>Your phone made its fingerprint</b><br><span class="code">0x71f698a5…417c61a1</span></span></div>
+              <div class="stop done"><span class="dot"><svg class="ico" style="width:11px;height:11px"><use href="#i-check"/></svg></span><span><b>It matches the public record</b><br><span class="m s">Recorded on Avalanche, 18 Nov</span></span></div>
+            </div>
+            <div class="card" style="background:#dcefe5;border-color:#b5d9c6"><b>This file matches the record.</b><span class="s">Report BB-2026-000042, Thandolwethu Primary.</span></div>
+            <div class="btn o">See the transaction</div>
+          </div></div>
+        <p class="ocap"><b>Shows how the check works while it runs.</b> Good for the pitch because the mechanism is visible. More words than most people need.</p><button class="pick" type="button">Choose B</button></figure>
+    </div>
+  </section>
+
+  <!-- ============ BONABLOCK VERIFY ============ -->
+  <section id="s-verifyweb" data-name="Blockchain verify">
+    <div class="shead"><h2>9. BonaBlock Verify: the independent blockchain check</h2><p>This is the separate site that reads Avalanche directly. Today it is {{LEN:verifyweb}} screens and asks an ordinary phone user to paste a block of code, pick between "evidence file", "commitment document" and "acknowledgement", and type a report id. The check itself is strong; the page around it is built for engineers.</p></div>
+    <div class="opts">
+      <figure class="opt today" data-opt="Today"><figcaption class="olab"><span class="oltr">Today</span></figcaption>
+        <div class="phone"><div class="shot" style="--shot: var(--t-verifyweb)"></div><div class="more">{{LEN:verifyweb}} screens of scrolling</div></div>
+        <p class="ocap">What is live now.</p><button class="pick" type="button">Keep today's</button></figure>
+
+      <figure class="opt" data-opt="A"><figcaption class="olab"><span class="oltr">A</span><b>Arrive ready, get one answer</b><em class="rec">Recommended</em></figcaption>
+        <div class="phone"><div class="pbar"><i class="mk"></i><b>Bona<span>Block</span> Verify</b><u class="pill verified" style="align-self:center">Independent</u></div>
+          <div class="scr">
+            <div class="card" style="flex-direction:row;align-items:center;gap:8px;padding:8px 10px"><svg class="ico"><use href="#i-file"/></svg><span class="grow"><span class="m s">Checking</span><b>Photo 1 · report BB-2026-000042</b></span></div>
+            <div class="dash" style="padding:10px"><b>toilets-block-b.jpg</b><span class="m s">Tap to choose another file</span></div>
+            <div class="card c" style="background:#dcefe5;border-color:#b5d9c6;align-items:center;gap:8px;padding:14px 10px"><span class="ok"><svg class="ico"><use href="#i-check"/></svg></span><p style="font:600 16px var(--display)">Verified</p><p>Avalanche has this exact photo on record. It has not been changed.</p></div>
+            <div class="card" style="padding:2px 10px"><div class="row"><span class="grow m">Recorded</span><b>18 Nov 2026, 10:17</b></div><div class="row"><span class="grow m">By the BonaBlock contract</span><b style="color:var(--brand)">Yes</b></div><div class="row"><span class="grow"><b>Technical details</b></span><svg class="ico"><use href="#i-chev"/></svg></div></div>
+            <div class="btn o">See it on Snowtrace</div>
+          </div></div>
+        <p class="ocap"><b>A "Check independently" button in the app opens this page with the record already filled in.</b> The person only chooses their photo and reads a big Verified or Not the same. Codes sit under Technical details.</p><button class="pick" type="button">Choose A</button></figure>
+
+      <figure class="opt" data-opt="B"><figcaption class="olab"><span class="oltr">B</span><b>Two plain steps</b></figcaption>
+        <div class="phone"><div class="pbar"><i class="mk"></i><b>Bona<span>Block</span> Verify</b><u class="pill verified" style="align-self:center">Independent</u></div>
+          <div class="scr">
+            <p class="h">Check a record on Avalanche</p>
+            <p class="m">This site does not ask BonaBlock anything. It reads the blockchain itself.</p>
+            <div class="card" style="gap:8px"><div class="fl"><span class="oltr" style="width:22px;height:22px;font-size:11px;background:var(--brand);color:#fff">1</span><b>Your receipt</b></div><div class="btn">Paste receipt</div><p class="m s">In BonaBlock, tap Copy receipt on any record first.</p></div>
+            <div class="card" style="gap:8px"><div class="fl"><span class="oltr" style="width:22px;height:22px;font-size:11px;background:var(--line-strong);color:#fff">2</span><b>Your photo or document</b></div><div class="dash" style="padding:10px"><svg class="ico" style="width:20px;height:20px"><use href="#i-cam"/></svg><b>Choose the file</b><span class="m s">It never leaves your phone</span></div></div>
+          </div>
+          <div class="pact"><div class="btn tall" style="opacity:0.45">Check</div></div></div>
+        <p class="ocap"><b>Paste, choose, check.</b> The page works out what kind of record it is, so the three choices and the report id disappear. Still needs the person to copy a receipt in the app first.</p><button class="pick" type="button">Choose B</button></figure>
+
+      <figure class="opt" data-opt="C"><figcaption class="olab"><span class="oltr">C</span><b>Scan a code</b><span class="newf">New work</span></figcaption>
+        <div class="phone"><div class="pbar"><i class="mk"></i><b>Bona<span>Block</span> Verify</b><u class="pill verified" style="align-self:center">Independent</u></div>
+          <div class="scr">
+            <p class="h">Point your camera at the code</p>
+            <p class="m">Every BonaBlock record shows a square code. Scan it from another phone, a laptop or a printed receipt.</p>
+            <div class="dash" style="flex:1;justify-content:center;border-color:var(--brand)"><div style="width:110px;height:110px;border-radius:12px;border:3px solid var(--brand);display:grid;place-items:center"><svg class="ico" style="width:34px;height:34px;color:var(--brand)"><use href="#i-cam"/></svg></div><b>Scanning…</b></div>
+            <p class="c m"><b style="color:var(--brand)">Paste a receipt instead</b></p>
+          </div></div>
+        <p class="ocap"><b>Best on stage: a judge scans the code on your screen with their own phone.</b> Nothing to copy or paste. Needs a code added to every record in the app and camera permission.</p><button class="pick" type="button">Choose C</button></figure>
+    </div>
+  </section>
+
+  <!-- ============ EVERYWHERE ============ -->
+  <section id="s-nav" data-name="Bottom menu">
+    <div class="shead"><h2>10. On every screen: the bottom menu</h2><p>The menu is on screen all the time, so it sets how busy the whole app feels.</p></div>
+    <div class="opts">
+      <figure class="opt" data-opt="A"><figcaption class="olab"><span class="oltr">A</span><b>Three items, bigger</b><em class="rec">Recommended</em></figcaption>
+        <div class="mini" style="padding:0;overflow:hidden"><div class="pnav big3" style="border-top:0;padding:12px 4px"><span class="on"><svg class="ico"><use href="#i-home"/></svg>Home</span><span><svg class="ico"><use href="#i-plus"/></svg>Report</span><span><svg class="ico"><use href="#i-list"/></svg>My reports</span></div></div>
+        <p class="ocap"><b>Home, Report, My reports.</b> Bona AI moves to a help button on each page.</p><button class="pick" type="button">Choose A</button></figure>
+      <figure class="opt" data-opt="B"><figcaption class="olab"><span class="oltr">B</span><b>Four items, as today</b></figcaption>
+        <div class="mini" style="padding:0;overflow:hidden"><div class="pnav" style="border-top:0;padding:12px 4px"><span class="on"><svg class="ico"><use href="#i-home"/></svg>Home</span><span><svg class="ico"><use href="#i-plus"/></svg>Report</span><span><svg class="ico"><use href="#i-search"/></svg>Track</span><span><svg class="ico"><use href="#i-chat"/></svg>Ask Bona AI</span></div></div>
+        <p class="ocap"><b>Keeps Bona AI one tap away everywhere.</b> Smaller labels and targets.</p><button class="pick" type="button">Choose B</button></figure>
+    </div>
+  </section>
+
+  <section id="s-proof" data-name="Technical proof">
+    <div class="shead"><h2>11. On every screen: how much proof to show</h2><p>The blockchain record is the point of the product, but codes like 0xe6f0a242 mean nothing to most people and make pages look difficult.</p></div>
+    <div class="opts">
+      <figure class="opt" data-opt="A"><figcaption class="olab"><span class="oltr">A</span><b>A tick, proof on request</b><em class="rec">Recommended</em></figcaption>
+        <div class="mini"><div class="fl sb"><b>Photo 1 · the problem</b><span class="pill verified"><svg class="ico" style="width:11px;height:11px"><use href="#i-check"/></svg>Recorded</span></div><span class="m s">Added by a community member, 9 days ago</span><div class="btn o sm">Show proof</div></div>
+        <p class="ocap"><b>One word, "Recorded", with a green tick.</b> Fingerprint, transaction and Snowtrace link open in a sheet. Judges can still reach everything in one tap.</p><button class="pick" type="button">Choose A</button></figure>
+      <figure class="opt" data-opt="B"><figcaption class="olab"><span class="oltr">B</span><b>Always visible, as today</b></figcaption>
+        <div class="mini"><div class="fl sb"><b>Evidence 1</b><span class="pill verified">On Avalanche</span></div><span class="m s">Shows the problem · Added by Community member, 9 days ago · 1.4 MB</span><span class="code"><b style="color:var(--ink)">Fingerprint</b> 0xe6f0a242…2a15f2a5</span><span class="fl s" style="font-weight:600"><svg class="ico"><use href="#i-file"/></svg>Copy</span></div>
+        <p class="ocap"><b>The technology is on show at every step.</b> Stronger for a technical audience, heavier for everyone else.</p><button class="pick" type="button">Choose B</button></figure>
+    </div>
+  </section>
+
+  <section id="s-text" data-name="Text size">
+    <div class="shead"><h2>12. On every screen: text size</h2><p>Both samples are shown at the size they would be on a phone.</p></div>
+    <div class="opts">
+      <figure class="opt" data-opt="A"><figcaption class="olab"><span class="oltr">A</span><b>Larger</b><em class="rec">Recommended</em></figcaption>
+        <div class="mini" style="font-size:19px;line-height:1.45"><b style="font:600 26px/1.15 var(--display)">Report received</b><span>The school is told today. Keep your number.</span></div>
+        <p class="ocap"><b>19 px text, 26 px headings.</b> Comfortable without glasses and in sunlight. Fits less per screen, which the simpler layouts allow for.</p><button class="pick" type="button">Choose A</button></figure>
+      <figure class="opt" data-opt="B"><figcaption class="olab"><span class="oltr">B</span><b>Standard, as today</b></figcaption>
+        <div class="mini" style="font-size:16.5px;line-height:1.45"><b style="font:600 22px/1.15 var(--display)">Report received</b><span>The school is told today. Keep your number.</span></div>
+        <p class="ocap"><b>About 16.5 px text.</b> Normal for apps. More fits on a screen.</p><button class="pick" type="button">Choose B</button></figure>
+    </div>
+  </section>
+
+  <!-- ============ SUMMARY ============ -->
+  <div class="sum">
+    <div><h2>Your picks</h2><ul id="list"></ul><p class="state" id="state" role="status">Loading saved picks…</p></div>
+    <div><h2>Anything else?</h2>
+      <label for="notes" class="state" style="display:block">Say what you would change, mix or drop, in your own words.</label>
+      <textarea id="notes" placeholder="For example: Home A but keep the school photo. Make the buttons even bigger."></textarea>
+      <button class="copy" id="copy" type="button">Copy my picks</button>
+      <p class="state" id="copied" hidden>Copied. You can paste this to Claude.</p>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  var sections = Array.prototype.slice.call(document.querySelectorAll("section[id^='s-']"));
+  var screens = sections.map(function (s) { return { id: s.id.slice(2), name: s.dataset.name, el: s }; });
+  var picks = {}, notes = "", db = null, docRef = null, saving = false, queued = false, dirty = false;
+  var KEY = "bonablock-screen-picks";
+  var jump = document.getElementById("jump"), list = document.getElementById("list");
+  var state = document.getElementById("state"), notesEl = document.getElementById("notes");
+
+  screens.forEach(function (sc) {
+    var a = document.createElement("a"); a.href = "#" + sc.el.id; a.textContent = sc.name; a.id = "j-" + sc.id; jump.appendChild(a);
+    sc.el.querySelectorAll(".opt").forEach(function (opt) {
+      var b = opt.querySelector(".pick");
+      b.id = "pick-" + sc.id + "-" + opt.dataset.opt;
+      b.addEventListener("click", function () {
+        picks[sc.id] = picks[sc.id] === opt.dataset.opt ? undefined : opt.dataset.opt;
+        if (picks[sc.id] === undefined) delete picks[sc.id];
+        render(); save();
+      });
+    });
+  });
+
+  function label(sc) {
+    var p = picks[sc.id]; if (!p) return null;
+    var opt = sc.el.querySelector('.opt[data-opt="' + p + '"]'); if (!opt) return null;
+    var name = opt.querySelector(".olab b");
+    return p === "Today" ? "Keep today's" : p + (name ? " · " + name.textContent : "");
+  }
+  function render() {
+    list.textContent = "";
+    screens.forEach(function (sc) {
+      sc.el.querySelectorAll(".opt").forEach(function (opt) {
+        var on = picks[sc.id] === opt.dataset.opt;
+        opt.classList.toggle("is-picked", on);
+        var b = opt.querySelector(".pick"); b.setAttribute("aria-pressed", on ? "true" : "false");
+        var base = opt.dataset.opt === "Today" ? "Keep today's" : "Choose " + opt.dataset.opt;
+        b.textContent = on ? "✓ Chosen" : base;
+      });
+      document.getElementById("j-" + sc.id).classList.toggle("done", !!picks[sc.id]);
+      var li = document.createElement("li"), a = document.createElement("span"), v = document.createElement("span");
+      a.textContent = sc.name; var l = label(sc); v.textContent = l || "Not chosen yet"; if (!l) v.className = "none";
+      li.appendChild(a); li.appendChild(v); list.appendChild(li);
+    });
+  }
+  function asText() {
+    var lines = screens.map(function (sc) { return sc.name + ": " + (label(sc) || "not chosen"); });
+    return "BonaBlock screen picks\n" + lines.join("\n") + (notes.trim() ? "\nNotes: " + notes.trim() : "");
+  }
+  function setState(t) { state.textContent = t; }
+  function save() {
+    try { localStorage.setItem(KEY, JSON.stringify({ picks: picks, notes: notes })); } catch (e) {}
+    if (!docRef) { setState("Saved on this device. Use Copy my picks to send them to Claude."); return; }
+    if (saving) { queued = true; return; }
+    saving = true; dirty = true; setState("Saving…");
+    docRef.set({ picks: picks, notes: notes, text: asText(), updatedAt: new Date().toISOString() }).then(function () {
+      setState("Saved. Claude can read these picks.");
+    }, function () {
+      setState("Could not save online. Use Copy my picks to send them to Claude.");
+    }).then(function () { saving = false; dirty = false; if (queued) { queued = false; save(); } });
+  }
+  function apply(d) {
+    if (!d) return;
+    if (d.picks && typeof d.picks === "object") { picks = {}; screens.forEach(function (sc) { if (typeof d.picks[sc.id] === "string") picks[sc.id] = d.picks[sc.id]; }); }
+    if (typeof d.notes === "string" && document.activeElement !== notesEl) { notes = d.notes; notesEl.value = notes; }
+    render();
+  }
+
+  try { apply(JSON.parse(localStorage.getItem(KEY) || "null")); } catch (e) {}
+  render();
+
+  var t;
+  notesEl.addEventListener("input", function () { notes = notesEl.value; clearTimeout(t); t = setTimeout(save, 900); });
+  document.getElementById("copy").addEventListener("click", function () {
+    var done = document.getElementById("copied"), text = asText();
+    function shown() { done.hidden = false; setTimeout(function () { done.hidden = true; }, 4000); }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(shown, function () { notesEl.value = text; notesEl.select(); });
+    } else { notesEl.value = text; notesEl.select(); }
+  });
+
+  var timer = setTimeout(function () { if (!docRef) setState("Picks are kept on this device. Use Copy my picks to send them to Claude."); }, 10000);
+  if (window.claude && typeof window.claude.use === "function") {
+    window.claude.use("db").then(function (d) {
+      if (!d) { clearTimeout(timer); setState("Picks are kept on this device. Use Copy my picks to send them to Claude."); return; }
+      db = d; docRef = db.doc("picks/main");
+      docRef.onSnapshot(function (snap) {
+        clearTimeout(timer);
+        if (dirty) return;
+        if (snap.exists) { apply(snap.data()); setState("Saved. Claude can read these picks."); }
+        else setState(Object.keys(picks).length ? "Ready to save." : "Nothing chosen yet. Tap Choose under an option.");
+      }, function () { clearTimeout(timer); docRef = null; setState("Picks are kept on this device. Use Copy my picks to send them to Claude."); });
+    });
+  } else { clearTimeout(timer); setState("Picks are kept on this device. Use Copy my picks to send them to Claude."); }
+})();
+</script>

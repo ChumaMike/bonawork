@@ -1,0 +1,8 @@
+{
+  "contract": "BonaRegistry",
+  "chainId": 43113,
+  "address": "0xa8BB5Dc1c031d850AB32768Ed020e9aA604e1aae",
+  "owner": "0x7EF27429B03C264296eb96be49F0f7315587483F",
+  "deployTxHash": "0x46ecd569383b4607f21e28543522a57a88f7f5c31d9cd58ef9f5881ec84d9ee6",
+  "deployBlock": 61275772
+}
