@@ -1,6 +1,4 @@
 import {
-  BaseError,
-  ContractFunctionRevertedError,
   createPublicClient,
   createWalletClient,
   http,
@@ -14,14 +12,11 @@ import {
 import { privateKeyToAccount } from "viem/accounts";
 import { avalancheFuji } from "viem/chains";
 import {
-  AVALANCHE_CHAINS,
-  CHAIN_STATUS_CODE,
   EVIDENCE_KIND_CODE,
   LedgerError,
   idToBytes32,
   type BlockchainReceipt,
   type ChainRole,
-  type ChainStatus,
   type Hex32,
   type LedgerEvent,
   type LedgerInfo,
@@ -30,6 +25,17 @@ import {
   type RegistryEvent,
 } from "@/shared";
 import { bonaRegistryAbi } from "./abi";
+import {
+  CHAIN_STATUS_BY_CODE,
+  DEFAULT_CONFIRM_TIMEOUT_MS,
+  EXPLORERS,
+  readMined,
+  requireFuji,
+  revertName,
+  toLedgerError as toLedgerErrorFor,
+} from "./chain-common";
+
+export { revertName };
 
 export interface ViemLedgerConfig {
   rpcUrl: string;
@@ -41,39 +47,8 @@ export interface ViemLedgerConfig {
   confirmTimeoutMs?: number;
 }
 
-const EXPLORERS: Record<string, { name: string; tx: string }> = {
-  [AVALANCHE_CHAINS.fuji]: {
-    name: "Avalanche Fuji C-Chain",
-    tx: "https://testnet.snowtrace.io/tx/",
-  },
-};
-
-const CHAIN_STATUS_BY_CODE = Object.fromEntries(
-  Object.entries(CHAIN_STATUS_CODE).map(([name, code]) => [code, name]),
-) as Record<number, ChainStatus>;
-
-/** The custom error name a viem call failed with, or null if it did not revert. */
-export function revertName(error: unknown): string | null {
-  if (error instanceof BaseError) {
-    const revert = error.walk((e) => e instanceof ContractFunctionRevertedError);
-    if (revert instanceof ContractFunctionRevertedError) {
-      return revert.data?.errorName ?? revert.reason ?? "reverted";
-    }
-  }
-  return null;
-}
-
-function toLedgerError(error: unknown, what: string): LedgerError {
-  if (error instanceof LedgerError) return error;
-  const name = revertName(error);
-  if (name) return LedgerError.fromContract(name, `${what} was rejected by BonaRegistry`);
-  const message = error instanceof Error ? error.message : String(error);
-  return new LedgerError(
-    "rpc_unavailable",
-    null,
-    `${what}: ledger unreachable (${message})`,
-  );
-}
+const toLedgerError = (error: unknown, what: string) =>
+  toLedgerErrorFor(error, what, "BonaRegistry");
 
 type WriteFunction =
   | "registerReport"
@@ -99,13 +74,7 @@ const financeOff = async (): Promise<never> => {
  * nothing in a request can choose which key signs.
  */
 export function createViemLedger(config: ViemLedgerConfig): LedgerPort {
-  if (config.chainId !== AVALANCHE_CHAINS.fuji) {
-    throw new LedgerError(
-      "not_configured",
-      null,
-      `Unsupported LEDGER_CHAIN_ID ${config.chainId}; only ${AVALANCHE_CHAINS.fuji} (Fuji) is allowed.`,
-    );
-  }
+  requireFuji(config.chainId);
   const chain = avalancheFuji;
   const address = config.contractAddress as Hex;
   const transport = http(config.rpcUrl);
@@ -136,7 +105,7 @@ export function createViemLedger(config: ViemLedgerConfig): LedgerPort {
     }),
     reviewer: createWalletClient({ chain, transport, account: accounts.reviewer }),
   };
-  const confirmTimeoutMs = config.confirmTimeoutMs ?? 15_000;
+  const confirmTimeoutMs = config.confirmTimeoutMs ?? DEFAULT_CONFIRM_TIMEOUT_MS;
   const explorer = EXPLORERS[config.chainId];
   const info: LedgerInfo = {
     chainId: config.chainId,
@@ -189,26 +158,16 @@ export function createViemLedger(config: ViemLedgerConfig): LedgerPort {
       blockTimestamp: null,
       event,
     };
-    try {
-      const mined =
-        timeoutMs > 0
-          ? await publicClient.waitForTransactionReceipt({
-              hash: txId as Hex,
-              timeout: timeoutMs,
-            })
-          : await publicClient.getTransactionReceipt({ hash: txId as Hex });
-      const block = await publicClient.getBlock({ blockNumber: mined.blockNumber });
-      return {
-        ...pending,
-        status: mined.status === "success" ? "confirmed" : "failed",
-        blockNumber: Number(mined.blockNumber),
-        blockTimestamp: new Date(Number(block.timestamp) * 1000).toISOString(),
-      };
-    } catch {
-      // Not mined yet, or the RPC is down: stay pending and try again later.
-      // A confirmation is never reported without a mined receipt.
-      return pending;
-    }
+    // Not mined yet, or the RPC is down: stay pending and try again later.
+    // A confirmation is never reported without a mined receipt.
+    const mined = await readMined(publicClient, txId, timeoutMs);
+    if (!mined) return pending;
+    return {
+      ...pending,
+      status: mined.status,
+      blockNumber: mined.blockNumber,
+      blockTimestamp: mined.blockTimestamp,
+    };
   }
 
   return {

@@ -3,6 +3,18 @@ import { z } from "zod";
 const PrivateKey = z
   .string()
   .regex(/^0x[0-9a-fA-F]{64}$/, "expected a 0x-prefixed 32-byte hex key");
+const Address = z.string().regex(/^0x[0-9a-fA-F]{40}$/, "expected a 0x-prefixed address");
+
+/** The variable that holds the signing key of each on-chain role. Server-side only. */
+export const LEDGER_KEY_ENV = {
+  registrar: "LEDGER_REGISTRAR_PRIVATE_KEY",
+  school_admin: "LEDGER_SCHOOL_ADMIN_PRIVATE_KEY",
+  reviewer: "LEDGER_REVIEWER_PRIVATE_KEY",
+  buyer: "LEDGER_BUYER_PRIVATE_KEY",
+  supplier: "LEDGER_SUPPLIER_PRIVATE_KEY",
+  receiver: "LEDGER_RECEIVER_PRIVATE_KEY",
+  payment_approver: "LEDGER_PAYMENT_APPROVER_PRIVATE_KEY",
+} as const;
 
 /**
  * Server-side configuration. Every variable is documented in `.env.example`.
@@ -40,13 +52,26 @@ const EnvSchema = z
     LEDGER_MODE: z.enum(["auto", "memory", "off"]).default("auto"),
     LEDGER_RPC_URL: z.url().optional(),
     LEDGER_CHAIN_ID: z.string().min(1).default("eip155:43113"),
-    LEDGER_CONTRACT_ADDRESS: z
-      .string()
-      .regex(/^0x[0-9a-fA-F]{40}$/, "expected a 0x-prefixed address")
-      .optional(),
+    /**
+     * The BonaChainFactory. When set, the Bona Chain contracts are used and
+     * LEDGER_CONTRACT_ADDRESS is ignored: nothing is written to it.
+     */
+    LEDGER_FACTORY_ADDRESS: Address.optional(),
+    /** The earlier single BonaRegistry. Used only when no factory address is set. */
+    LEDGER_CONTRACT_ADDRESS: Address.optional(),
     LEDGER_REGISTRAR_PRIVATE_KEY: PrivateKey.optional(),
     LEDGER_SCHOOL_ADMIN_PRIVATE_KEY: PrivateKey.optional(),
     LEDGER_REVIEWER_PRIVATE_KEY: PrivateKey.optional(),
+    /* The four finance roles of InstitutionFinance. */
+    LEDGER_BUYER_PRIVATE_KEY: PrivateKey.optional(),
+    LEDGER_SUPPLIER_PRIVATE_KEY: PrivateKey.optional(),
+    LEDGER_RECEIVER_PRIVATE_KEY: PrivateKey.optional(),
+    LEDGER_PAYMENT_APPROVER_PRIVATE_KEY: PrivateKey.optional(),
+    /**
+     * `auto`: finance steps are written to the ledger when it can take them.
+     * `off`: they are kept in the database only and the app says so.
+     */
+    LEDGER_FINANCE_MODE: z.enum(["auto", "off"]).default("auto"),
 
     /* Bona AI */
     AI_GATEWAY_API_KEY: z.string().min(1).optional(),
@@ -59,14 +84,26 @@ const EnvSchema = z
   })
   .refine(
     (e) => {
-      const keys = [
-        e.LEDGER_REGISTRAR_PRIVATE_KEY,
-        e.LEDGER_SCHOOL_ADMIN_PRIVATE_KEY,
-        e.LEDGER_REVIEWER_PRIVATE_KEY,
-      ].filter(Boolean);
+      // Hex is case-insensitive: the same key in another case is still the same key.
+      const keys = Object.values(LEDGER_KEY_ENV)
+        .map((name) => e[name]?.toLowerCase())
+        .filter(Boolean);
       return new Set(keys).size === keys.length;
     },
-    { message: "Registrar, school admin and reviewer private keys must all differ." },
+    {
+      message:
+        "The ledger private keys must all differ: one key per on-chain role, never shared.",
+    },
+  )
+  .refine(
+    (e) =>
+      !e.LEDGER_FACTORY_ADDRESS ||
+      !e.LEDGER_CONTRACT_ADDRESS ||
+      e.LEDGER_FACTORY_ADDRESS.toLowerCase() !== e.LEDGER_CONTRACT_ADDRESS.toLowerCase(),
+    {
+      message:
+        "LEDGER_FACTORY_ADDRESS must be the BonaChainFactory, not the BonaRegistry in LEDGER_CONTRACT_ADDRESS.",
+    },
   );
 
 export type Env = z.infer<typeof EnvSchema>;

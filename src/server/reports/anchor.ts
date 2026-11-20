@@ -11,6 +11,14 @@
  * - contract refusal (`SchoolAdminCannotVerify`, `InvalidState`, …) → the
  *   `HttpError` thrown here rolls the transaction back and becomes the API error.
  *
+ * Routing: on the Bona Chain contracts every write goes to the contracts of
+ * the report's institution, so each call carries the institution id. A payload
+ * that does not name it has it filled in here from the report.
+ *
+ * Finance steps on a ledger whose `info().finance` is `off` are not sent:
+ * they wait in the queue, in order, and the app labels them as kept in the
+ * database only. They never hold back the report's own writes.
+ *
  * Payloads carry only UUIDs, 0x digests and enum names — never personal data.
  */
 import { asc, eq, inArray, sql } from "drizzle-orm";
@@ -46,11 +54,53 @@ const RETRYABLE = new Set<LedgerError["code"]>([
   "not_found",
 ]);
 
+const FINANCE_OPERATIONS: ReadonlySet<LedgerOperation> = new Set([
+  "approve_work_order",
+  "acknowledge_work_order",
+  "submit_invoice",
+  "record_goods_receipt",
+  "record_match_result",
+  "open_payment_dispute",
+  "close_payment_dispute",
+  "authorise_release",
+]);
+
+/** A finance step on a ledger that takes no finance writes: kept, not sent. */
+function financeHeld(ledger: LedgerPort, spec: Pick<AnchorSpec, "operation">): boolean {
+  return FINANCE_OPERATIONS.has(spec.operation) && ledger.info().finance === "off";
+}
+
+/**
+ * The spec with `institutionId` in its payload: the caller's value, else the
+ * institution of the report. `homes` remembers each report's institution for
+ * the length of one run.
+ */
+export async function withInstitution<S extends Pick<AnchorSpec, "reportId" | "payload">>(
+  db: Db,
+  spec: S,
+  homes: Map<string, string | null> = new Map(),
+): Promise<S> {
+  if (spec.payload.institutionId) return spec;
+  let institutionId = homes.get(spec.reportId);
+  if (institutionId === undefined) {
+    const [row] = await db
+      .select({ institutionId: schema.reports.institutionId })
+      .from(schema.reports)
+      .where(eq(schema.reports.id, spec.reportId));
+    institutionId = row?.institutionId ?? null;
+    homes.set(spec.reportId, institutionId);
+  }
+  if (!institutionId) return spec;
+  return { ...spec, payload: { ...spec.payload, institutionId } };
+}
+
 export function callLedger(
   ledger: LedgerPort,
-  spec: AnchorSpec,
+  spec: Pick<AnchorSpec, "operation" | "payload">,
 ): Promise<BlockchainReceipt> {
   const p = spec.payload;
+  // Absent when the caller could not name the institution: the ledger then finds it.
+  const institutionId: string | undefined = p.institutionId;
   switch (spec.operation) {
     case "registerReport":
       return ledger.registerReport({
@@ -61,26 +111,34 @@ export function callLedger(
     case "registerEvidence":
       return ledger.registerEvidence({
         reportId: p.reportId,
+        institutionId,
         digest: p.digest,
         kind: p.kind as EvidenceKind,
       });
     case "acknowledgeReport":
-      return ledger.acknowledgeReport({ reportId: p.reportId });
+      return ledger.acknowledgeReport({ reportId: p.reportId, institutionId });
     case "recordInterimProtection":
       return ledger.recordInterimProtection({
         reportId: p.reportId,
+        institutionId,
         commitment: p.commitment,
       });
     case "claimRepair":
-      return ledger.claimRepair({ reportId: p.reportId, commitment: p.commitment });
+      return ledger.claimRepair({
+        reportId: p.reportId,
+        institutionId,
+        commitment: p.commitment,
+      });
     case "verifyRepair":
       return ledger.verifyRepair({
         reportId: p.reportId,
+        institutionId,
         reviewCommitment: p.reviewCommitment,
       });
     case "disputeRepair":
       return ledger.disputeRepair({
         reportId: p.reportId,
+        institutionId,
         reviewCommitment: p.reviewCommitment,
       });
     case "approve_work_order":
@@ -187,14 +245,15 @@ export async function anchor(
   mode: AnchorMode,
   at: IsoDateTime = nowIso(),
 ): Promise<void> {
+  const homes = new Map<string, string | null>();
   for (let i = 0; i < specs.length; i++) {
     const spec = specs[i];
-    if (mode === "defer") {
+    if (mode === "defer" || financeHeld(ledger, spec)) {
       await queueJob(tx, spec, "pending", null, at);
       continue;
     }
     try {
-      const receipt = await callLedger(ledger, spec);
+      const receipt = await callLedger(ledger, await withInstitution(tx, spec, homes));
       await storeReceipt(tx, spec, receipt);
     } catch (error) {
       if (!(error instanceof LedgerError)) throw error;
@@ -269,19 +328,22 @@ async function replayLedgerJobs(
     .where(inArray(schema.ledgerJobs.status, ["pending", "failed"]))
     .orderBy(asc(schema.ledgerJobs.position));
   const blocked = new Set<string>();
+  const homes = new Map<string, string | null>();
   for (const [index, job] of jobs.entries()) {
     // Keep each report's writes in order: once one is stuck, skip the rest of that report.
     if (blocked.has(job.reportId)) continue;
+    // Finance is off on this ledger: the step waits, and holds nothing else back.
+    if (financeHeld(ledger, job)) continue;
     if (Date.now() - started > budgetMs) {
       summary.remaining = jobs
         .slice(index)
-        .filter((j) => !blocked.has(j.reportId)).length;
+        .filter((j) => !blocked.has(j.reportId) && !financeHeld(ledger, j)).length;
       break;
     }
     summary.attempted += 1;
     const at = nowIso();
     try {
-      const receipt = await callLedger(ledger, job);
+      const receipt = await callLedger(ledger, await withInstitution(db, job, homes));
       await storeReceipt(db, job, receipt);
       await db
         .update(schema.ledgerJobs)
@@ -308,7 +370,10 @@ async function replayLedgerJobs(
       if (retryable) summary.failed += 1;
       else summary.rejected += 1;
       blocked.add(job.reportId);
-      if (error instanceof LedgerError && error.code !== "not_found") {
+      if (
+        error instanceof LedgerError &&
+        (error.code === "rpc_unavailable" || error.code === "not_configured")
+      ) {
         // The ledger itself is unreachable: nothing else will succeed right now.
         break;
       }
