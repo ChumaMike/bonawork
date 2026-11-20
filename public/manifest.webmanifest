@@ -1,6 +1,6 @@
 {
-  "name": "BonaBlock for Schools",
-  "short_name": "BonaBlock",
+  "name": "Bona Chain for Schools",
+  "short_name": "Bona Chain",
   "description": "Report a problem at a school, see what is being done about it, and check that the record was never changed.",
   "start_url": "/",
   "display": "standalone",

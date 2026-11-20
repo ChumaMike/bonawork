@@ -43,7 +43,7 @@ export async function GET(): Promise<Response> {
         rpcUrl: config.rpcUrl,
         chainId: config.chainId,
         expectedContractAddress: config.expectedContractAddress ?? null,
-        note: "This tool talks only to the Avalanche network. BonaBlock's servers are not involved.",
+        note: "This tool talks only to the Avalanche network. Bona Chain's servers are not involved.",
       },
       { headers: { "Cache-Control": "no-store" } },
     );

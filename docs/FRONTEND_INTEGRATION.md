@@ -1,6 +1,6 @@
 # Frontend integration points
 
-Branch `feature/frontend`. The frontend for **BonaBlock for Schools** runs today on
+Branch `feature/frontend`. The frontend for **Bona Chain for Schools** runs today on
 development fixtures. This document lists what has to be connected for it to run on
 real data. The HTTP contract itself is owned by the integration lead in
 `docs/coordination/API_ROUTES.md` on `integration/bona-release`.
@@ -91,7 +91,7 @@ It calls `getRecordProof` with the evidence id or the timeline event id and copi
 `receipt` field of the response as JSON. Timeline entries of type `reported`,
 `interim_protection`, `repair_claimed`, `verified` and `disputed` also show "Copy
 document", which copies the `document` field: the salted commitment document the verifier
-needs to recompute the commitment. After either copy, "Open in BonaBlock Verify" links to
+needs to recompute the commitment. After either copy, "Open in Bona Chain Verify" links to
 `NEXT_PUBLIC_VERIFY_URL`, or to `/verify` when that is not set. In fixture mode both are
 labelled samples (`sample: true`, no transaction, no salt), which the verifier refuses.
 
@@ -126,7 +126,7 @@ labelled samples (`sample: true`, no transaction, no salt), which the verifier r
 | Evidence viewing            | Reviewer sees metadata and fingerprints only                          | Authorised file URLs for reviewers and admins  |
 | Bona AI                     | Scripted keyword answers, labelled as a preview                       | AI service behind `askAssistant`               |
 | Blockchain                  | No ledger calls. Fixtures show `none` or a labelled sample            | Receipts from BonaRegistry via the backend     |
-| BonaBlock Verify            | `/verify` checks a fingerprint against the app's records              | Direct on-chain lookup, independent of the app |
+| Bona Chain Verify           | `/verify` checks a fingerprint against the app's records              | Direct on-chain lookup, independent of the app |
 | District official           | Can sign in; has no screen of their own                               | A decision on what a district official sees    |
 | Translations                | English only. All strings are in `src/i18n/en.ts`                     | Translated message files and a language picker |
 | Notifications               | None                                                                  | SMS or WhatsApp updates for reporters          |

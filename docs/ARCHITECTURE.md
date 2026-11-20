@@ -1,8 +1,12 @@
 # Architecture
 
-BonaBlock is one Next.js application, one Solidity contract (`BonaRegistry`)
-and one deliberately separate verifier (BonaBlock Verify). A shorter version
+Bona Chain is one Next.js application, one Solidity contract (`BonaRegistry`)
+and one deliberately separate verifier (Bona Chain Verify). A shorter version
 for judges is in `docs/hackathon/ARCHITECTURE.md`.
+
+This document describes the reporting and verification flow, which is built.
+The procurement trail and the Bona Chain contracts that are being added on top
+of it are specified in `docs/merged/BUILD_BRIEF.md`.
 
 This document describes the code on `integration/bona-release`. Whether a
 feature has been tested, deployed or run on Avalanche is recorded only in
@@ -23,7 +27,7 @@ feature has been tested, deployed or run on Avalanche is recorded only in
 | Ledger adapter                 | `src/blockchain/`, `src/server/ledger/memory.ts` | Integration | `LedgerPort` over viem for `BonaRegistry`; in-memory ledger for development.    |
 | Contract                       | `contracts/`                                     | Blockchain  | `BonaRegistry` for Avalanche Fuji, tests, deploy and role scripts.              |
 | Bona AI                        | `src/server/ai/`                                 | Integration | Guided reporting grounded in recorded cases. Never writes records or the chain. |
-| BonaBlock Verify               | `verifier/` (`bona-verify`)                      | Integration | Recomputes digests and checks them against the chain through its own RPC.       |
+| Bona Chain Verify              | `verifier/` (`bona-verify`)                      | Integration | Recomputes digests and checks them against the chain through its own RPC.       |
 
 The decisions that shaped this split are D1–D9 in
 `docs/coordination/DEPENDENCIES.md`. In short: `BonaRegistry` is the contract of
@@ -45,8 +49,8 @@ app (D8); and nothing is reported as on-chain until Fuji is deployed (D9).
                               └──► LedgerPort ──► src/blockchain (viem) ──► BonaRegistry on Fuji
                                        └────────► in-memory ledger (bona:memory)      ▲
                                                                                       │
- BonaBlock Verify ───────────── its own RPC endpoint (VERIFY_RPC_URL) ────────────────┘
-   file or document + receipt in, verdict out. Never calls the BonaBlock API.
+ Bona Chain Verify ───────────── its own RPC endpoint (VERIFY_RPC_URL) ────────────────┘
+   file or document + receipt in, verdict out. Never calls the Bona Chain API.
 ```
 
 Rules, enforced by ESLint where marked:
@@ -138,18 +142,18 @@ interface shows "Recorded on Avalanche" only for a `confirmed` receipt whose
 id `bona:memory` and are always labelled as sample data. With `LEDGER_MODE=off`
 every write is refused with `not_configured` and records keep a null receipt.
 
-## BonaBlock Verify
+## Bona Chain Verify
 
 A separate Next.js app and CLI in `verifier/`, deployed as its own project. It
 takes a receipt plus the evidence file or commitment document, recomputes the
 hash, reads the transaction through `VERIFY_RPC_URL`, decodes the
 `BonaRegistry` event and compares. Its verdicts are `VERIFIED`, `MISMATCH`,
 `NOT_FOUND`, `REJECTED` and `CANNOT_VERIFY`. It reads only `VERIFY_*`
-variables and never calls the BonaBlock API, so it keeps working if BonaBlock
+variables and never calls the Bona Chain API, so it keeps working if Bona Chain
 is down or dishonest.
 
 `GET /api/issues/:id/documents/:recordId` hands out the salted document and
-receipt that a person pastes into BonaBlock Verify.
+receipt that a person pastes into Bona Chain Verify.
 
 ## Privacy boundary
 

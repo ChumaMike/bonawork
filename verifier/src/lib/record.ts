@@ -147,7 +147,7 @@ export function checkDocument(value: unknown, event: RegistryEvent): DocumentRea
     return {
       ok: false,
       problem:
-        "These details are a sample from BonaBlock's practice data. They were never recorded, so there is nothing to check.",
+        "These details are a sample from Bona Chain's practice data. They were never recorded, so there is nothing to check.",
     };
   }
   if (
@@ -158,7 +158,7 @@ export function checkDocument(value: unknown, event: RegistryEvent): DocumentRea
     return {
       ok: false,
       problem:
-        "That is the receipt again. This step needs the record's details: in BonaBlock, tap Copy document on the same record.",
+        "That is the receipt again. This step needs the record's details: in Bona Chain, tap Copy document on the same record.",
     };
   }
   const detail = documentProblems(doc);
@@ -166,7 +166,7 @@ export function checkDocument(value: unknown, event: RegistryEvent): DocumentRea
     return {
       ok: false,
       problem:
-        "These are not the full details of a BonaBlock record. In BonaBlock, tap Copy document on the same record and try again.",
+        "These are not the full details of a Bona Chain record. In Bona Chain, tap Copy document on the same record and try again.",
       detail,
     };
   }
@@ -205,7 +205,7 @@ export function readDocument(input: string, event: RegistryEvent): DocumentRead 
     return {
       ok: false,
       problem:
-        "That is not the record's details. In BonaBlock, tap Copy document on the same record, then paste here.",
+        "That is not the record's details. In Bona Chain, tap Copy document on the same record, then paste here.",
       detail: error instanceof Error ? error.message : String(error),
     };
   }

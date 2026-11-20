@@ -290,7 +290,7 @@ test("checking a file shows three plain steps and one answer, with the codes fol
   await page.goto("/verify");
   await settled(page);
   // The link to the separate verifier is under "How this works", not on the first screen.
-  await expect(page.getByRole("link", { name: "Open BonaBlock Verify" })).toBeHidden();
+  await expect(page.getByRole("link", { name: "Open Bona Chain Verify" })).toBeHidden();
 
   await page.locator("input[type=file]").setInputFiles(photo("a file nobody recorded"));
   await expect(page.getByTestId("verify-result")).toHaveAttribute("data-match", "false");

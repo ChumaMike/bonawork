@@ -44,7 +44,7 @@ export const OUTCOME_GUIDE: { outcome: Overall; plain: string; means: string }[]
     outcome: "REJECTED",
     plain: "Cannot be checked here",
     means:
-      "the receipt is damaged, is for another network, or does not point to the BonaBlock contract.",
+      "the receipt is damaged, is for another network, or does not point to the Bona Chain contract.",
   },
   {
     outcome: "CANNOT_VERIFY",
@@ -88,7 +88,7 @@ export function nounFor(event: RegistryEvent, fileType?: string): string {
 export const SAMPLE_ANSWER: PlainAnswer = {
   tone: "sample",
   title: "Sample record: nothing to check",
-  body: "This receipt comes from BonaBlock's practice data, not from Avalanche. It has no transaction, so this site did not call the network.",
+  body: "This receipt comes from Bona Chain's practice data, not from Avalanche. It has no transaction, so this site did not call the network.",
   note: "This is not a Verified result and not a real record.",
 };
 
@@ -146,7 +146,7 @@ export function plainAnswer(
         note:
           event === "EvidenceRegistered"
             ? "A screenshot, an edited copy, or a copy sent through a chat app is not the same file. Try the original."
-            : "Copy the details again from the same record in BonaBlock and try once more.",
+            : "Copy the details again from the same record in Bona Chain and try once more.",
       };
     }
 
@@ -183,15 +183,15 @@ export function plainAnswer(
       if (failed === "contract" || failed === "transaction") {
         return {
           tone: "warn",
-          title: "Not a BonaBlock record",
-          body: "This receipt does not point to the BonaBlock contract. Anyone can make a look-alike, so this site does not accept it.",
+          title: "Not a Bona Chain record",
+          body: "This receipt does not point to the Bona Chain contract. Anyone can make a look-alike, so this site does not accept it.",
         };
       }
       return {
         tone: "warn",
         title: "This receipt cannot be checked",
         body: `The receipt is damaged, or it does not go with this ${noun}.`,
-        note: "Copy the receipt again from the record in BonaBlock and try once more.",
+        note: "Copy the receipt again from the record in Bona Chain and try once more.",
       };
     }
 

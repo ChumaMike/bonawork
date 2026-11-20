@@ -146,7 +146,7 @@ describe("plainAnswer", () => {
     );
     expect(wrongContract.overall).toBe("REJECTED");
     expect(plainAnswer(wrongContract, about("EvidenceRegistered")).title).toBe(
-      "Not a BonaBlock record",
+      "Not a Bona Chain record",
     );
 
     const wrongChain = await verify(

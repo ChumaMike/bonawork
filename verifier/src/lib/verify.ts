@@ -240,7 +240,7 @@ export async function verify(
     push(
       "receipt",
       "fail",
-      `The receipt is not in BonaBlock's receipt format. ${problems}.`,
+      `The receipt is not in Bona Chain's receipt format. ${problems}.`,
     );
     return finish("REJECTED", "The receipt could not be read, so nothing was checked.");
   }

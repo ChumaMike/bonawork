@@ -84,7 +84,7 @@ export function answerQuestion(
     return reply({
       text:
         school.participation === "participating"
-          ? `${school.name} is in ${school.town} and takes part in BonaBlock, so the school responds to reports here. It has ${open.length} open public ${open.length === 1 ? "issue" : "issues"}.`
+          ? `${school.name} is in ${school.town} and takes part in Bona Chain, so the school responds to reports here. It has ${open.length} open public ${open.length === 1 ? "issue" : "issues"}.`
           : `${school.name} is in ${school.town}. It has been invited but does not take part yet. You can still report a problem and it stays on the public record.`,
       school,
       issues: open.slice(0, 2),
@@ -93,7 +93,7 @@ export function answerQuestion(
 
   if (/verif|prove|proof|blockchain|avalanche|fingerprint|tamper/.test(text)) {
     return reply({
-      text: "Every photo or document gets a fingerprint — a short code that changes if even one dot in the file changes. BonaBlock is designed to record that fingerprint on Avalanche, a public blockchain. Anyone holding the original file can then check that it was never altered. Your file itself stays private.",
+      text: "Every photo or document gets a fingerprint — a short code that changes if even one dot in the file changes. Bona Chain is designed to record that fingerprint on Avalanche, a public blockchain. Anyone holding the original file can then check that it was never altered. Your file itself stays private.",
       actions: [{ label: "Check a file", href: "/verify" }],
     });
   }
