@@ -10,11 +10,15 @@
  */
 import { createHash, randomUUID } from "node:crypto";
 import { sql } from "drizzle-orm";
-import type { ReportCategory, UserRole } from "@/shared";
+import type { OrderLine, ReceiptLine, ReportCategory, UserRole } from "@/shared";
 import { hashPassword } from "../auth/password";
 import type { ServerContext } from "../context";
 import { schema } from "../db";
 import { checkUpload } from "../evidence/validate";
+import { submitInvoice } from "../procurement/invoices";
+import { acknowledgeOrder, approveWorkOrder } from "../procurement/orders";
+import { recordGoodsReceipt } from "../procurement/receipts";
+import { authoriseRelease } from "../procurement/release";
 import {
   declineReport,
   recordInterimProtection,
@@ -144,6 +148,13 @@ interface SeedUser {
   supplier?: { ref: string; name: string };
 }
 
+export const BUYER_EMAIL = "buyer@vaalridge.demo";
+export const SUPPLIER_EMAIL = "supplier@emseni-supplies.demo";
+export const RECEIVER_EMAIL = "receiving@thandolwethu.demo";
+export const APPROVER_EMAIL = "approver@vaalridge.demo";
+/** The registration reference a buyer names to give the demo supplier a work order. */
+export const DEMO_SUPPLIER_REF = "SUP-2026-0417";
+
 /** The accounts in docs/demo/DEMO_SCENARIO.md §3, plus staff for the other sample schools. */
 export const DEMO_ACCOUNTS: SeedUser[] = [
   {
@@ -234,6 +245,45 @@ export const DEMO_ACCOUNTS: SeedUser[] = [
     displayName: "Mr Kagiso Mothibi",
     publicLabel: "School admin",
   },
+  /*
+   * The procurement trail: one synthetic person per step. Their names, the
+   * supplier's trading name and its reference appear only in the signed-in
+   * procurement views; the public sees the role.
+   */
+  {
+    id: uid(2, 12),
+    email: BUYER_EMAIL,
+    role: "buyer",
+    school: null,
+    displayName: "Ms Naledi Dlamini",
+    publicLabel: "Programme buyer",
+  },
+  {
+    id: uid(2, 13),
+    email: SUPPLIER_EMAIL,
+    role: "supplier",
+    school: null,
+    displayName: "Mr Themba Zulu",
+    publicLabel: "Supplier",
+    supplier: { ref: DEMO_SUPPLIER_REF, name: "Emseni Building and Electrical Supplies" },
+  },
+  {
+    id: uid(2, 14),
+    email: RECEIVER_EMAIL,
+    role: "receiving_officer",
+    // The receiving officer works at the school the goods are delivered to.
+    school: "thandolwethu-primary",
+    displayName: "Mrs Ayanda Ngcobo",
+    publicLabel: "Receiving officer",
+  },
+  {
+    id: uid(2, 15),
+    email: APPROVER_EMAIL,
+    role: "payment_approver",
+    school: null,
+    displayName: "Mr Pieter van Wyk",
+    publicLabel: "Payment approver",
+  },
 ];
 
 /** Extra community members whose only activity is endorsing. */
@@ -262,7 +312,19 @@ type Step =
       note: string;
       files: string[];
     }
-  | { kind: "decline"; at: string; reason: string };
+  | { kind: "decline"; at: string; reason: string }
+  /* The procurement trail. Every amount is whole cents. */
+  | { kind: "order"; at: string; description: string; lines: OrderLine[] }
+  | { kind: "order_ack"; at: string }
+  | { kind: "receive"; at: string; lines: ReceiptLine[] }
+  | {
+      kind: "invoice";
+      at: string;
+      number: string;
+      lines: OrderLine[];
+      totalCents: number;
+    }
+  | { kind: "release"; at: string };
 
 interface SeedCase {
   id: string;
@@ -297,6 +359,170 @@ const members = (from: number, count: number) =>
 
 export const DEMO_CASE_ID = uid(4, 42);
 export const DEMO_CASE_REFERENCE = "BB-2026-000042";
+
+/** Demo case A: order approved, acknowledged and delivered; waiting for the supplier's invoice. */
+export const PROCUREMENT_CASE_A_REFERENCE = "BB-2026-000051";
+/** Demo case B: all the way to an authorised release, with a blocked first invoice on the way. */
+export const PROCUREMENT_CASE_B_REFERENCE = "BB-2026-000044";
+
+const LIGHTS: OrderLine[] = [
+  {
+    sku: "LED-TUBE-18W",
+    description: "LED tube light fitting, 18 W",
+    quantity: 12,
+    unitPriceCents: 18_500,
+  },
+  {
+    sku: "DB-BREAKER-20A",
+    description: "Distribution board circuit breaker, 20 A",
+    quantity: 2,
+    unitPriceCents: 24_000,
+  },
+  {
+    sku: "LABOUR-ELEC",
+    description: "Electrician: fit, test and certify",
+    quantity: 1,
+    unitPriceCents: 150_000,
+  },
+];
+
+const TANK: OrderLine[] = [
+  {
+    sku: "TANK-2500L",
+    description: "Water tank, 2 500 litres",
+    quantity: 1,
+    unitPriceCents: 395_000,
+  },
+  {
+    sku: "TANK-STAND",
+    description: "Galvanised steel tank stand",
+    quantity: 1,
+    unitPriceCents: 280_000,
+  },
+  {
+    sku: "VALVE-BALL-25",
+    description: "Ball valve, 25 mm",
+    quantity: 2,
+    unitPriceCents: 16_500,
+  },
+  {
+    sku: "LABOUR-PLUMB",
+    description: "Plumber: install and pressure test",
+    quantity: 1,
+    unitPriceCents: 190_000,
+  },
+];
+
+const withoutPrices = (lines: OrderLine[]): ReceiptLine[] =>
+  lines.map(({ sku, description, quantity }) => ({ sku, description, quantity }));
+const sumOf = (lines: OrderLine[]): number =>
+  lines.reduce((sum, line) => sum + line.quantity * line.unitPriceCents, 0);
+/** The first tank invoice charged more for the valves than the order agreed. */
+const TANK_OVERCHARGED: OrderLine[] = TANK.map((line) =>
+  line.sku === "VALVE-BALL-25" ? { ...line, unitPriceCents: 19_500 } : line,
+);
+
+/*
+ * The two procurement cases come after every other case: their ledger writes
+ * are queued last, so the cases above anchor first whatever the finance
+ * ledger does.
+ */
+const PROCUREMENT_CASES: SeedCase[] = [
+  {
+    id: uid(4, 51),
+    reference: PROCUREMENT_CASE_A_REFERENCE,
+    school: "thandolwethu-primary",
+    reporter: "bongani@community.demo",
+    at: "2026-11-02T06:20:00.000Z",
+    category: "electricity",
+    title: "No lights in the Grade 7 classrooms",
+    location: "Grade 7 block, all four classrooms",
+    description:
+      "The lights in the four Grade 7 classrooms have not worked for two weeks. On cloudy days the learners cannot read the board and the afternoon study class has stopped.",
+    files: ["c51-dark-classroom.jpg"],
+    steps: [
+      { kind: "endorse", by: members(2, 4), at: "2026-11-02T15:00:00.000Z" },
+      {
+        kind: "assess",
+        at: "2026-11-03T07:00:00.000Z",
+        note: "Confirmed. The fittings have failed and two breakers trip. A work order was requested from the district programme.",
+      },
+      {
+        kind: "order",
+        at: "2026-11-05T08:30:00.000Z",
+        description:
+          "Replace the light fittings in the four Grade 7 classrooms and the two faulty breakers on the block's distribution board.",
+        lines: LIGHTS,
+      },
+      { kind: "order_ack", at: "2026-11-06T09:10:00.000Z" },
+      { kind: "receive", at: "2026-11-12T10:15:00.000Z", lines: withoutPrices(LIGHTS) },
+      {
+        kind: "claim",
+        at: "2026-11-13T12:40:00.000Z",
+        note: "All twelve light fittings were replaced and both breakers changed. The lights work in all four Grade 7 classrooms.",
+        files: ["c51-claim-lights-on.jpg"],
+      },
+    ],
+  },
+  {
+    id: uid(4, 44),
+    reference: PROCUREMENT_CASE_B_REFERENCE,
+    school: "thandolwethu-primary",
+    reporter: "palesa@community.demo",
+    at: "2026-09-15T06:50:00.000Z",
+    category: "water",
+    title: "Water tank behind the kitchen leaks and the stand is rusted",
+    location: "Behind the kitchen, next to the feeding scheme store",
+    description:
+      "The water tank behind the kitchen leaks from a crack near the bottom and the metal stand is rusted through on one leg. The kitchen runs out of water before the feeding scheme has finished cooking.",
+    files: ["c44-tank-leak.jpg"],
+    steps: [
+      { kind: "endorse", by: members(9, 5), at: "2026-09-15T14:00:00.000Z" },
+      {
+        kind: "assess",
+        at: "2026-09-16T07:30:00.000Z",
+        note: "Confirmed. The tank cannot be patched and the stand is unsafe. A work order was requested from the district programme.",
+      },
+      {
+        kind: "order",
+        at: "2026-09-18T08:00:00.000Z",
+        description:
+          "Replace the kitchen water tank and its stand, with two new ball valves, and pressure test the supply to the kitchen.",
+        lines: TANK,
+      },
+      { kind: "order_ack", at: "2026-09-19T09:20:00.000Z" },
+      { kind: "receive", at: "2026-09-29T11:00:00.000Z", lines: withoutPrices(TANK) },
+      {
+        kind: "invoice",
+        at: "2026-09-30T08:45:00.000Z",
+        number: "INV-2026-0931",
+        lines: TANK_OVERCHARGED,
+        totalCents: sumOf(TANK_OVERCHARGED),
+      },
+      {
+        kind: "invoice",
+        at: "2026-10-01T10:05:00.000Z",
+        number: "INV-2026-0931-A",
+        lines: TANK,
+        totalCents: sumOf(TANK),
+      },
+      {
+        kind: "claim",
+        at: "2026-10-02T12:15:00.000Z",
+        note: "The new tank and stand are installed and the kitchen has water all day.",
+        files: ["c44-claim-new-tank.jpg"],
+      },
+      {
+        kind: "review",
+        at: "2026-10-06T09:30:00.000Z",
+        outcome: "verified",
+        note: "Site visit 6 October. The new tank is on a sound stand, both valves hold and there is no leak after a full day of use.",
+        files: ["c44-review-tank.jpg"],
+      },
+      { kind: "release", at: "2026-10-07T08:10:00.000Z" },
+    ],
+  },
+];
 
 const SEED_CASES: SeedCase[] = [
   {
@@ -677,7 +903,7 @@ export async function runSeed(
   const deps = { db, ledger: ctx.ledger, store: ctx.store };
   const defer = { anchorMode: "defer" as const };
 
-  for (const c of SEED_CASES) {
+  for (const c of [...SEED_CASES, ...PROCUREMENT_CASES]) {
     const admin = actor(
       admins[c.school as keyof typeof admins] ?? "admin@thandolwethu.demo",
     );
@@ -776,6 +1002,59 @@ export async function runSeed(
             at: step.at,
           });
           break;
+        case "order":
+          await approveWorkOrder(deps, {
+            ...target,
+            actor: actor(BUYER_EMAIL),
+            order: {
+              supplierRef: DEMO_SUPPLIER_REF,
+              description: step.description,
+              lines: step.lines,
+            },
+            at: step.at,
+            ...defer,
+          });
+          break;
+        case "order_ack":
+          await acknowledgeOrder(deps, {
+            ...target,
+            actor: actor(SUPPLIER_EMAIL),
+            at: step.at,
+            ...defer,
+          });
+          break;
+        case "receive":
+          await recordGoodsReceipt(deps, {
+            ...target,
+            actor: actor(RECEIVER_EMAIL),
+            receipt: { lines: step.lines },
+            at: step.at,
+            ...defer,
+          });
+          break;
+        case "invoice":
+          await submitInvoice(deps, {
+            ...target,
+            actor: actor(SUPPLIER_EMAIL),
+            invoice: {
+              invoiceNumber: step.number,
+              orderVersion: 1,
+              lines: step.lines,
+              totalCents: step.totalCents,
+              aiDrafted: false,
+            },
+            at: step.at,
+            ...defer,
+          });
+          break;
+        case "release":
+          await authoriseRelease(deps, {
+            ...target,
+            actor: actor(APPROVER_EMAIL),
+            at: step.at,
+            ...defer,
+          });
+          break;
       }
     }
   }
@@ -798,6 +1077,6 @@ export async function runSeed(
     if (ctx.ledgerMode !== "avalanche") await anchoring;
   }
   console.info(
-    `[seed] ${SEED_SCHOOLS.length} schools, ${allUsers.length} accounts and ${SEED_CASES.length} cases in ${Date.now() - started} ms (demo password: DEMO_ACCOUNT_PASSWORD)`,
+    `[seed] ${SEED_SCHOOLS.length} schools, ${allUsers.length} accounts and ${SEED_CASES.length + PROCUREMENT_CASES.length} cases in ${Date.now() - started} ms (demo password: DEMO_ACCOUNT_PASSWORD)`,
   );
 }

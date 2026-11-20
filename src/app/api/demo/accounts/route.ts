@@ -9,18 +9,30 @@ import {
 import { getContext } from "@/server/context";
 import { schema } from "@/server/db";
 import { HttpError, ok, parseJson, route } from "@/server/http";
-import { DEMO_ACCOUNTS } from "@/server/seed";
+import {
+  APPROVER_EMAIL,
+  BUYER_EMAIL,
+  DEMO_ACCOUNTS,
+  RECEIVER_EMAIL,
+  SUPPLIER_EMAIL,
+} from "@/server/seed";
 
 /**
  * One account per role for the demo. The sign-in screen offers these as
  * one-tap cards, so a presenter can switch people without typing. They are
- * the accounts in docs/hackathon/DEMO_GUIDE.md.
+ * the accounts in docs/hackathon/DEMO_GUIDE.md, in the order people act on a
+ * case: reporter, school, buyer, supplier, receiving officer, reviewer,
+ * payment approver, and the district looking on.
  */
 const DEMO_LOGINS = [
   "zanele@community.demo",
   "admin@thandolwethu.demo",
-  "district@vaalridge.demo",
+  BUYER_EMAIL,
+  SUPPLIER_EMAIL,
+  RECEIVER_EMAIL,
   "reviewer@vaalridge.demo",
+  APPROVER_EMAIL,
+  "district@vaalridge.demo",
 ];
 
 /** Both handlers only exist while `DEMO_RESET_ENABLED=true`; otherwise 404. */

@@ -136,7 +136,8 @@ describe("seed", () => {
       ),
     );
     expect(bySlug.id).toBe(list[0].id);
-    expect(bySlug.stats).toEqual({ open: 2, awaitingReview: 1, verified: 1 });
+    // Includes the two procurement demo cases: one awaiting review, one verified.
+    expect(bySlug.stats).toEqual({ open: 2, awaitingReview: 2, verified: 2 });
     const byId = await school.GET(
       jsonRequest("GET", `/api/schools/${list[0].id}`),
       params({ schoolId: list[0].id }),
@@ -619,10 +620,14 @@ describe("demo accounts (one-tap sign-in)", () => {
         await demoAccounts.GET(jsonRequest("GET", "/api/demo/accounts")),
       );
       expect(listed.accounts.map((a) => a.role).sort()).toEqual([
+        "buyer",
         "district_official",
         "independent_reviewer",
+        "payment_approver",
+        "receiving_officer",
         "reporter",
         "school_admin",
+        "supplier",
       ]);
       // Only the listed accounts can be entered this way, even though more are seeded.
       const refused = await demoAccounts.POST(
@@ -1012,9 +1017,14 @@ describe("TS-12 privacy on the ledger", () => {
             "registrar",
             "school_admin",
             "reviewer",
+            // A match result's outcome travels in a job payload as a string.
+            "true",
+            "false",
           ].includes(value)
         );
       }
+      // recordMatchResult takes the outcome as a boolean.
+      if (typeof value === "boolean") return true;
       if (value && typeof value === "object") return Object.values(value).every(ok);
       return false;
     };
