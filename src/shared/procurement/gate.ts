@@ -1,6 +1,11 @@
 import type { ReportStatus } from "../domain";
 import type { Id } from "../primitives";
-import type { MatchResult, ReleaseGate } from "./types";
+import type {
+  MatchResult,
+  ReleaseBlocker,
+  ReleaseBlockerCode,
+  ReleaseGate,
+} from "./types";
 
 export interface ReleaseGateInput {
   /** The report status. Only `verified` lets a release through. */
@@ -20,16 +25,46 @@ export interface ReleaseGateInput {
   invoicerId: Id | null;
   receiverIds: readonly Id[];
   reviewerId: Id | null;
+  /**
+   * Anyone else who acted on the case in a role the authoriser may not also
+   * hold: the school staff who acted on the report (the administrator who
+   * claimed the repair) and reviewers of earlier claims. InstitutionFinance
+   * refuses the same accounts on-chain.
+   */
+  otherActorIds?: readonly Id[];
 }
 
 /**
  * Whether a release instruction may be authorised now. Open only when the
  * report is `verified`, the latest match is `matched` on the current order
  * version, the order is acknowledged, there is no earlier release, and the
- * authoriser is not the approver, the invoicer, a receiver or the reviewer.
+ * authoriser is not the approver, the invoicer, a receiver, the reviewer or
+ * anyone who acted for the school on the report.
  * Returns every blocker, in the order of `RELEASE_BLOCKER_CODES`.
  */
 export function releaseGate(input: ReleaseGateInput): ReleaseGate {
-  void input;
-  throw new Error("not implemented");
+  const blockers: ReleaseBlocker[] = [];
+  const block = (code: ReleaseBlockerCode) => blockers.push({ code });
+
+  if (input.reportStatus !== "verified") block("repair_not_verified");
+  if (
+    !input.latestMatch ||
+    input.latestMatch.outcome !== "matched" ||
+    input.latestMatch.orderVersion !== input.orderVersion
+  ) {
+    block("no_matching_invoice");
+  }
+  if (input.acknowledgedVersion !== input.orderVersion) block("order_not_acknowledged");
+  if (input.alreadyReleased) block("already_released");
+
+  const acted = [
+    input.approverId,
+    input.invoicerId,
+    ...input.receiverIds,
+    input.reviewerId,
+    ...(input.otherActorIds ?? []),
+  ];
+  if (acted.includes(input.authoriserId)) block("same_person");
+
+  return { open: blockers.length === 0, blockers };
 }

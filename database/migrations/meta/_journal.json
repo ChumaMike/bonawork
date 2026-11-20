@@ -8,6 +8,13 @@
       "when": 1794864491150,
       "tag": "0000_remarkable_wraith",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1795182006422,
+      "tag": "0001_flaky_magdalene",
+      "breakpoints": true
     }
   ]
 }
