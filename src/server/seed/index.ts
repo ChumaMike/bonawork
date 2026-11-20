@@ -131,7 +131,7 @@ export const SEED_SCHOOLS: SeedSchool[] = [
     participation: "invited",
     participatingSince: null,
     about:
-      "A combined school with Grade R to Grade 12. The school has been invited to respond to reports on BonaBlock and has not joined yet.",
+      "A combined school with Grade R to Grade 12. The school has been invited to respond to reports on Bona Chain and has not joined yet.",
   },
 ];
 
