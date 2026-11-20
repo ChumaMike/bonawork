@@ -67,6 +67,14 @@ export const RECORD_NAME: Record<RegistryEvent, string> = {
   RepairClaimed: "A repair claim",
   RepairVerified: "A review that confirmed a repair",
   RepairDisputed: "A review that disputed a repair",
+  WorkOrderApproved: "A work order approval",
+  WorkOrderAcknowledged: "A supplier's acknowledgement of a work order",
+  InvoiceSubmitted: "A supplier invoice",
+  GoodsReceiptRecorded: "A goods receipt",
+  MatchRecorded: "A three-way match result",
+  PaymentDisputeOpened: "A payment dispute being opened",
+  PaymentDisputeClosed: "A payment dispute being closed",
+  ReleaseAuthorised: "A release authorisation",
 };
 
 const RECORD_NOUN: Record<RegistryEvent, string> = {
@@ -77,7 +85,69 @@ const RECORD_NOUN: Record<RegistryEvent, string> = {
   RepairClaimed: "repair claim",
   RepairVerified: "review",
   RepairDisputed: "review",
+  WorkOrderApproved: "work order",
+  WorkOrderAcknowledged: "acknowledgement",
+  InvoiceSubmitted: "invoice",
+  GoodsReceiptRecorded: "goods receipt",
+  MatchRecorded: "match result",
+  PaymentDisputeOpened: "payment dispute",
+  PaymentDisputeClosed: "payment dispute",
+  ReleaseAuthorised: "release authorisation",
 };
+
+/**
+ * What a record that carries nothing to compare says happened, for the three
+ * finance records checked by their presence alone. The words continue
+ * "Avalanche has a record that ...".
+ */
+const PRESENCE: Partial<Record<RegistryEvent, { what: string; note?: string }>> = {
+  WorkOrderAcknowledged: { what: "the supplier acknowledged the work order" },
+  PaymentDisputeOpened: {
+    what: "a payment dispute was opened on the work order",
+    note: "While a dispute is open, no release can be authorised.",
+  },
+  PaymentDisputeClosed: { what: "a payment dispute on the work order was closed" },
+};
+
+/**
+ * What a Verified finance record does and does not show. A step of the
+ * procurement trail is a record that the step was taken, never proof that the
+ * work was done or that anyone was paid.
+ */
+function financeNote(event: RegistryEvent, result: VerifyResult): string | undefined {
+  switch (event) {
+    case "WorkOrderApproved":
+      return "This shows the order was approved. It does not show that the work was done.";
+    case "InvoiceSubmitted":
+      return "This shows the invoice was submitted. It does not show that it was correct.";
+    case "GoodsReceiptRecorded":
+      return "This shows what the receiving officer recorded as delivered.";
+    case "MatchRecorded":
+      if (result.facts.matchPassed === true) {
+        return "The record says the order, the invoice and the goods receipt agreed.";
+      }
+      if (result.facts.matchPassed === false) {
+        return "The record says the order, the invoice and the goods receipt did not agree, so no release can be authorised on it.";
+      }
+      return undefined;
+    case "ReleaseAuthorised":
+      return "This is a release instruction. No money moves on the blockchain, and it does not show that anyone received money.";
+    default:
+      return undefined;
+  }
+}
+
+/** For the checking screen: what a record with nothing to compare is, in one sentence. */
+export function nothingToCompare(event: RegistryEvent): string {
+  const subject = PRESENCE[event]
+    ? lowerFirst(RECORD_NAME[event])
+    : "a school’s acknowledgement of a report";
+  return `This receipt is for ${subject}. There is no file to compare, so nothing more is needed.`;
+}
+
+function lowerFirst(text: string): string {
+  return text.charAt(0).toLowerCase() + text.slice(1);
+}
 
 /** The word for what the person holds: "photo" for a picture, otherwise by record type. */
 export function nounFor(event: RegistryEvent, fileType?: string): string {
@@ -99,11 +169,30 @@ export function plainAnswer(
 ): PlainAnswer {
   const { event, noun, network } = context;
   const failed = result.steps.find((step) => step.status === "fail")?.id;
-  /** False for an acknowledgement: there is no content to compare, only the event. */
-  const hashed = EVENT_RULE[event].field !== null;
+  const rule = EVENT_RULE[event];
+  /**
+   * False for an acknowledgement: there is no content to compare, only the
+   * event. A payment dispute is compared only when a fingerprint was supplied.
+   */
+  const hashed =
+    rule.field !== null &&
+    (rule.field === "digest" ||
+      rule.document !== null ||
+      result.facts.recomputedDigest !== undefined);
+  const presence = PRESENCE[event] ?? null;
 
   switch (result.overall) {
     case "VERIFIED": {
+      if (!hashed && presence) {
+        return {
+          tone: "good",
+          title: "Verified",
+          body: result.facts.reportIdExpected
+            ? `Avalanche has a record that ${presence.what} for this report.`
+            : `Avalanche has a record that ${presence.what} in this transaction.`,
+          note: presence.note,
+        };
+      }
       if (!hashed) {
         return {
           tone: "good",
@@ -120,7 +209,7 @@ export function plainAnswer(
         note:
           event === "RepairClaimed"
             ? "This shows the claim was recorded. It does not show that the repair was done: only an independent review can confirm that."
-            : undefined,
+            : financeNote(event, result),
       };
     }
 
@@ -132,11 +221,26 @@ export function plainAnswer(
           body: `Avalanche has this exact ${noun} on record, but under a different report from the one named here.`,
         };
       }
+      if (!hashed && presence) {
+        return {
+          tone: "bad",
+          title: "For a different report",
+          body: "This transaction holds a record of this kind, but for a different report from the one named here.",
+        };
+      }
       if (!hashed) {
         return {
           tone: "bad",
           title: "For a different report",
           body: "This transaction records an acknowledgement, but of a different report from the one named here.",
+        };
+      }
+      if (event === "MatchRecorded" && result.facts.matchPassed !== undefined) {
+        // The fingerprint was found; what differs is the outcome recorded next to it.
+        return {
+          tone: "bad",
+          title: "The outcome does not agree",
+          body: `Avalanche has this exact match result on record, but it says the match ${result.facts.matchPassed ? "passed" : "did not pass"}. These details say the opposite.`,
         };
       }
       return {
@@ -179,6 +283,20 @@ export function plainAnswer(
           title: "This receipt is for another network",
           body: `This site reads the ${network}. The receipt names a different one, so it cannot be checked here.`,
         };
+      }
+      if (failed === "contract" && result.verifier.expectedFactoryAddress) {
+        // The factory was asked. It either does not know the contract, or made it for another purpose.
+        return result.facts.contractKind
+          ? {
+              tone: "warn",
+              title: "Not a record of this kind",
+              body: "This receipt points to a Bona Chain contract that does not keep this kind of record, so this site does not accept it.",
+            }
+          : {
+              tone: "warn",
+              title: "Not a Bona Chain record",
+              body: "This contract was not created by the Bona Chain factory. Anyone can make a look-alike, so this site does not accept it.",
+            };
       }
       if (failed === "contract" || failed === "transaction") {
         return {

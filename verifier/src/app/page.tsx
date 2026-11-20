@@ -1,5 +1,5 @@
 import { connection } from "next/server";
-import { loadVerifierConfig } from "../lib/config";
+import { loadVerifierConfig, trustedContracts } from "../lib/config";
 import { networkName, OUTCOME_GUIDE } from "../lib/plain";
 import type { Trust } from "./result";
 import { VerifyApp } from "./verify-app";
@@ -16,7 +16,7 @@ export default async function Page() {
       chainId: config.chainId,
       network: networkName(config.chainId),
       rpcHost: safeHost(config.rpcUrl),
-      contract: config.expectedContractAddress ?? null,
+      contract: trustedContracts(config),
     };
   } catch (error) {
     configError = error instanceof Error ? error.message : String(error);

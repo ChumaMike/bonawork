@@ -1,9 +1,37 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { FINANCE_EVENTS, LEDGER_EVENTS, type FinanceEvent } from "@/shared";
+import {
+  CommitmentDocumentSchema,
+  FINANCE_DOCUMENT_TYPES,
+  FINANCE_EVENTS,
+  GoodsReceiptDocumentSchema,
+  InterimProtectionDocumentSchema,
+  LEDGER_EVENTS,
+  MatchReasonSchema,
+  MatchResultDocumentSchema,
+  OrderLineSchema,
+  ReceiptLineSchema,
+  ReleaseDecisionDocumentSchema,
+  RepairClaimDocumentSchema,
+  ReportDocumentSchema,
+  ReviewDocumentSchema,
+  SupplierInvoiceDocumentSchema,
+  WorkOrderDocumentSchema,
+  canonicalJson,
+  computeCommitment,
+  type FinanceEvent,
+} from "@/shared";
 import { drawQr, VERIFY_QR_MAX_VERSION } from "@/components/verify-qr";
 // The verifier is a separate package that shares no code with this app. Its
 // parser is imported here, in a test only, to prove that the two sides agree
 // on the link format.
+import {
+  DOCUMENT_FIELDS as VERIFIER_DOCUMENT_FIELDS,
+  NESTED_FIELDS as VERIFIER_NESTED_FIELDS,
+  canonicalJson as verifierCanonicalJson,
+  computeCommitment as verifierCommitment,
+  documentProblems as verifierDocumentProblems,
+  pickDocumentFields as verifierPickFields,
+} from "../../verifier/src/lib/canonical";
 import { readVerifyFragment } from "../../verifier/src/lib/link";
 import { VERIFY_LINK_MAX_LABEL, VERIFY_LINK_MAX_LENGTH, verifyLink } from "./verify-link";
 
@@ -435,5 +463,110 @@ describe("verify links for the procurement trail", () => {
     for (const event of LEDGER_EVENTS) {
       expect(opened(verifyLink({ ...RECEIPT, event })).receipt.event).toBe(event);
     }
+  });
+});
+
+/* ------------------- The app and the verifier hash alike -------------------- */
+
+/*
+ * The verifier re-implements the hashing rules and shares no code with the
+ * app. These tests hold the two side by side: the same document must give the
+ * same canonical JSON, byte for byte, and so the same commitment.
+ */
+describe("a finance document hashes to the same commitment in the app and in the verifier", () => {
+  const SCHEMAS = {
+    report: ReportDocumentSchema,
+    interim_protection: InterimProtectionDocumentSchema,
+    repair_claim: RepairClaimDocumentSchema,
+    review: ReviewDocumentSchema,
+    work_order: WorkOrderDocumentSchema,
+    supplier_invoice: SupplierInvoiceDocumentSchema,
+    goods_receipt: GoodsReceiptDocumentSchema,
+    match_result: MatchResultDocumentSchema,
+    release_decision: ReleaseDecisionDocumentSchema,
+  };
+  /** One sample of each new type, and a passing match next to the failing one. */
+  const SAMPLES: [string, Record<string, unknown>][] = [
+    ...Object.entries(FINANCE_DOCUMENTS),
+    [
+      "match_result (pass)",
+      { ...FINANCE_DOCUMENTS.match_result, outcome: "pass", reasons: [] },
+    ],
+  ];
+
+  it("covers the five finance document types", () => {
+    expect(Object.keys(FINANCE_DOCUMENTS)).toEqual([...FINANCE_DOCUMENT_TYPES]);
+  });
+
+  it.each(SAMPLES)("%s", async (_name, sample) => {
+    // The app hashes the document its schema accepts.
+    const document = CommitmentDocumentSchema.parse(sample);
+    expect(verifierDocumentProblems(sample)).toBeNull();
+    expect(verifierCanonicalJson(verifierPickFields(sample))).toBe(
+      canonicalJson(document),
+    );
+    const commitment = await computeCommitment(document);
+    expect(await verifierCommitment(sample)).toBe(commitment);
+    expect(commitment).toMatch(/^0x[0-9a-f]{64}$/);
+  });
+
+  it.each(SAMPLES)("%s, with keys the schema does not know", async (_name, sample) => {
+    // The schema strips unknown keys before the app hashes; the verifier ignores them.
+    const noisy: Record<string, unknown> = {
+      ...sample,
+      receipt: { txId: "0x00" },
+      id: 7,
+    };
+    for (const key of ["lines", "reasons"]) {
+      const list = sample[key];
+      if (Array.isArray(list)) {
+        noisy[key] = list.map((item: Record<string, unknown>) => ({
+          ...item,
+          note: "x",
+        }));
+      }
+    }
+    const commitment = await computeCommitment(CommitmentDocumentSchema.parse(noisy));
+    expect(commitment).toBe(
+      await computeCommitment(CommitmentDocumentSchema.parse(sample)),
+    );
+    expect(await verifierCommitment(noisy)).toBe(commitment);
+  });
+
+  it("changes in both when one price changes by a cent", async () => {
+    const sample = FINANCE_DOCUMENTS.supplier_invoice;
+    const changed = {
+      ...sample,
+      lines: [{ ...sample.lines[0], unitPriceCents: 18_501 }, sample.lines[1]],
+    };
+    const before = await computeCommitment(CommitmentDocumentSchema.parse(sample));
+    const after = await computeCommitment(CommitmentDocumentSchema.parse(changed));
+    expect(after).not.toBe(before);
+    expect(await verifierCommitment(changed)).toBe(after);
+  });
+
+  it("lists exactly the fields of every document schema, old and new", () => {
+    expect(Object.keys(VERIFIER_DOCUMENT_FIELDS).sort()).toEqual(
+      Object.keys(SCHEMAS).sort(),
+    );
+    for (const [type, schema] of Object.entries(SCHEMAS)) {
+      expect(
+        [...VERIFIER_DOCUMENT_FIELDS[type as keyof typeof SCHEMAS]].sort(),
+        type,
+      ).toEqual(Object.keys(schema.shape).sort());
+    }
+  });
+
+  it("lists exactly the fields of a line and of a match reason", () => {
+    const sorted = (keys: readonly string[]) => [...keys].sort();
+    const order = sorted(Object.keys(OrderLineSchema.shape));
+    expect(sorted(VERIFIER_NESTED_FIELDS.work_order!.lines!)).toEqual(order);
+    expect(sorted(VERIFIER_NESTED_FIELDS.supplier_invoice!.lines!)).toEqual(order);
+    expect(sorted(VERIFIER_NESTED_FIELDS.goods_receipt!.lines!)).toEqual(
+      sorted(Object.keys(ReceiptLineSchema.shape)),
+    );
+    expect(sorted(VERIFIER_NESTED_FIELDS.match_result!.reasons!)).toEqual(
+      sorted(Object.keys(MatchReasonSchema.shape)),
+    );
   });
 });

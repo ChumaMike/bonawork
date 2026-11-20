@@ -2,7 +2,7 @@
 
 import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { computeCommitment, isUuid, sha256Hex, type Hex32 } from "../lib/canonical";
-import { nounFor, RECORD_NAME } from "../lib/plain";
+import { nothingToCompare, nounFor, RECORD_NAME } from "../lib/plain";
 import {
   checkDocument,
   documentWords,
@@ -69,6 +69,8 @@ async function runCheck({
   let digest: Hex32 | undefined;
   let noun = nounFor(record.event);
   let report = record.reportId ?? (reportId.trim() || undefined);
+  let workOrderId: string | undefined;
+  let matchPassed: boolean | undefined;
   try {
     if (record.mode === "evidence") {
       if (!file) return { ok: false, message: "Choose your photo or document first." };
@@ -79,6 +81,10 @@ async function runCheck({
       digest = await computeCommitment(document);
       // The document names its own report: that is the one to compare with.
       if (typeof document.reportId === "string") report = document.reportId;
+      // Two more things the ledger holds next to a finance fingerprint. They are
+      // read from the document here, so the document itself still never leaves.
+      if (typeof document.workOrderId === "string") workOrderId = document.workOrderId;
+      if (record.event === "MatchRecorded") matchPassed = document.outcome === "pass";
     }
   } catch (error) {
     return {
@@ -100,7 +106,13 @@ async function runCheck({
     response = await fetch("/api/verify", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ receipt: record.receipt, digest, reportId: report }),
+      body: JSON.stringify({
+        receipt: record.receipt,
+        digest,
+        reportId: report,
+        workOrderId,
+        matchPassed,
+      }),
     });
   } catch (error) {
     return {
@@ -357,10 +369,7 @@ export function Checker({
   } else if (record?.mode === "acknowledgement" && !fromLink) {
     supply = (
       <>
-        <p className="text-muted">
-          This receipt is for a school&rsquo;s acknowledgement of a report. There is no
-          file to compare, so nothing more is needed.
-        </p>
+        <p className="text-muted">{nothingToCompare(record.event)}</p>
         {record.reportId ? null : (
           <details className="mt-2">
             <summary className="cursor-pointer py-2.5 font-semibold text-brand">

@@ -8,7 +8,8 @@
  *   pnpm --filter bona-verify verify -- --receipt ack-receipt.json --report-id <uuid>
  *
  * Options: --rpc <url> --chain-id <n> --contract <0x...> --json
- * Environment: VERIFY_RPC_URL, VERIFY_CHAIN_ID, VERIFY_CONTRACT_ADDRESS.
+ * Environment: VERIFY_RPC_URL, VERIFY_CHAIN_ID, VERIFY_CONTRACT_ADDRESS,
+ * VERIFY_FACTORY_ADDRESS (or --factory: accept contracts this BonaChainFactory created).
  *
  * Exit codes: 0 VERIFIED · 1 MISMATCH · 2 NOT_FOUND · 3 REJECTED · 4 CANNOT_VERIFY · 64 usage.
  */
@@ -93,6 +94,7 @@ async function main(): Promise<number> {
   if (typeof args.rpc === "string") env.VERIFY_RPC_URL = args.rpc;
   if (typeof args["chain-id"] === "string") env.VERIFY_CHAIN_ID = args["chain-id"];
   if (typeof args.contract === "string") env.VERIFY_CONTRACT_ADDRESS = args.contract;
+  if (typeof args.factory === "string") env.VERIFY_FACTORY_ADDRESS = args.factory;
   const config = loadVerifierConfig(env);
 
   const result = await verifyWithConfig(
@@ -118,6 +120,9 @@ function printHuman(result: VerifyResult, rpcUrl: string): void {
   console.log(
     `Expected contract: ${result.verifier.expectedContractAddress ?? "(not pinned; using the receipt's)"}`,
   );
+  if (result.verifier.expectedFactoryAddress) {
+    console.log(`Bona Chain factory: ${result.verifier.expectedFactoryAddress}`);
+  }
   console.log("");
   for (const step of result.steps) {
     console.log(`${mark[step.status]} ${step.title}`);

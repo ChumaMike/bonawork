@@ -7,13 +7,20 @@ import { verify, type Source, type VerifyResult } from "./verify";
  * `VERIFY_*` env (or an override), a real RPC reader, then `verify`.
  */
 export async function verifyWithConfig(
-  input: { receipt: unknown; source: Source; reportId?: string },
+  input: {
+    receipt: unknown;
+    source: Source;
+    reportId?: string;
+    workOrderId?: string;
+    matchPassed?: boolean;
+  },
   config: VerifierConfig = loadVerifierConfig(),
 ): Promise<VerifyResult> {
   return verify(input, {
     chain: createChainReader(config.rpcUrl),
     expectedChainId: config.chainId,
     expectedContractAddress: config.expectedContractAddress,
+    expectedFactoryAddress: config.expectedFactoryAddress,
   });
 }
 
