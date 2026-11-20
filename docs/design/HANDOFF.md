@@ -34,7 +34,8 @@ does it now or I do it in the polish pass.
   logo does not, until `chrome.tsx` uses `<BrandLogo>`.
 - The verifier app has its own icon and header logo; they are not covered by this commit.
 
-**Checks**: `pnpm check` passed with these changes on top of `main` at `bb4d46c`.
+**Checks**: `pnpm check` passed with these changes, and again after merging `main` at
+`0195d47` (178 app tests, 99 verifier tests).
 
 ## 2. Screen specification and core-flow mock-up (deliverable B)
 
