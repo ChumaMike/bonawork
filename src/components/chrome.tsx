@@ -7,6 +7,7 @@ import { USING_FIXTURES } from "@/data/api";
 import { useAudience, WORKSPACE, workspaceFor, type Audience } from "@/data/audience";
 import { signOut, useSession } from "@/data/session";
 import { useMessages } from "@/i18n";
+import { BRAND_NAME, BrandLogo } from "./brand/brand-logo";
 import { Avatar } from "./ui/avatar";
 import { ButtonLink } from "./ui/button";
 import { cn } from "./ui/cn";
@@ -58,44 +59,17 @@ export function SchoolContext({ id, name }: { id: string; name: string }) {
 /* Wordmark                                                                  */
 /* ------------------------------------------------------------------------ */
 
-/**
- * The BonaBlock mark: a face-brick wall, like the schools in the photographs,
- * with an eye in the middle brick. "Bona" means "see"; the block that sees is
- * the record that cannot be taken out of the wall.
- */
-export function LogoMark({ className }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 40 40" className={className} aria-hidden="true">
-      <g className="fill-brand">
-        <rect x="3" y="4" width="15" height="8" rx="2" />
-        <rect x="20.5" y="4" width="16.5" height="8" rx="2" />
-        <rect x="3" y="14.5" width="5.5" height="11" rx="2" />
-        <rect x="31.5" y="14.5" width="5.5" height="11" rx="2" />
-        <rect x="3" y="28" width="17" height="8" rx="2" />
-        <rect x="22.5" y="28" width="14.5" height="8" rx="2" />
-      </g>
-      <rect x="11" y="14.5" width="18" height="11" rx="2.4" className="fill-sun" />
-      <path
-        d="M13.4 20c1.9-2.5 4.1-3.7 6.6-3.7s4.7 1.2 6.6 3.7c-1.9 2.5-4.1 3.7-6.6 3.7s-4.7-1.2-6.6-3.7z"
-        className="fill-surface"
-      />
-      <circle cx="20" cy="20" r="2.1" className="fill-brand" />
-    </svg>
-  );
-}
-
 export function Logo({ className }: { className?: string }) {
   const m = useMessages();
   return (
     <Link
       href="/"
-      aria-label={`${m.brand.name} — ${m.nav.home}`}
-      className={cn("inline-flex min-h-11 shrink-0 items-center gap-2", className)}
+      aria-label={`${BRAND_NAME} — ${m.nav.home}`}
+      className={cn("inline-flex min-h-11 shrink-0 items-center", className)}
     >
-      <LogoMark className="size-8 sm:size-9" />
-      <span className="font-display text-xl font-bold tracking-tight text-ink sm:text-2xl">
-        Bona<span className="text-earth">Block</span>
-      </span>
+      {/* The Bona Chain logo (docs/design/BRAND.md): the phone size, then the header size. */}
+      <BrandLogo size="sm" className="sm:hidden" />
+      <BrandLogo className="hidden sm:inline-flex" />
     </Link>
   );
 }
