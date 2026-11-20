@@ -159,10 +159,11 @@ export function SiteHeader() {
           ) : null}
           {school ? (
             // Phones have no room beside the wordmark; the page title names the school there.
+            // Between lg and xl the menu needs the room too, so the header stays on one row.
             <Link
               href={`/schools/${school.id}`}
               data-testid="school-context"
-              className="hidden min-h-11 max-w-56 items-center gap-1.5 rounded-full bg-brand-soft px-3 text-sm font-semibold text-brand-strong sm:inline-flex lg:max-w-xs"
+              className="hidden min-h-11 max-w-56 items-center gap-1.5 rounded-full bg-brand-soft px-3 text-sm font-semibold text-brand-strong sm:inline-flex lg:hidden xl:inline-flex"
             >
               <Icon name="mapPin" className="size-4 shrink-0" />
               <span className="truncate">{m.nav.atSchool(school.name)}</span>
