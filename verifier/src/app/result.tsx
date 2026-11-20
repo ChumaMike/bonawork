@@ -3,8 +3,10 @@
 import { useEffect, useRef, type ReactNode } from "react";
 import {
   formatRecordedAt,
+  matchOutcomeWords,
   plainAnswer,
   SAMPLE_ANSWER,
+  stepName,
   type PlainAnswer,
   type Tone,
 } from "../lib/plain";
@@ -55,6 +57,7 @@ const TONE_BADGE: Record<Tone, string> = {
 
 const OVERALL_ICON: Record<Overall, IconName> = {
   VERIFIED: "check",
+  RECORDED: "check",
   MISMATCH: "cross",
   NOT_FOUND: "search",
   REJECTED: "noEntry",
@@ -150,6 +153,51 @@ export function ResultView({
         </dl>
       ) : null}
 
+      {/*
+        Recorded, not compared: say exactly what was read from the blockchain.
+        The contract and the fingerprint are shown here, not only under
+        Technical details, because they are the whole of what this answer rests on.
+      */}
+      {outcome?.kind === "result" && result?.overall === "RECORDED" && facts ? (
+        <dl className={`${CARD} mt-3 py-1`} data-testid="recorded-facts">
+          <Row name="Step">{stepName(outcome.event)}</Row>
+          {outcome.event === "MatchRecorded" && facts.matchPassed !== undefined ? (
+            <Row name="Result">{matchOutcomeWords(facts.matchPassed)}</Row>
+          ) : null}
+          {facts.eventTimestamp ? (
+            <Row name="Recorded">{formatRecordedAt(facts.eventTimestamp)}</Row>
+          ) : null}
+          {facts.blockNumber !== undefined ? (
+            <Row name="Block">{facts.blockNumber}</Row>
+          ) : null}
+          {facts.contractAddress ? (
+            <Row name="Contract" code>
+              {facts.contractAddress}
+            </Row>
+          ) : null}
+          <Row
+            name={
+              facts.contractKind === "operations" || facts.contractKind === "finance"
+                ? "Created by the Bona Chain factory"
+                : "By the Bona Chain contract"
+            }
+          >
+            {result.verifier.expectedContractAddress ||
+            result.verifier.expectedFactoryAddress ? (
+              <span className="text-good">Yes</span>
+            ) : (
+              <span className="font-medium text-muted">Not checked here</span>
+            )}
+          </Row>
+          {facts.onChainValue ? (
+            <Row name="Fingerprint on the blockchain" code>
+              {facts.onChainValue}
+            </Row>
+          ) : null}
+          <Row name="Network">{trust.network}</Row>
+        </dl>
+      ) : null}
+
       {result?.overall === "CANNOT_VERIFY" && onRetry ? (
         <button
           type="button"
@@ -179,11 +227,22 @@ export function ResultView({
   );
 }
 
-function Row({ name, children }: { name: string; children: ReactNode }) {
+function Row({
+  name,
+  code = false,
+  children,
+}: {
+  name: string;
+  /** A long code (an address, a fingerprint): its own line, set so it can wrap. */
+  code?: boolean;
+  children: ReactNode;
+}) {
   return (
     <div className="flex flex-wrap items-baseline justify-between gap-x-4 border-b border-line py-2.5 last:border-b-0">
       <dt className="text-muted">{name}</dt>
-      <dd className="font-semibold">{children}</dd>
+      <dd className={code ? "w-full font-mono text-sm break-all" : "font-semibold"}>
+        {children}
+      </dd>
     </div>
   );
 }

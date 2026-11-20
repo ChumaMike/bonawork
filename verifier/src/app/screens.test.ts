@@ -187,7 +187,7 @@ describe("opened from a link or a square code", () => {
     expect(html).toMatch(/Checking<\/span>.*A photo or file/s);
   });
 
-  it("asks for the details of a record that is not a file, when the link lacks them", () => {
+  it("checks a record that is not a file at once when the link lacks its details, and offers to paste them", () => {
     const html = draw(
       createElement(Checker, {
         trust,
@@ -195,9 +195,16 @@ describe("opened from a link or a square code", () => {
         onLeave: noop,
       }),
     );
+    // The check starts without anything from the person: no dead end.
+    expect(html).toContain("Reading Avalanche");
+    // Pasting the details is still there, as a second step under the answer.
+    expect(html).toContain("Do you hold this record?");
     expect(html).toContain("Paste the record&#x27;s details");
     expect(html).toContain("Copy document");
     expect(html).not.toContain("Choose your photo or document");
+    expect(html.indexOf("Reading Avalanche")).toBeLessThan(
+      html.indexOf("Do you hold this record?"),
+    );
   });
 
   it("starts checking at once when nothing is needed from the person", () => {
@@ -338,5 +345,177 @@ describe("the answer", () => {
     for (const html of screens) {
       expect(html).not.toMatch(/mainnet|main network|not deployed|is deployed on/i);
     }
+  });
+});
+
+describe("recorded on Avalanche: a link that carries no details", () => {
+  const FACTORY = "0x9aa7cf8a0cd0c015f01df8fdb400510d1407d6e3";
+  const FINANCE = "0x4c9b194ed628a9c5abc74767ef01e405d6d9f290";
+  const FINGERPRINT = `0x${"c7".repeat(32)}`;
+  const RELEASE_LINK = LINK.replace(".E.", ".Z.");
+
+  /** The answer for a public link: the record is there, nothing was compared. */
+  function recorded(
+    event: "ReleaseAuthorised" | "MatchRecorded" | "ReportRegistered",
+    facts: VerifyResult["facts"] = {},
+  ): Outcome {
+    const base = result("RECORDED", null);
+    return {
+      kind: "result",
+      event,
+      noun: "release authorisation",
+      receipt: { ...RECEIPT, contractAddress: FINANCE, event },
+      result: {
+        ...base,
+        facts: {
+          ...base.facts,
+          recomputedDigest: undefined,
+          eventName: event,
+          contractAddress: FINANCE,
+          contractKind: "finance",
+          onChainValue: FINGERPRINT as `0x${string}`,
+          ...facts,
+        },
+        verifier: {
+          chainId: 43113,
+          expectedContractAddress: null,
+          expectedFactoryAddress: FACTORY,
+        },
+      },
+    };
+  }
+
+  it("starts the check at once and keeps pasting as a second step", () => {
+    const html = draw(
+      createElement(Checker, {
+        trust,
+        arrived: arrivedWith(RELEASE_LINK),
+        onLeave: noop,
+      }),
+    );
+    expect(html).toContain("Check this record");
+    expect(html).toContain("Reading Avalanche");
+    // The person is not asked for anything before the answer.
+    expect(html).toContain("Do you hold this record?");
+    expect(html.indexOf("Reading Avalanche")).toBeLessThan(
+      html.indexOf("Do you hold this record?"),
+    );
+    expect(html).toContain("Paste the record&#x27;s details");
+    // No text box is open: nothing has to be typed to get the answer.
+    expect(html).not.toMatch(/<textarea/);
+    expect(html).not.toContain(">Verified<");
+    expect(words(html)).not.toMatch(TECHNICAL);
+  });
+
+  it("runs the full check, not the recorded one, when the link carries the details", () => {
+    const document = {
+      type: "release_decision",
+      releaseId: "4fb05162-7384-4e9f-a0a1-b2c3d4e5f607",
+      workOrderId: "0b7c1d2e-3f40-4a5b-8c6d-7e8f90a1b2c3",
+      reportId: "123e4567-e89b-42d3-a456-426614174000",
+      matchCommitment: `0x${"b1".repeat(32)}`,
+      reviewCommitment: `0x${"b2".repeat(32)}`,
+      decision: "authorised",
+      createdAt: "2026-11-20T08:00:00.000Z",
+      salt: `0x${"5a".repeat(32)}`,
+    };
+    const encoded = Buffer.from(JSON.stringify(document), "utf8").toString("base64url");
+    const html = draw(
+      createElement(Checker, {
+        trust,
+        arrived: arrivedWith(`${RELEASE_LINK}.${encoded}`),
+        onLeave: noop,
+      }),
+    );
+    expect(html).toContain("Reading Avalanche");
+    expect(html).toContain("The record’s details are here");
+    expect(html).not.toContain("Do you hold this record?");
+    expect(html).not.toContain("Paste the record&#x27;s details");
+  });
+
+  it("is one plain answer that says exactly what was checked", () => {
+    const html = draw(
+      createElement(ResultView, { outcome: recorded("ReleaseAuthorised"), trust }),
+    );
+    const seen = closed(html);
+    expect(seen).toContain('data-outcome="RECORDED"');
+    expect(seen).toMatch(/<h2[^>]*>Recorded on Avalanche<\/h2>/);
+    expect(seen).toContain(
+      "A release authorisation was recorded on the Avalanche Fuji test network, by a contract that the Bona Chain factory created.",
+    );
+    expect(seen).toContain(
+      "This shows the step was recorded and by which contract. The details (amounts, names, documents) are private. Someone who holds the record can paste it here to check that it matches this fingerprint.",
+    );
+    // The step, when, where, by which contract, and the fingerprint from the event itself.
+    expect(seen).toMatch(/Step<\/dt>.*Release authorisation/s);
+    expect(seen).toMatch(/Recorded<\/dt>.*18 Nov 2026/s);
+    expect(seen).toMatch(/Block<\/dt>.*48123456/s);
+    expect(seen).toMatch(new RegExp(`Contract</dt>.*${FINANCE}`, "s"));
+    expect(seen).toMatch(/Created by the Bona Chain factory<\/dt>.*Yes/s);
+    expect(seen).toMatch(
+      new RegExp(`Fingerprint on the blockchain</dt>.*${FINGERPRINT}`, "s"),
+    );
+    expect(seen).toMatch(/Network<\/dt>.*Avalanche Fuji test network/s);
+    expect(seen).toContain("See it on Snowtrace");
+    expect(seen).toContain(`href="https://testnet.snowtrace.io/tx/${TX}"`);
+    // It is not a Verified answer, and it claims nothing about the content or about money.
+    expect(seen).not.toContain(">Verified<");
+    expect(seen).not.toMatch(/this exact|has not been changed/);
+    expect(words(html)).not.toMatch(/\bpaid\b|resolved|mainnet/i);
+    // The precise result code stays under Technical details.
+    expect(words(html)).not.toMatch(/RECORDED|VERIFIED|eip155|RPC|JSON/);
+    expect(html.slice(html.indexOf("<details"))).toContain("RECORDED");
+  });
+
+  it("says whether the rules passed or blocked the invoice for a match", () => {
+    const blocked = closed(
+      draw(
+        createElement(ResultView, {
+          outcome: recorded("MatchRecorded", { matchPassed: false }),
+          trust,
+        }),
+      ),
+    );
+    expect(blocked).toMatch(/Step<\/dt>.*Three-way match result/s);
+    expect(blocked).toMatch(/Result<\/dt>.*The rules blocked this invoice/s);
+    expect(blocked).toContain("The rules blocked this invoice.");
+
+    const passed = closed(
+      draw(
+        createElement(ResultView, {
+          outcome: recorded("MatchRecorded", { matchPassed: true }),
+          trust,
+        }),
+      ),
+    );
+    expect(passed).toMatch(/Result<\/dt>.*The rules passed this invoice/s);
+  });
+
+  it("does not say the contract was checked when this site pins none", () => {
+    const outcome = recorded("ReportRegistered", { contractKind: undefined });
+    if (outcome.kind !== "result") throw new Error("not a result");
+    outcome.result.verifier = { chainId: 43113, expectedContractAddress: null };
+    const seen = closed(
+      draw(createElement(ResultView, { outcome, trust: { ...trust, contract: null } })),
+    );
+    expect(seen).toContain("Recorded on Avalanche");
+    expect(seen).toMatch(/By the Bona Chain contract<\/dt>.*Not checked here/s);
+    expect(seen).toContain("does not show that it is a Bona Chain record");
+  });
+
+  it("shows a rejection, never Recorded, for a contract the factory did not create", () => {
+    const outcome = recorded("ReleaseAuthorised");
+    if (outcome.kind !== "result") throw new Error("not a result");
+    outcome.result = {
+      ...result("REJECTED", "contract"),
+      facts: { contractAddress: FINANCE, eventName: "ReleaseAuthorised" },
+      verifier: outcome.result.verifier,
+    };
+    const seen = closed(draw(createElement(ResultView, { outcome, trust })));
+    expect(seen).toContain('data-outcome="REJECTED"');
+    expect(seen).toContain(">Not a Bona Chain record</h2>");
+    expect(seen).toContain("This contract was not created by the Bona Chain factory.");
+    expect(seen).not.toContain("Recorded on Avalanche");
+    expect(seen).not.toContain("recorded-facts");
   });
 });

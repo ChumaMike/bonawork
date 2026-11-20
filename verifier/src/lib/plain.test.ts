@@ -228,9 +228,10 @@ describe("names and labels", () => {
     expect(nounFor("ReportRegistered", "image/png")).toBe("report");
   });
 
-  it("explains all five results in the guide", () => {
+  it("explains all six results in the guide", () => {
     expect(OUTCOME_GUIDE.map((row) => row.outcome)).toEqual([
       "VERIFIED",
+      "RECORDED",
       "MISMATCH",
       "NOT_FOUND",
       "REJECTED",

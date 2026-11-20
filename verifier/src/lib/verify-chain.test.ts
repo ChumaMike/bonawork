@@ -710,11 +710,13 @@ describe("the procurement trail", () => {
       const chain = () => withFactory(reader(txReceipt([log], FINANCE)));
       const receipt = receiptFor(event, FINANCE);
 
+      // It holds a fingerprint that nothing was compared with: recorded, not verified.
       const present = await verify(
         { receipt, source: { kind: "none" }, reportId: REPORT_UUID },
         chain(),
       );
-      expect(present.overall).toBe("VERIFIED");
+      expect(present.overall).toBe("RECORDED");
+      expect(present.facts.onChainValue).toBe(commitment);
 
       const same = await verify(
         { receipt, source: { kind: "digest", digest: commitment } },
@@ -908,10 +910,6 @@ describe("names, links and records for the procurement trail", () => {
     expect(present("WorkOrderAcknowledged", REPORT_ID).body).toBe(
       "Avalanche has a record that the supplier acknowledged the work order for this report.",
     );
-    expect(present("PaymentDisputeOpened").body).toBe(
-      "Avalanche has a record that a payment dispute was opened on the work order in this transaction.",
-    );
-    expect(present("PaymentDisputeOpened").note).toMatch(/no release can be authorised/);
     // The school's acknowledgement keeps its own words.
     expect(present("ReportAcknowledged", REPORT_ID).body).toBe(
       "Avalanche has a record that the school acknowledged this report.",
@@ -921,6 +919,9 @@ describe("names, links and records for the procurement trail", () => {
     );
     expect(nothingToCompare("WorkOrderAcknowledged")).toMatch(
       /^This receipt is for a supplier's acknowledgement of a work order\./,
+    );
+    expect(nothingToCompare("PaymentDisputeOpened")).toMatch(
+      /^This receipt is for a payment dispute being opened\./,
     );
   });
 
