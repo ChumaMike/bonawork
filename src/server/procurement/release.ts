@@ -42,6 +42,37 @@ export class ReleaseBlockedError extends HttpError {
   }
 }
 
+/** What the ledger said when asked whether a release would be accepted now. */
+export interface ReleaseProbeResult {
+  allowed: boolean;
+  revert: string | null;
+  source: "live" | "simulated" | "off";
+}
+
+/**
+ * `POST /api/issues/:id/release/probe`: asks the ledger whether it would accept
+ * a release for this case now. On Fuji the Finance contract answers from a
+ * simulated call: nothing is sent and nothing is written. The app's own gate
+ * is not consulted here, so the answer is the contract's, not ours.
+ */
+export async function probeRelease(
+  deps: ProcurementDeps,
+  input: ProcurementInput,
+): Promise<ReleaseProbeResult> {
+  const { actor } = input;
+  requireCan(actor, "release:authorise");
+  const report = await requireReport(deps.db, input.reportIdOrReference);
+  const state = await requireOrderState(deps.db, report);
+  requireOrderAccess(actor, state.order);
+  const source = deps.ledger.info().finance;
+  if (source === "off") return { allowed: false, revert: null, source };
+  const answer = await deps.ledger.probeRelease({
+    institutionId: state.order.institutionId,
+    workOrderId: state.order.id,
+  });
+  return { ...answer, source };
+}
+
 /** `POST /api/issues/:id/release`. */
 export async function authoriseRelease(
   deps: ProcurementDeps,

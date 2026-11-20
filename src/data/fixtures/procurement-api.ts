@@ -64,6 +64,7 @@ export type ProcurementMethods = Pick<
   | "recordGoodsReceipt"
   | "explainMismatch"
   | "authoriseRelease"
+  | "probeRelease"
 >;
 
 export function createProcurementMethods(ctx: ProcurementContext): ProcurementMethods {
@@ -384,6 +385,32 @@ export function createProcurementMethods(ctx: ProcurementContext): ProcurementMe
         .find((candidate) => candidate?.id === matchId);
       if (!match) throw new ApiError("not_found", "We could not find that result.");
       return { text: ruleExplanation(match.reasons), source: "rules" };
+    },
+
+    async probeRelease(issueId) {
+      await ctx.wait();
+      const user = requirePermission("release:authorise");
+      const issue = issueOf(issueId);
+      const record = caseOf(issue, user);
+      if (record.release) {
+        return { allowed: false, revert: "InvalidOrderState", source: "simulated" };
+      }
+      const blocked = new Set(
+        gateFor(record, issue, user.id).blockers.map((b) => b.code),
+      );
+      // The same order of checks as InstitutionFinance.authoriseRelease.
+      const revert = blocked.has("same_person")
+        ? "SeparationOfDuties"
+        : blocked.has("order_not_acknowledged")
+          ? "InvalidOrderState"
+          : blocked.has("no_matching_invoice")
+            ? record.invoices.length === 0
+              ? "NoInvoice"
+              : "MatchNotPassing"
+            : blocked.has("repair_not_verified")
+              ? "RepairNotVerified"
+              : null;
+      return { allowed: revert === null, revert, source: "simulated" };
     },
 
     async authoriseRelease(issueId) {

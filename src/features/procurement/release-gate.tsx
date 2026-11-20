@@ -8,7 +8,8 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/components/ui/cn";
 import { Dialog } from "@/components/ui/dialog";
 import { Icon, type IconName } from "@/components/ui/icon";
-import type { IssueStatus, MoneyTrail } from "@/data/types";
+import { getApi } from "@/data/api";
+import type { IssueStatus, MoneyTrail, ReleaseProbe } from "@/data/types";
 import { useMessages, type Messages } from "@/i18n";
 import { trailDateTime } from "./trail-rows";
 
@@ -103,6 +104,23 @@ export function ReleaseGate({
   const [busy, setBusy] = useState(false);
   const [announce, setAnnounce] = useState("");
   const firstBlocking = useRef<HTMLLIElement>(null);
+  const [probing, setProbing] = useState(false);
+  const [probe, setProbe] = useState<ReleaseProbe | null>(null);
+  const [probeFailed, setProbeFailed] = useState(false);
+
+  /** Ask the ledger itself whether it would accept a release. Never writes. */
+  async function askContract() {
+    setProbing(true);
+    setProbeFailed(false);
+    try {
+      setProbe(await getApi().probeRelease(trail.issueId));
+    } catch {
+      setProbe(null);
+      setProbeFailed(true);
+    } finally {
+      setProbing(false);
+    }
+  }
 
   const released = trail.releaseAuthorisedAt;
   const state = released ? "authorised" : trail.gate.open ? "open" : "locked";
@@ -251,6 +269,49 @@ export function ReleaseGate({
           <p aria-live="polite" className="sr-only">
             {announce}
           </p>
+          {onAuthorise ? (
+            <div className="flex flex-col gap-2 border-t border-line pt-3">
+              <Button
+                variant="secondary"
+                loading={probing}
+                onClick={() => void askContract()}
+                aria-describedby="release-probe-help"
+                data-testid="release-probe"
+                className="w-full sm:w-auto sm:self-start"
+              >
+                <Icon name="cube" />
+                {g.probe.action}
+              </Button>
+              <p id="release-probe-help" className="text-sm text-muted">
+                {g.probe.help}
+              </p>
+              <div aria-live="polite" data-testid="release-probe-result">
+                {probe && probe.source === "off" ? (
+                  <Alert tone="info" title={g.probe.off} />
+                ) : null}
+                {probe && probe.source !== "off" ? (
+                  <Alert
+                    tone={probe.allowed ? "info" : "danger"}
+                    title={probe.allowed ? g.probe.allowedTitle : g.probe.refusedTitle}
+                  >
+                    {probe.revert ? (
+                      <p>
+                        <span className="font-semibold">{g.probe.reason}: </span>
+                        <code className="font-mono break-words">{probe.revert}</code>
+                        {g.probe.reasons[probe.revert]
+                          ? `. ${g.probe.reasons[probe.revert]}`
+                          : null}
+                      </p>
+                    ) : null}
+                    <p className="mt-1 text-sm">
+                      {probe.source === "live" ? g.probe.live : g.probe.simulated}
+                    </p>
+                  </Alert>
+                ) : null}
+                {probeFailed ? <Alert tone="danger" title={g.probe.failed} /> : null}
+              </div>
+            </div>
+          ) : null}
         </>
       ) : null}
 

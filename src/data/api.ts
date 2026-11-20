@@ -22,6 +22,7 @@ import type {
   IssueSummary,
   MismatchExplanation,
   MoneyTrail,
+  ReleaseProbe,
   RecordGoodsReceiptInput,
   RecordProof,
   School,
@@ -132,6 +133,11 @@ export interface BonaApi {
    * release gate is shut; `getMoneyTrail(issueId).gate.blockers` says why.
    */
   authoriseRelease(issueId: string): Promise<MoneyTrail>;
+  /**
+   * Payment approver. Asks the ledger whether it would accept a release for
+   * this case right now, and with which refusal if not. Never writes.
+   */
+  probeRelease(issueId: string): Promise<ReleaseProbe>;
 
   /* Verification */
   /**

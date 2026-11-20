@@ -133,3 +133,42 @@ describe("what is blocking payment?", () => {
     expect(answer.text).not.toBe((await ask(question, SIGNED_OUT)).text);
   });
 });
+
+describe("asking the ledger about a release", () => {
+  const probe = async (id: string, headers: Headers) => {
+    const { POST } = await import("@/app/api/issues/[id]/release/probe/route");
+    return POST(
+      jsonRequest("POST", `/api/issues/${id}/release/probe`, undefined, headers),
+      params({ id }),
+    );
+  };
+
+  it("answers with the ledger's own refusal while the repair is unverified", async () => {
+    const response = await probe(PROCUREMENT_CASE_A_REFERENCE, approver);
+    expect(response.status).toBe(200);
+    const answer = await body<{
+      allowed: boolean;
+      revert: string | null;
+      source: string;
+    }>(response);
+    // Case A has no invoice yet, so the ledger refuses before it reaches the repair.
+    expect(answer.allowed).toBe(false);
+    expect(answer.revert).toBe("NoInvoice");
+    expect(answer.source).toBe("simulated");
+  });
+
+  it("is only for the payment approver, and writes nothing", async () => {
+    expect((await probe(PROCUREMENT_CASE_A_REFERENCE, SIGNED_OUT)).status).toBe(401);
+    expect((await probe(PROCUREMENT_CASE_A_REFERENCE, supplier)).status).toBe(403);
+    expect((await probe(PROCUREMENT_CASE_A_REFERENCE, reporter)).status).toBe(403);
+    const before = await body<MoneyTrail>(
+      await api.trail(PROCUREMENT_CASE_A_REFERENCE, approver),
+    );
+    await probe(PROCUREMENT_CASE_A_REFERENCE, approver);
+    const after = await body<MoneyTrail>(
+      await api.trail(PROCUREMENT_CASE_A_REFERENCE, approver),
+    );
+    expect(after.steps.length).toBe(before.steps.length);
+    expect(after.releaseAuthorisedAt).toBeNull();
+  });
+});

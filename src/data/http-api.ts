@@ -20,6 +20,7 @@ import type {
   IssueSummary,
   MismatchExplanation,
   MoneyTrail,
+  ReleaseProbe,
   RecordProof,
   ReleaseBlocker,
   School,
@@ -283,6 +284,8 @@ export function createHttpApi(baseUrl = ""): BonaApi {
       ),
     authoriseRelease: (issueId) =>
       call<MoneyTrail>(issuePath(issueId, "/release"), { method: "POST" }),
+    probeRelease: (issueId) =>
+      call<ReleaseProbe>(issuePath(issueId, "/release/probe"), { method: "POST" }),
 
     /* Evidence files (private; same-origin session cookie) */
     evidenceFileUrl: (evidenceId) =>

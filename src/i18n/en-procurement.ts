@@ -282,6 +282,29 @@ export const procurement = {
     aiNote:
       "Bona AI explains the release gate. It decides nothing and authorises nothing.",
     aiFailed: "Bona AI could not answer just now. The checklist above is what counts.",
+    probe: {
+      action: "Ask the Avalanche contract",
+      help: "This asks the smart contract whether it would accept a release right now. Nothing is written.",
+      refusedTitle: "The contract refused",
+      allowedTitle: "The contract would accept a release now",
+      reason: "The contract's answer",
+      live: "Answered by this institution's Finance contract on the Avalanche Fuji test network. Nothing was written.",
+      simulated:
+        "Sample data: this answer came from a built-in copy of the contract's rules, not from Avalanche.",
+      off: "No ledger is connected here, so the contract could not be asked.",
+      failed: "The contract could not be reached just now. Try again.",
+      reasons: {
+        RepairNotVerified: "The repair has not been independently verified.",
+        MatchNotPassing: "No invoice has passed the rules.",
+        NoInvoice: "There is no invoice yet.",
+        NoGoodsReceipt: "No delivery is recorded.",
+        InvalidOrderState: "The order is not in a state that allows a release.",
+        SeparationOfDuties: "This account already acted on this order in another role.",
+        DisputeOpen: "A dispute is open on this order.",
+        Unauthorized: "This account is not the payment approver for this institution.",
+        WorkOrderNotFound: "The contract has no record of this work order.",
+      } as Record<string, string>,
+    },
     state: { done: "Done:", problem: "Problem:", waiting: "Waiting:" },
     checklist: "What the release needs",
     acknowledged: {

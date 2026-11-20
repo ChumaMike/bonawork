@@ -339,6 +339,19 @@ export interface VerificationProbe {
   chainRole: string;
 }
 
+/**
+ * Result of asking the ledger whether a release would be accepted now. Never
+ * writes. `source` says who answered: `live` is the Finance contract on
+ * Avalanche Fuji, `simulated` is the built-in copy of its rules (sample data),
+ * `off` means no ledger was asked.
+ */
+export interface ReleaseProbe {
+  allowed: boolean;
+  /** The contract error name when refused, e.g. `RepairNotVerified`. */
+  revert: string | null;
+  source: "live" | "simulated" | "off";
+}
+
 /* ------------------------------ Verification ------------------------------ */
 
 export interface DigestMatch {
