@@ -28,17 +28,33 @@ const EVENT_STYLE: Record<TimelineEventType, { icon: IconName; tone: string }> =
   release_authorised: { icon: "lock", tone: "bg-brand-soft text-brand-strong" },
 };
 
-/** Entries anchored as a salted commitment document, which the verifier needs too. */
+/**
+ * Entries anchored as a salted commitment document, which the verifier needs
+ * too. The procurement steps are anchored the same way, but they are not in
+ * this list: their documents hold amounts and names, so this public timeline
+ * never offers one. People who may read them get them from the staff trail.
+ */
 const HAS_DOCUMENT = new Set<TimelineEventType>([
   "reported",
   "interim_protection",
   "repair_claimed",
   "verified",
   "disputed",
+]);
+
+/**
+ * The procurement steps. Anyone may see that a step happened, which role took
+ * it, when, and its proof on the ledger. Nothing else is shown for them here:
+ * no note, no document, no person's name and no amount.
+ */
+const FINANCE_STEPS = new Set<TimelineEventType>([
   "work_order_approved",
+  "work_order_acknowledged",
   "invoice_submitted",
   "goods_receipt_recorded",
   "match_recorded",
+  "payment_dispute_opened",
+  "payment_dispute_closed",
   "release_authorised",
 ]);
 
@@ -132,8 +148,13 @@ export function Timeline({
             </li>
           );
         }
+        const finance = FINANCE_STEPS.has(event.type);
         return (
-          <li key={event.id} className="flex gap-3">
+          <li
+            key={event.id}
+            data-testid={finance ? "timeline-finance" : undefined}
+            className="flex gap-3"
+          >
             <div className="flex flex-col items-center">
               <span
                 className={cn(
@@ -148,12 +169,15 @@ export function Timeline({
             <div className="min-w-0 flex-1 pb-6">
               <p className="font-semibold">{m.event[event.type]}</p>
               <p className="text-sm text-muted">
-                {m.actor[event.actor]} ·{" "}
+                {event.actor === "system" && finance
+                  ? m.procurement.rules
+                  : m.actor[event.actor]}{" "}
+                ·{" "}
                 <time dateTime={event.occurredAt} title={formatDate(event.occurredAt)}>
                   {timeAgo(event.occurredAt, m)}
                 </time>
               </p>
-              <p className="mt-1.5">{event.note}</p>
+              {finance ? null : <p className="mt-1.5">{event.note}</p>}
               <div className="mt-2 flex flex-wrap items-center gap-x-1 gap-y-1">
                 <LedgerChip record={event.ledger} />
                 <ProofButton

@@ -18,13 +18,14 @@ import { Container, LoadError, Loading, NotFound, Notice } from "@/components/ui
 import { StatusPill } from "@/components/ui/status-pill";
 import { TabPanel, Tabs } from "@/components/ui/tabs";
 import { getApi } from "@/data/api";
-import { useAudience, workspaceFor } from "@/data/audience";
+import { canReadProcurement, useAudience, workspaceFor } from "@/data/audience";
 import type { IndependentReview } from "@/data/types";
 import { useQuery } from "@/data/use-query";
 import { useMessages, type Messages } from "@/i18n";
 import { timeAgo } from "@/lib/format";
+import { PublicTrail, StaffTrail } from "../procurement/money-trail";
 
-type TabId = "summary" | "timeline" | "proof";
+type TabId = "summary" | "timeline" | "trail" | "proof";
 const TABS = "issue";
 
 function ReviewNotice({ review, m }: { review: IndependentReview; m: Messages }) {
@@ -62,6 +63,13 @@ export function IssueScreen() {
   const audience = useAudience();
   const staffRole = audience.community ? null : audience.role;
   const workspace = workspaceFor(staffRole);
+  // The staff version of the trail, for the roles that may read it. Everyone
+  // else never asks for it: they get the public trail that came with the issue.
+  const reader = audience.status === "ready" && canReadProcurement(audience.role);
+  const moneyTrail = useQuery(
+    `issue-trail:${issueId}:${reader ? audience.role : "public"}`,
+    () => (reader ? getApi().getMoneyTrail(issueId) : Promise.resolve(null)),
+  );
 
   if (query.error) {
     return (
@@ -141,6 +149,10 @@ export function IssueScreen() {
           tabs={[
             { id: "summary", label: m.issue.tabs.summary },
             { id: "timeline", label: m.issue.tabs.timeline },
+            // A declined report goes no further, so it has no trail to follow.
+            ...(issue.status === "declined"
+              ? []
+              : [{ id: "trail" as const, label: m.procurement.trail.tab }]),
             { id: "proof", label: m.issue.tabs.proof, count: issue.evidence.length },
           ]}
         />
@@ -248,6 +260,23 @@ export function IssueScreen() {
             evidence={issue.evidence}
             onSeeEvidence={seeEvidence}
           />
+        </TabPanel>
+
+        <TabPanel id="trail" idPrefix={TABS} active={tab === "trail"}>
+          {moneyTrail.data ? (
+            <StaffTrail
+              trail={moneyTrail.data}
+              timeline={issue.timeline}
+              status={issue.status}
+            />
+          ) : (
+            <PublicTrail
+              issueId={issue.id}
+              steps={issue.publicTrail ?? []}
+              timeline={issue.timeline}
+              status={issue.status}
+            />
+          )}
         </TabPanel>
 
         <TabPanel id="proof" idPrefix={TABS} active={tab === "proof"}>

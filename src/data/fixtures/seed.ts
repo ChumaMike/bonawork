@@ -14,6 +14,7 @@ import type {
   IssueCategory,
   IssueStatus,
   LedgerRecord,
+  PublicTrailStep,
   School,
   Session,
   TimelineEvent,
@@ -96,7 +97,60 @@ interface SeedEvent {
   actor: ActorRole;
   daysAgo: number;
   note: string;
+  /** Only on a rule-engine step: which way it decided. */
+  outcome?: PublicTrailStep["outcome"];
 }
+
+type FinanceEventType = PublicTrailStep["type"];
+
+/**
+ * The sentence written on each procurement step. These are constants written
+ * by code: no amount, no supplier name and no person's name ever appears in
+ * one, because the public timeline carries them.
+ */
+export const FINANCE_NOTE: Record<FinanceEventType, string> = {
+  work_order_approved: "A programme buyer approved a work order for this repair.",
+  work_order_acknowledged: "The supplier acknowledged the work order.",
+  invoice_submitted: "The supplier submitted an invoice for the work.",
+  goods_receipt_recorded: "A receiving officer recorded what was delivered.",
+  match_recorded: "The order, the invoice and the delivery were compared by rule.",
+  payment_dispute_opened: "A payment dispute was opened on this order.",
+  payment_dispute_closed: "The payment dispute on this order was closed.",
+  release_authorised:
+    "A payment approver authorised the release instruction. No money moves on this platform.",
+};
+
+/** True for the procurement steps of a timeline. */
+export function isFinanceEvent(type: TimelineEventType): type is FinanceEventType {
+  return type in FINANCE_NOTE;
+}
+
+/**
+ * The public view of one procurement step: role, time and proof. A rule-engine
+ * step also says which way it decided. Nothing else. Null for any other event.
+ */
+export function publicStepOf(
+  event: TimelineEvent,
+  outcome?: PublicTrailStep["outcome"],
+): PublicTrailStep | null {
+  if (!isFinanceEvent(event.type)) return null;
+  return {
+    eventId: event.id,
+    type: event.type,
+    actor: event.actor as PublicTrailStep["actor"],
+    occurredAt: event.occurredAt,
+    note: FINANCE_NOTE[event.type],
+    ...(event.type === "match_recorded" && outcome ? { outcome } : {}),
+    ledger: event.ledger,
+  };
+}
+
+const finance = (
+  type: FinanceEventType,
+  actor: PublicTrailStep["actor"],
+  daysAgo: number,
+  outcome?: PublicTrailStep["outcome"],
+): SeedEvent => ({ type, actor, daysAgo, note: FINANCE_NOTE[type], outcome });
 
 interface SeedEvidence {
   purpose: EvidencePurpose;
@@ -468,7 +522,120 @@ const SEED_ISSUES: SeedIssue[] = [
     ],
     evidence: [{ purpose: "problem", addedBy: "community", daysAgo: 6 }],
   },
+  /*
+   * The two procurement cases. Their orders, invoices and receipts are in
+   * `procurement-seed.ts`; the steps below are what the public timeline shows.
+   */
+  {
+    // Case A: order approved, acknowledged and delivered. Ready for an invoice.
+    number: 142,
+    schoolId: "thuto-lesedi-primary",
+    category: "safety",
+    title: "Classroom doors in Grade 5 do not lock",
+    location: "Grade 5 corridor, first floor",
+    description:
+      "Three classroom doors cannot be locked and two slam shut in the wind. Bags have gone missing during break and a child had fingers caught in a door.",
+    status: "repair_claimed",
+    endorsements: 18,
+    authority: districtLevel("Sample District A"),
+    review: { state: "awaiting", daysAgo: 2 },
+    events: [
+      {
+        type: "reported",
+        actor: "community",
+        daysAgo: 21,
+        note: "Reported by a caregiver with one photo.",
+      },
+      {
+        type: "assessment_started",
+        actor: "school_admin",
+        daysAgo: 19,
+        note: "The caretaker checked every door on the corridor. Three locks and two closers must be replaced.",
+      },
+      finance("work_order_approved", "buyer", 16),
+      finance("work_order_acknowledged", "supplier", 15),
+      {
+        type: "progress_recorded",
+        actor: "school_admin",
+        daysAgo: 6,
+        note: "The supplier is booked to fit the new locks and closers this week.",
+      },
+      finance("goods_receipt_recorded", "receiving_officer", 4),
+      {
+        type: "repair_claimed",
+        actor: "school_admin",
+        daysAgo: 2,
+        note: "The school says three new locks and two door closers were fitted. An independent reviewer has been asked to check.",
+      },
+    ],
+    evidence: [
+      { purpose: "problem", addedBy: "community", daysAgo: 21 },
+      { purpose: "repair_claim", addedBy: "school_admin", daysAgo: 2 },
+    ],
+  },
+  {
+    // Case B: release authorised, with a blocked first invoice in its history.
+    number: 143,
+    schoolId: "thuto-lesedi-primary",
+    category: "electricity",
+    title: "Ceiling lights in the school hall do not work",
+    location: "School hall",
+    description:
+      "Most of the ceiling lights in the hall are dead. Assemblies and exams in the hall happen in poor light on cloudy days.",
+    status: "independently_verified",
+    endorsements: 15,
+    authority: districtLevel("Sample District A"),
+    review: {
+      state: "verified",
+      daysAgo: 9,
+      note: "I counted twelve working light fittings in the hall and tested both breakers.",
+    },
+    simulatedLedger: true,
+    events: [
+      {
+        type: "reported",
+        actor: "community",
+        daysAgo: 34,
+        note: "Reported by a caregiver with one photo.",
+      },
+      {
+        type: "assessment_started",
+        actor: "school_admin",
+        daysAgo: 32,
+        note: "The school confirmed that twelve light fittings and two breakers must be replaced.",
+      },
+      finance("work_order_approved", "buyer", 30),
+      finance("work_order_acknowledged", "supplier", 29),
+      finance("goods_receipt_recorded", "receiving_officer", 21),
+      finance("invoice_submitted", "supplier", 20),
+      finance("match_recorded", "system", 19.99, "blocked"),
+      finance("invoice_submitted", "supplier", 18),
+      finance("match_recorded", "system", 17.99, "matched"),
+      {
+        type: "repair_claimed",
+        actor: "school_admin",
+        daysAgo: 12,
+        note: "The school says the hall lights were replaced.",
+      },
+      {
+        type: "verified",
+        actor: "reviewer",
+        daysAgo: 9,
+        note: "I counted twelve working light fittings in the hall and tested both breakers.",
+      },
+      finance("release_authorised", "payment_approver", 8),
+    ],
+    evidence: [
+      { purpose: "problem", addedBy: "community", daysAgo: 34 },
+      { purpose: "repair_claim", addedBy: "school_admin", daysAgo: 12 },
+      { purpose: "review", addedBy: "reviewer", daysAgo: 9 },
+    ],
+  },
 ];
+
+/** The fixture ids of the two procurement cases. */
+export const CASE_A_ISSUE_ID = "issue-142";
+export const CASE_B_ISSUE_ID = "issue-143";
 
 /**
  * Sample sign-in accounts. They exist only in the fixture layer; the real
@@ -522,6 +689,55 @@ export const SAMPLE_ACCOUNTS: { email: string; session: Session }[] = [
         institutionId: null,
       },
       permissions: ["report:create", "report:endorse"],
+    },
+  },
+  /* The four procurement roles. Each is a named, invented person. */
+  {
+    email: "buyer@programme.demo",
+    session: {
+      user: {
+        id: "user-buyer",
+        displayName: "Ms Lerato Dube",
+        role: "buyer",
+        institutionId: null,
+      },
+      permissions: ["order:approve", "procurement:read"],
+    },
+  },
+  {
+    email: "supplier@khumalo.demo",
+    session: {
+      user: {
+        id: "user-supplier",
+        displayName: "Mr Sipho Khumalo",
+        role: "supplier",
+        institutionId: null,
+      },
+      permissions: ["order:acknowledge", "invoice:submit", "procurement:read"],
+    },
+  },
+  {
+    email: "receiving@thuto-lesedi.demo",
+    session: {
+      user: {
+        id: "user-receiver",
+        displayName: "Ms Nomsa Radebe",
+        role: "receiving_officer",
+        institutionId: null,
+      },
+      permissions: ["receipt:record", "procurement:read"],
+    },
+  },
+  {
+    email: "payments@district.demo",
+    session: {
+      user: {
+        id: "user-approver",
+        displayName: "Mr Thabo Mokoena",
+        role: "payment_approver",
+        institutionId: null,
+      },
+      permissions: ["release:authorise", "procurement:read"],
     },
   },
 ];
@@ -599,6 +815,9 @@ export function buildSampleIssues(now: number = Date.now()): Issue[] {
         : null,
       timeline,
       evidence,
+      publicTrail: timeline.flatMap(
+        (event, index) => publicStepOf(event, seed.events[index].outcome) ?? [],
+      ),
     };
   });
 }
