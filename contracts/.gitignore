@@ -13,6 +13,7 @@ pnpm-lock.yaml
 
 # Local (simulated network) deployments are throwaway; Fuji deployments are committed.
 deployments/31337.json
+deployments/bonachain.31337.json
 
 # pnpm writes this when installing standalone; contracts must stay a member of the root workspace.
 pnpm-workspace.yaml

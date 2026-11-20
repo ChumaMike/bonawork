@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "On-chain contracts for BonaBlock (BonaRegistry on Avalanche Fuji).",
+  "description": "On-chain contracts for BonaBlock and Bona Chain (Avalanche Fuji).",
   "scripts": {
     "build": "hardhat compile",
     "test": "hardhat test",
@@ -18,7 +18,17 @@
     "anchor-check:fuji": "hardhat run scripts/anchor-check.ts --network fuji",
     "export:abi": "hardhat run scripts/export-abi.ts",
     "gas:report": "hardhat run scripts/gas-report.ts",
-    "verify:fuji": "hardhat verify --network fuji 0xa8BB5Dc1c031d850AB32768Ed020e9aA604e1aae 0x7EF27429B03C264296eb96be49F0f7315587483F"
+    "verify:fuji": "hardhat verify --network fuji 0xa8BB5Dc1c031d850AB32768Ed020e9aA604e1aae 0x7EF27429B03C264296eb96be49F0f7315587483F",
+    "test:chain": "hardhat test test/chain/abi-exports.test.ts test/chain/factory.test.ts test/chain/operations.test.ts test/chain/finance.test.ts test/chain/scripts.test.ts test/chain/stress.test.ts",
+    "chain:abi": "hardhat compile && node scripts/chain/export-abi.mjs",
+    "chain:keys": "hardhat run scripts/chain/generate-keys.ts",
+    "chain:deploy:local": "hardhat run scripts/chain/deploy.ts",
+    "chain:deploy": "hardhat run scripts/chain/deploy.ts --network fuji",
+    "chain:setup": "hardhat run scripts/chain/setup.ts --network fuji",
+    "chain:fund": "hardhat run scripts/chain/fund.ts --network fuji",
+    "chain:export": "hardhat run scripts/chain/export.ts --network fuji",
+    "chain:dry-run": "hardhat run scripts/chain/dry-run.ts",
+    "chain:gas": "hardhat test test/chain/stress.test.ts"
   },
   "devDependencies": {
     "@nomicfoundation/hardhat-ethers": "^4.2.2",
