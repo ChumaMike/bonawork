@@ -1,0 +1,567 @@
+<title>Bona Chain Core Flow</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=Hanken+Grotesk:wght@400;600;700&display=swap">
+<style>
+  /* Layout: the app screen at phone width on the left, the case trail and a short note beside it; six numbered moments drive both. */
+  :root {
+    --canvas: #f3f1ec; --surface: #ffffff; --sunken: #eae4d8;
+    --ink: #231a13; --muted: #62584e; --line: #e0dad0; --line-strong: #8d8375;
+    --brand: #2f231a; --brand-soft: #eae4d8; --on-brand: #f6efe4;
+    --earth: #7a4b24; --earth-strong: #5c3717; --earth-soft: #f0e4d2;
+    --accent: #7a4e0c; --accent-soft: #f1e4cc;
+    --danger: #9b2f1f; --danger-soft: #f6e1dc;
+    --good: #45502e; --good-soft: #e1e5d2;
+    --assess: #35566e; --assess-soft: #dfe8ee;
+    --claimed: #5a4866; --claimed-soft: #e9e3ea;
+    --font-display: "Bricolage Grotesque", "Hanken Grotesk", ui-sans-serif, system-ui, "Segoe UI", sans-serif;
+    --font-body: "Hanken Grotesk", ui-sans-serif, system-ui, "Segoe UI", Roboto, sans-serif;
+    --font-mono: ui-monospace, "Cascadia Mono", Consolas, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --canvas: #17120e; --surface: #211a14; --sunken: #100c09;
+      --ink: #f3ece0; --muted: #c4b9a9; --line: #3a3027; --line-strong: #7d7162;
+      --brand: #e9dcc6; --brand-soft: #2e251c; --on-brand: #231a13;
+      --earth: #e0a877; --earth-strong: #efc49d; --earth-soft: #35261a;
+      --accent: #e6b566; --accent-soft: #33270f;
+      --danger: #ff9d8f; --danger-soft: #3b1b16;
+      --good: #b9c79a; --good-soft: #232b17;
+      --assess: #a3c4dc; --assess-soft: #1c2a35;
+      --claimed: #cdb9dc; --claimed-soft: #2c2334;
+      color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --canvas: #17120e; --surface: #211a14; --sunken: #100c09;
+    --ink: #f3ece0; --muted: #c4b9a9; --line: #3a3027; --line-strong: #7d7162;
+    --brand: #e9dcc6; --brand-soft: #2e251c; --on-brand: #231a13;
+    --earth: #e0a877; --earth-strong: #efc49d; --earth-soft: #35261a;
+    --accent: #e6b566; --accent-soft: #33270f;
+    --danger: #ff9d8f; --danger-soft: #3b1b16;
+    --good: #b9c79a; --good-soft: #232b17;
+    --assess: #a3c4dc; --assess-soft: #1c2a35;
+    --claimed: #cdb9dc; --claimed-soft: #2c2334;
+    color-scheme: dark;
+  }
+
+  * { box-sizing: border-box; }
+  body { background: var(--canvas); color: var(--ink); font-family: var(--font-body); font-size: 16px; line-height: 1.5; }
+  h1, h2, h3 { font-family: var(--font-display); font-weight: 700; letter-spacing: -0.02em; line-height: 1.12; margin: 0; text-wrap: balance; }
+  p { margin: 0; text-wrap: pretty; }
+  ol, ul { margin: 0; padding: 0; list-style: none; }
+  button { font: inherit; color: inherit; }
+  :focus-visible { outline: 3px solid var(--brand); outline-offset: 2px; border-radius: 6px; }
+  .vh { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+  svg.ic { width: 1.15em; height: 1.15em; flex: none; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
+
+  .wrap {
+    max-width: 1120px; margin: 0 auto; padding-block: 28px 80px;
+    padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+    display: flex; flex-direction: column; gap: 24px;
+  }
+  .intro { display: flex; flex-direction: column; gap: 8px; }
+  .intro h1 { font-size: clamp(1.7rem, 1.3rem + 1.8vw, 2.5rem); }
+  .intro p { color: var(--muted); max-width: 64ch; }
+
+  /* Moment navigation */
+  .moments { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 8px; }
+  .moments button {
+    width: 100%; height: 100%; min-height: 56px; text-align: left; cursor: pointer; background: var(--surface);
+    border: 2px solid var(--line); border-radius: 16px; padding: 8px 12px; display: flex; flex-direction: column; gap: 2px;
+  }
+  .moments .n { font-size: 0.75rem; font-weight: 700; color: var(--muted); letter-spacing: 0.06em; font-variant-numeric: tabular-nums; }
+  .moments .t { font-weight: 700; font-size: 0.92rem; line-height: 1.2; }
+  .moments button[aria-current="step"] { border-color: var(--brand); background: var(--brand); color: var(--on-brand); }
+  .moments button[aria-current="step"] .n { color: inherit; opacity: 0.8; }
+  .moments button.past { border-color: var(--line-strong); }
+  @media (max-width: 900px) { .moments { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+  @media (max-width: 480px) { .moments { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+
+  .stage { display: grid; grid-template-columns: minmax(0, 430px) minmax(0, 1fr); gap: 32px; align-items: start; }
+  @media (max-width: 900px) { .stage { grid-template-columns: minmax(0, 1fr); } }
+
+  /* The app screen */
+  .screen-col { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+  .device { border: 1px solid var(--line-strong); border-radius: 28px; overflow: hidden; background: var(--canvas); }
+  .appbar { background: var(--surface); border-bottom: 1px solid var(--line); }
+  .band { display: block; width: 100%; height: 8px; color: var(--earth); }
+  .appbar-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 16px; }
+  .wordmark { font-family: var(--font-display); font-weight: 700; font-size: 1.2rem; letter-spacing: -0.025em; white-space: nowrap; }
+  .wordmark b { color: var(--earth); font-weight: 700; }
+  .who { display: flex; align-items: center; gap: 8px; min-width: 0; font-size: 0.82rem; line-height: 1.2; text-align: right; }
+  .who span { min-width: 0; }
+  .who strong { display: block; }
+  .avatar { width: 32px; height: 32px; border-radius: 50%; background: var(--earth); color: var(--on-brand); display: grid; place-items: center; font-weight: 700; font-size: 0.8rem; flex: none; }
+  .app { padding: 20px 16px 20px; display: flex; flex-direction: column; gap: 16px; }
+  .app h1 { font-size: 1.6rem; }
+  .app h1:focus { outline: none; }
+  .sub { color: var(--muted); }
+  .card { background: var(--surface); border: 1px solid var(--line); border-radius: 20px; padding: 18px 16px; display: flex; flex-direction: column; gap: 14px; }
+  .eyebrow { font-size: 0.75rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+  .case-ref { font-size: 0.85rem; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .case-title { font-size: 1.15rem; }
+  .pills { display: flex; flex-wrap: wrap; gap: 6px; }
+  .pill { display: inline-flex; align-items: center; gap: 5px; border-radius: 999px; padding: 3px 10px; font-size: 0.8rem; font-weight: 700; }
+  .pill.assess { background: var(--assess-soft); color: var(--assess); }
+  .pill.claimed { background: var(--claimed-soft); color: var(--claimed); }
+  .pill.good { background: var(--good-soft); color: var(--good); }
+  .pill.bad { background: var(--danger-soft); color: var(--danger); }
+  .pill.address { background: var(--accent-soft); color: var(--accent); }
+  .testnet { font-size: 0.85rem; color: var(--muted); text-align: center; }
+
+  .btn {
+    min-height: 48px; padding: 0 20px; border-radius: 999px; font-weight: 700; cursor: pointer; width: 100%;
+    display: inline-flex; align-items: center; justify-content: center; gap: 8px; border: 2px solid transparent; text-align: center;
+  }
+  .btn.primary { background: var(--brand); color: var(--on-brand); border-color: var(--brand); }
+  .btn.secondary { background: var(--surface); color: var(--ink); border-color: var(--line-strong); }
+  .btn.danger { background: var(--surface); color: var(--danger); border-color: var(--danger); }
+  .btn.locked { background: var(--sunken); color: var(--muted); border-color: var(--line-strong); cursor: not-allowed; }
+  .btn.link { min-height: 44px; width: auto; padding: 0 4px; background: none; border: 0; text-decoration: underline; text-underline-offset: 4px; }
+  .btn-row { display: flex; flex-direction: column; gap: 10px; }
+
+  .stepnum { display: flex; gap: 10px; align-items: baseline; font-weight: 700; }
+  .stepnum i { font-style: normal; width: 26px; height: 26px; border-radius: 50%; background: var(--brand-soft); display: inline-grid; place-items: center; font-size: 0.85rem; flex: none; }
+  .field { display: flex; flex-direction: column; gap: 6px; }
+  .field label { font-weight: 700; font-size: 0.92rem; }
+  .input, textarea.input {
+    font: inherit; color: var(--ink); background: var(--surface); border: 2px solid var(--line-strong); border-radius: 14px; padding: 10px 12px; width: 100%;
+  }
+  textarea.input { min-height: 150px; font-family: var(--font-mono); font-size: 0.82rem; line-height: 1.5; resize: vertical; }
+  .scroll-x { overflow-x: auto; }
+  table.lines { border-collapse: collapse; width: 100%; font-size: 0.9rem; font-variant-numeric: tabular-nums; }
+  table.lines th { text-align: left; font-size: 0.75rem; letter-spacing: 0.05em; text-transform: uppercase; color: var(--muted); padding: 4px 8px 6px 0; white-space: nowrap; }
+  table.lines td { padding: 8px 8px 8px 0; border-top: 1px solid var(--line); vertical-align: top; }
+  table.lines .num { text-align: right; white-space: nowrap; padding-right: 0; }
+  table.lines tfoot td { font-weight: 700; border-top: 2px solid var(--line-strong); }
+  .changed { background: var(--accent-soft); color: var(--accent); border-radius: 6px; padding: 1px 6px; font-weight: 700; font-size: 0.75rem; margin-left: 6px; white-space: nowrap; }
+  .notice { border-radius: 14px; padding: 10px 12px; font-size: 0.9rem; display: flex; gap: 8px; align-items: flex-start; }
+  .notice.ai { background: var(--sunken); border: 1px dashed var(--line-strong); }
+  .notice.info { background: var(--accent-soft); color: var(--accent); }
+  .bolt { width: 22px; height: 22px; flex: none; color: var(--earth); }
+
+  /* Results */
+  .result-head { display: flex; gap: 12px; align-items: flex-start; }
+  .result-icon { width: 44px; height: 44px; border-radius: 50%; display: grid; place-items: center; flex: none; font-size: 1.2rem; }
+  .result-icon.bad { background: var(--danger); color: var(--on-brand); }
+  .result-icon.good { background: var(--good-soft); color: var(--good); }
+  .result-icon.lock { background: var(--sunken); color: var(--ink); }
+  .result-head h2 { font-size: 1.3rem; }
+  .reasons { border: 1px solid var(--line-strong); border-radius: 14px; background: var(--surface); padding: 12px 14px; display: flex; flex-direction: column; gap: 8px; }
+  .reasons ol { display: flex; flex-direction: column; gap: 8px; counter-reset: r; }
+  .reasons li { display: grid; grid-template-columns: 22px minmax(0, 1fr); gap: 6px; counter-increment: r; }
+  .reasons li::before { content: counter(r) "."; font-weight: 700; color: var(--danger); font-variant-numeric: tabular-nums; }
+  .explain { border: 1px dashed var(--line-strong); border-radius: 14px; background: var(--sunken); padding: 12px 14px; display: flex; flex-direction: column; gap: 8px; }
+  .explain-label { display: inline-flex; align-items: center; gap: 6px; align-self: flex-start; background: var(--earth-soft); color: var(--earth-strong); border-radius: 999px; padding: 3px 10px 3px 6px; font-size: 0.8rem; font-weight: 700; }
+  .explain small { color: var(--muted); font-size: 0.82rem; }
+
+  /* Release gate */
+  .gate-list { display: flex; flex-direction: column; gap: 10px; }
+  .gate-list li { display: grid; grid-template-columns: 26px minmax(0, 1fr); gap: 10px; align-items: start; border-radius: 10px; }
+  .gate-list li:focus { outline: 3px solid var(--brand); outline-offset: 4px; }
+  .gmark { width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; font-size: 0.85rem; }
+  .gmark.done { background: var(--good-soft); color: var(--good); }
+  .gmark.wait { background: var(--accent-soft); color: var(--accent); }
+  .live { font-weight: 700; color: var(--accent); min-height: 1.5em; }
+  .confirm { border: 2px solid var(--brand); border-radius: 16px; padding: 14px; display: flex; flex-direction: column; gap: 10px; background: var(--surface); }
+  .confirm h3 { font-size: 1.05rem; }
+
+  /* Photos */
+  .photos { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .photo { aspect-ratio: 4 / 3; max-width: 100%; border-radius: 14px; background: var(--sunken); border: 1px solid var(--line); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; padding: 8px; text-align: center; color: var(--muted); }
+  .photo strong { color: var(--ink); font-size: 0.9rem; }
+  .photo span { font-size: 0.72rem; }
+  .quote { border-left: 3px solid var(--line-strong); padding-left: 12px; }
+
+  /* Trail */
+  .trail { display: flex; flex-direction: column; }
+  .trail li { display: grid; grid-template-columns: 28px minmax(0, 1fr); column-gap: 12px; position: relative; padding-bottom: 20px; }
+  .trail li:last-child { padding-bottom: 0; }
+  .trail li::before { content: ""; position: absolute; left: 13px; top: 28px; bottom: 0; border-left: 2px solid var(--brand); }
+  .trail li[data-rail="dashed"]::before { border-left: 2px dashed var(--line-strong); }
+  .trail li:last-child::before { display: none; }
+  .mark { width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; font-size: 0.85rem; position: relative; z-index: 1; }
+  .mark.done { background: var(--brand); color: var(--on-brand); }
+  .mark.blocked { background: var(--danger); color: var(--on-brand); }
+  .mark.next { background: var(--surface); border: 2px solid var(--accent); color: var(--accent); }
+  .mark.later { background: var(--canvas); border: 2px solid var(--line-strong); }
+  .row { display: flex; flex-direction: column; gap: 5px; min-width: 0; padding-top: 2px; }
+  .row h3 { font-family: var(--font-body); font-size: 1rem; letter-spacing: 0; line-height: 1.3; display: flex; flex-wrap: wrap; gap: 4px 8px; align-items: center; }
+  .tag-next { background: var(--accent-soft); color: var(--accent); border-radius: 999px; padding: 1px 8px; font-size: 0.72rem; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; }
+  .meta { display: flex; flex-wrap: wrap; gap: 4px 8px; align-items: center; font-size: 0.86rem; color: var(--muted); }
+  .badge { background: var(--earth-soft); color: var(--earth-strong); border-radius: 999px; padding: 1px 9px; font-weight: 700; font-size: 0.8rem; }
+  .meta strong { color: var(--ink); }
+  .detail { font-size: 0.88rem; font-variant-numeric: tabular-nums; }
+  .wait-text { color: var(--muted); font-size: 0.92rem; }
+  .blocked-text { color: var(--danger); font-size: 0.92rem; font-weight: 600; }
+  .proofline { display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: center; }
+  .chip { display: inline-flex; align-items: center; gap: 4px; border: 1px solid var(--good); background: var(--good-soft); color: var(--good); border-radius: 8px; padding: 1px 8px; font-size: 0.78rem; font-weight: 700; }
+  .seeproof { min-height: 32px; background: none; border: 0; padding: 0 2px; font-size: 0.85rem; font-weight: 700; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
+  .proofbox { border: 1px solid var(--line); background: var(--sunken); border-radius: 12px; padding: 10px 12px; font-size: 0.8rem; display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 2px 10px; }
+  .proofbox dt { font-weight: 700; }
+  .proofbox dd { margin: 0; font-family: var(--font-mono); overflow-wrap: anywhere; }
+  .proofbox { margin: 0; }
+  .proofwrap { display: flex; flex-direction: column; gap: 6px; }
+  .proofnote { color: var(--muted); font-size: 0.8rem; }
+
+  /* Side panel */
+  .side { display: flex; flex-direction: column; gap: 20px; min-width: 0; }
+  .note-card { border-left: 4px solid var(--earth); padding: 2px 0 2px 16px; display: flex; flex-direction: column; gap: 6px; }
+  .note-card h2 { font-size: 1.35rem; }
+  .note-card p { max-width: 58ch; }
+  .panel { background: var(--surface); border: 1px solid var(--line); border-radius: 20px; padding: 18px; display: flex; flex-direction: column; gap: 16px; }
+  .panel-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 10px; }
+  .panel-head h2 { font-size: 1.15rem; }
+  .seg { display: inline-flex; border: 2px solid var(--line-strong); border-radius: 999px; overflow: hidden; }
+  .seg button { min-height: 36px; padding: 0 14px; background: transparent; border: 0; cursor: pointer; font-weight: 700; font-size: 0.85rem; }
+  .seg button[aria-pressed="true"] { background: var(--brand); color: var(--on-brand); }
+  .panel-sub { color: var(--muted); font-size: 0.9rem; }
+  .hidden-list { display: flex; flex-wrap: wrap; gap: 6px; }
+  .hidden-list li { border: 1px solid var(--line-strong); border-radius: 999px; padding: 2px 10px; font-size: 0.82rem; color: var(--muted); text-decoration: line-through; }
+  .nav-row { display: flex; gap: 10px; }
+  .nav-row .btn { width: auto; flex: 1; }
+  .foot { color: var(--muted); font-size: 0.88rem; max-width: 70ch; }
+  @media (prefers-reduced-motion: no-preference) {
+    .mark.done, .gmark.done { animation: pop 200ms ease-out; }
+    @keyframes pop { from { transform: scale(0.7); } to { transform: scale(1); } }
+  }
+</style>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+  <defs>
+    <pattern id="band" width="16" height="8" patternUnits="userSpaceOnUse">
+      <path d="M0 8 4 8 4 4 8 4 8 0 8 4 12 4 12 8 16 8" fill="none" stroke="currentColor" stroke-width="1.6"/>
+    </pattern>
+  </defs>
+</svg>
+
+<div class="wrap">
+  <header class="intro">
+    <h1>Bona Chain core flow</h1>
+    <p>Six moments from the demo, drawn as the screens will look on a phone. Press the buttons inside the screen to move the case forward, or jump with the numbered moments. The trail beside it updates as you go.</p>
+  </header>
+
+  <nav aria-label="Demo moments"><ol class="moments" id="moments"></ol></nav>
+
+  <div class="stage">
+    <div class="screen-col">
+      <div class="device" id="device"></div>
+      <div class="nav-row">
+        <button class="btn secondary" type="button" id="prev">Back</button>
+        <button class="btn secondary" type="button" id="next">Next moment</button>
+      </div>
+    </div>
+    <div class="side" id="side"></div>
+  </div>
+
+  <p class="foot">This is a design mock-up. The names, amounts, times and proofs are sample data for one invented case at an invented school. Photos in the product are AI-generated illustrations and are labelled so. Everything runs on the Avalanche Fuji test network: no real money moves, and Bona AI never approves, verifies or authorises anything.</p>
+</div>
+
+<script>
+(function () {
+  /* ------------------------------- Sample data ------------------------------ */
+  var CASE = { ref: "BB-2026-000131", title: "Leaking taps at the Grade 4 block", school: "Thandolwethu Primary" };
+  var PEOPLE = {
+    supplier: { name: "Thabo Nkosi", role: "Supplier", initials: "TN" },
+    approver: { name: "Sipho Radebe", role: "Payment approver", initials: "SR" },
+    reviewer: { name: "Zanele Mahlangu", role: "Independent reviewer", initials: "ZM" }
+  };
+  var MOMENTS = [
+    { t: "Wrong invoice blocked", first: 0,
+      h: "The rules block a wrong invoice",
+      p: "The supplier pastes an invoice. Bona AI reads the fields, and the supplier checks and submits them. The rules compare the invoice with the order and the delivery, and block it. The reasons come first. Bona AI's explanation sits under them, with its own label." },
+    { t: "Right invoice matched", first: 2,
+      h: "A corrected invoice matches",
+      p: "The supplier fixes the price and sends a new invoice. The rules match it against the order and the delivery. Nobody approved anything by hand." },
+    { t: "Release locked", first: 4,
+      h: "The release stays locked",
+      p: "The payment approver sees a lock. The invoice matches, but nobody independent has checked the repair yet, so the release cannot be authorised. The lock says exactly what it is waiting for." },
+    { t: "Reviewer verifies", first: 5,
+      h: "An independent reviewer checks the repair",
+      p: "The reviewer is not on the school's staff. The school can only claim a repair; it takes this person to make it “Independently verified”." },
+    { t: "Release authorised", first: 7,
+      h: "The lock opens",
+      p: "Every condition is now cleared, so the approver can authorise the release. It is an instruction recorded on the test network. No money moves." },
+    { t: "Public proof", first: 9,
+      h: "Anyone can follow the case",
+      p: "A parent sees each step, the role that was responsible, the time and a proof. No amounts, no supplier name, no people's names." }
+  ];
+  var LAST_VIEW = 9;
+
+  var view = 0;
+  var ui = {};
+  var trailMode = null; // null = follow the screen
+
+  function momentOf(v) {
+    var m = 0;
+    for (var i = 0; i < MOMENTS.length; i++) if (v >= MOMENTS[i].first) m = i;
+    return m;
+  }
+  function actorOf(v) {
+    if (v <= 3) return "supplier";
+    if (v === 4 || v === 7 || v === 8) return "approver";
+    if (v === 5 || v === 6) return "reviewer";
+    return null;
+  }
+
+  /* ---------------------------------- Icons --------------------------------- */
+  var PATHS = {
+    check: '<path d="M5 12.5 10 17.5 19 7"/>',
+    clock: '<circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/>',
+    alert: '<path d="M12 6.5v7"/><path d="M12 17.5v.01"/>',
+    lock: '<rect x="5" y="11" width="14" height="9.5" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/>',
+    unlock: '<rect x="5" y="11" width="14" height="9.5" rx="2"/><path d="M8 11V8a4 4 0 0 1 7.6-1.7"/>',
+    shield: '<path d="M12 3 5 6v5.5c0 4.3 2.9 7.6 7 9 4.1-1.4 7-4.7 7-9V6z"/><path d="M9 12l2.2 2.2L15.2 10"/>',
+    arrow: '<path d="M5 12h14"/><path d="M13 6l6 6-6 6"/>'
+  };
+  function ic(name) { return '<svg class="ic" viewBox="0 0 24 24" aria-hidden="true">' + PATHS[name] + "</svg>"; }
+  var BOLT = '<svg class="bolt" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v3"/><rect x="4.5" y="6" width="15" height="12.5" rx="4"/><path d="M9 11.5v1.5M15 11.5v1.5M9.5 15.5h5"/></svg>';
+
+  /* ---------------------------------- Trail --------------------------------- */
+  function trailRows(v, mode, prices) {
+    var staff = mode === "staff";
+    var invDone = v >= 1, matched = v >= 3, blocked = v === 1 || v === 2;
+    var rows = [
+      { id: "start", state: "done", title: "Problem reported", role: "Community member", name: null, time: "18 Nov, 07:52" },
+      { id: "order", state: "done", title: "Work order approved", role: "Programme buyer", name: "Naledi Dlamini", time: "19 Nov, 09:14",
+        detail: staff ? (prices ? "3 lines · R 9 180.00" : "3 lines · 22 items") : null },
+      { id: "ack", state: "done", title: "Supplier acknowledged the order", role: "Supplier", name: "Thabo Nkosi", time: "19 Nov, 11:30" },
+      { id: "invoice", state: invDone ? "done" : "waiting", title: "Invoice submitted", role: "Supplier", name: "Thabo Nkosi",
+        time: matched ? "21 Nov, 10:06" : "21 Nov, 10:02", wait: "Waiting for the supplier's invoice.",
+        detail: staff ? (matched ? "Invoice INV-0043" + (prices ? " · R 9 180.00" : "") : "Invoice INV-0042" + (prices ? " · R 9 420.00" : "")) : null,
+        extra: matched ? "1 earlier invoice was blocked." : null,
+        ai: staff ? "Fields read by Bona AI, checked by the supplier." : null },
+      { id: "delivery", state: "done", title: "Delivery recorded", role: "Receiving officer", name: "Lerato Mokoena", time: "20 Nov, 08:05",
+        detail: staff ? "22 of 22 items arrived" : null },
+      { id: "match", state: matched ? "done" : blocked ? "blocked" : "waiting", title: "Invoice checked against order and delivery", role: "Bona Chain rules", name: null,
+        time: matched ? "21 Nov, 10:06" : "21 Nov, 10:02", wait: "Checked automatically when the invoice and the delivery are both in.",
+        doneText: "The invoice matches the order and the delivery.",
+        blockedText: "The invoice does not match. The supplier must send a corrected invoice.",
+        detail: staff && blocked ? "2 reasons" : null },
+      { id: "verify", state: v >= 6 ? "done" : "waiting", title: "Repair independently verified", role: "Independent reviewer", name: "Zanele Mahlangu",
+        time: "21 Nov, 10:15", wait: "Waiting for the independent reviewer." },
+      { id: "release", state: v >= 8 ? "done" : "waiting", title: "Release authorised", role: "Payment approver", name: "Sipho Radebe",
+        time: "21 Nov, 10:21", wait: "Locked until the invoice matches and the reviewer has verified.",
+        doneText: "An instruction, not a payment." }
+    ];
+    var anyBlocked = rows.some(function (r) { return r.state === "blocked"; });
+    var tagged = false;
+    rows.forEach(function (r) {
+      r.next = false;
+      if (r.state === "waiting" && !tagged && !anyBlocked) { r.next = true; tagged = true; }
+    });
+    return rows;
+  }
+  function hex(seed, n) {
+    var s = "", x = 0;
+    for (var i = 0; i < seed.length; i++) x = (x * 31 + seed.charCodeAt(i)) >>> 0;
+    for (var j = 0; j < n; j++) { x = (x * 1664525 + 1013904223) >>> 0; s += (x >>> 28).toString(16); }
+    return s;
+  }
+  function trailHtml(v, mode, prices, scope) {
+    var rows = trailRows(v, mode, prices);
+    var staff = mode === "staff";
+    return '<ol class="trail">' + rows.map(function (r, i) {
+      var nextRow = rows[i + 1];
+      var solid = r.state !== "waiting" && nextRow && nextRow.state !== "waiting";
+      var mark = r.state === "done" ? '<span class="mark done">' + ic("check") + "</span>"
+        : r.state === "blocked" ? '<span class="mark blocked">' + ic("alert") + "</span>"
+        : r.next ? '<span class="mark next">' + ic("clock") + "</span>"
+        : '<span class="mark later"></span>';
+      var word = r.state === "done" ? "Done: " : r.state === "blocked" ? "Blocked: " : "Waiting: ";
+      var body = '<h3><span class="vh">' + word + "</span>" + r.title + (r.next ? ' <span class="tag-next">Next</span>' : "") + "</h3>";
+      if (r.state === "waiting") {
+        body += '<p class="wait-text">' + r.wait + "</p>";
+      } else {
+        var who = staff && r.name ? "<strong>" + r.name + '</strong> <span class="badge">' + r.role + "</span>" : '<span class="badge">' + r.role + "</span>";
+        body += '<p class="meta">' + who + "<span>" + r.time + "</span></p>";
+        if (r.state === "blocked") body += '<p class="blocked-text">' + r.blockedText + "</p>";
+        if (r.state === "done" && r.doneText) body += '<p class="detail">' + r.doneText + "</p>";
+        if (r.detail) body += '<p class="detail">' + r.detail + "</p>";
+        if (r.ai) body += '<p class="wait-text">' + r.ai + "</p>";
+        if (r.extra) body += '<p class="wait-text">' + r.extra + "</p>";
+        var key = scope + "-" + r.id;
+        var open = ui.proof === key;
+        body += '<p class="proofline"><span class="chip">' + ic("shield") + 'On Avalanche Fuji</span><button class="seeproof" type="button" data-act="proof" data-key="' + key + '" aria-expanded="' + open + '">' + (open ? "Hide proof" : "See proof") + "</button></p>";
+        if (open) {
+          body += '<div class="proofwrap"><dl class="proofbox"><dt>Fingerprint</dt><dd>0x' + hex(r.id + "f", 12) + "…" + hex(r.id + "g", 6) + "</dd><dt>Network</dt><dd>Avalanche Fuji test network (43113)</dd><dt>Transaction</dt><dd>0x" + hex(r.id + "t", 12) + "…" + hex(r.id + "u", 6) + '</dd></dl><p class="proofnote">Sample values. In the product this opens the proof, and anyone can check it in Bona Chain Verify.</p></div>';
+        }
+      }
+      return '<li data-rail="' + (solid ? "solid" : "dashed") + '"' + (r.next ? ' aria-current="step"' : "") + ">" + mark + '<div class="row">' + body + "</div></li>";
+    }).join("") + "</ol>";
+  }
+
+  /* --------------------------------- Screens -------------------------------- */
+  function appbar(actor) {
+    var p = actor ? PEOPLE[actor] : null;
+    return '<div class="appbar"><svg class="band" aria-hidden="true"><rect width="100%" height="8" fill="url(#band)"/></svg><div class="appbar-row"><span class="wordmark">Bona <b>Chain</b></span>' +
+      (p ? '<span class="who"><span><strong>' + p.name + "</strong>" + p.role + '</span><span class="avatar" aria-hidden="true">' + p.initials + "</span></span>"
+         : '<span class="who"><span>Not signed in</span></span>') + "</div></div>";
+  }
+  function caseHead(pills) {
+    return '<p class="case-ref">' + CASE.ref + " · " + CASE.school + '</p><h2 class="case-title">' + CASE.title + '</h2><p class="pills">' + pills + "</p>";
+  }
+  function linesTable(pipePrice, total, changed) {
+    return '<div class="scroll-x"><table class="lines"><thead><tr><th>Line</th><th class="num">Qty</th><th class="num">Unit price</th></tr></thead><tbody>' +
+      "<tr><td>TAP-15<br>Brass tap 15 mm</td><td class=\"num\">12</td><td class=\"num\">R 185.00</td></tr>" +
+      "<tr><td>PIPE-20<br>Copper pipe 20 mm, 3 m</td><td class=\"num\">8</td><td class=\"num\">" + pipePrice + (changed ? '<span class="changed">Changed</span>' : "") + "</td></tr>" +
+      "<tr><td>LAB-PLB<br>Plumber, per day</td><td class=\"num\">2</td><td class=\"num\">R 1 800.00</td></tr>" +
+      '</tbody><tfoot><tr><td colspan="2">Total on the invoice</td><td class="num">' + total + (changed ? '<span class="changed">Changed</span>' : "") + "</td></tr></tfoot></table></div>";
+  }
+  var TESTNET = '<p class="testnet">Test network only. No real money moves.</p>';
+
+  function screen(v) {
+    var h = "";
+    if (v === 0) {
+      h += '<h1 tabindex="-1">My orders</h1><p class="sub">Orders to acknowledge and invoices to submit.</p><div class="card"><span class="eyebrow">Next for you</span>' +
+        caseHead('<span class="pill assess">' + ic("check") + "Order acknowledged</span>") +
+        '<p class="stepnum"><i>1</i>Paste your invoice</p>' +
+        '<div class="field"><label for="inv-text">Invoice text</label><textarea class="input" id="inv-text">TAX INVOICE INV-0042\nSizwe Plumbing\nOrder BB-2026-000131, version 1\n12 x Brass tap 15 mm (TAP-15) @ R185.00\n8 x Copper pipe 20 mm, 3 m (PIPE-20) @ R450.00\n2 x Plumber, per day (LAB-PLB) @ R1 800.00\nTOTAL R9 420.00</textarea></div>';
+      if (!ui.drafted) {
+        h += '<div class="btn-row"><button class="btn secondary" type="button" data-act="draft">' + BOLT + 'Read it with Bona AI</button><button class="btn link" type="button" data-act="draft">Type the fields myself</button></div>';
+      } else {
+        h += '<p class="stepnum"><i>2</i>Check the fields</p>' +
+          '<div class="notice ai">' + BOLT + "<span>Bona AI filled these in from your text. Check each one. Bona AI does not submit or approve anything.</span></div>" +
+          '<div class="field"><label for="inv-no">Invoice number</label><input class="input" id="inv-no" value="INV-0042"></div>' +
+          linesTable("R 450.00", "R 9 420.00", false) +
+          '<button class="btn primary" type="button" data-act="go" data-to="1">Submit invoice</button>';
+      }
+      h += "</div>" + TESTNET;
+    } else if (v === 1) {
+      h += '<h1 tabindex="-1">My orders</h1><div class="card">' + caseHead('<span class="pill bad">' + ic("alert") + "Invoice blocked</span>") +
+        '<div class="result-head"><span class="result-icon bad">' + ic("alert") + '</span><div><h2>Invoice blocked</h2><p>The rules found 2 problems. Nothing was approved.</p></div></div>' +
+        '<div class="reasons"><span class="eyebrow">What the rules found</span><ol><li>PIPE-20: the unit price is R 450.00. The order says R 420.00.</li><li>The invoice total is R 9 420.00. It should be R 9 180.00.</li></ol></div>' +
+        '<div class="explain"><span class="explain-label">' + BOLT + "Explanation by Bona AI</span><p>Your invoice charges R 450.00 for each copper pipe, but the approved order says R 420.00. Over 8 pipes that makes the total R 240.00 higher than the order. Correct the pipe price and the total, then send the invoice again.</p><small>Bona AI explains what the rules found. It decides nothing.</small></div>" +
+        '<button class="btn primary" type="button" data-act="go" data-to="2">Send a corrected invoice</button></div>' + TESTNET;
+    } else if (v === 2) {
+      h += '<h1 tabindex="-1">My orders</h1><div class="card"><span class="eyebrow">Corrected invoice</span>' + caseHead('<span class="pill bad">' + ic("alert") + "Invoice blocked</span>") +
+        '<div class="notice info">' + ic("alert") + "<span>The last invoice was blocked. Your fields are kept. A corrected invoice needs a new invoice number.</span></div>" +
+        '<div class="field"><label for="inv-no2">Invoice number</label><input class="input" id="inv-no2" value="INV-0043"></div>' +
+        linesTable("R 420.00", "R 9 180.00", true) +
+        '<button class="btn primary" type="button" data-act="go" data-to="3">Submit invoice</button></div>' + TESTNET;
+    } else if (v === 3) {
+      h += '<h1 tabindex="-1">My orders</h1><div class="card">' + caseHead('<span class="pill claimed">' + ic("clock") + "Waiting for reviewer</span>") +
+        '<div class="result-head"><span class="result-icon good">' + ic("shield") + "</span><div><h2>Invoice matched</h2><p>It agrees with the order and the delivery.</p></div></div>" +
+        "<p>Next: an independent reviewer checks the repair. You do not need to do anything.</p></div>" + TESTNET;
+    } else if (v === 4 || v === 7 || v === 8) {
+      var verified = v >= 7, done = v === 8;
+      h += '<h1 tabindex="-1">Releases</h1><p class="sub">Verified repairs waiting for a release instruction.</p><div class="card"><span class="eyebrow">' + (done ? "Done" : "Next for you") + "</span>" +
+        caseHead(done ? '<span class="pill good">' + ic("shield") + "Release authorised</span>"
+          : verified ? '<span class="pill address">' + ic("unlock") + "Ready for release</span>"
+          : '<span class="pill claimed">' + ic("clock") + "Waiting for reviewer</span>");
+      if (done) {
+        h += '<div class="result-head"><span class="result-icon good">' + ic("shield") + '</span><div><h2>Release authorised</h2><p>Authorised by you on 21 Nov, 10:21.</p></div></div>' +
+          '<p class="proofline"><span class="chip">' + ic("shield") + "On Avalanche Fuji</span></p><p>This is an instruction. No money moved on this test network.</p>";
+      } else {
+        h += '<div class="result-head"><span class="result-icon ' + (verified ? "good" : "lock") + '">' + ic(verified ? "unlock" : "lock") + "</span><div><h2>" + (verified ? "Ready to authorise" : "Release locked") + "</h2><p>" + (verified ? "Everything is checked." : "1 thing must happen first.") + "</p></div></div>" +
+          '<ul class="gate-list">' +
+          '<li><span class="gmark done">' + ic("check") + '</span><span><span class="vh">Done: </span>The supplier acknowledged the order.</span></li>' +
+          '<li><span class="gmark done">' + ic("check") + '</span><span><span class="vh">Done: </span>The invoice matches the order and the delivery.</span></li>' +
+          (verified
+            ? '<li><span class="gmark done">' + ic("check") + '</span><span><span class="vh">Done: </span>An independent reviewer verified the repair.</span></li>'
+            : '<li id="blocker" tabindex="-1"><span class="gmark wait">' + ic("clock") + '</span><span><span class="vh">Waiting: </span><strong>Waiting for the independent reviewer.</strong></span></li>') +
+          "</ul>";
+        if (!verified) {
+          h += '<button class="btn locked" type="button" aria-disabled="true" data-act="nudge">' + ic("lock") + 'Release locked</button><p class="live" role="status" aria-live="polite">' + (ui.nudged ? "Release is locked. 1 thing must happen first." : "") + "</p>";
+        } else if (ui.confirming) {
+          h += '<div class="confirm"><h3 tabindex="-1" id="confirm-title">Authorise the release for ' + CASE.ref + "?</h3><p>This records a release instruction on the Avalanche Fuji test network. No money moves.</p>" +
+            '<div class="btn-row"><button class="btn primary" type="button" data-act="go" data-to="8">Authorise release</button><button class="btn secondary" type="button" data-act="cancel">Cancel</button></div></div>';
+        } else {
+          h += '<button class="btn primary" type="button" data-act="confirm">Authorise release</button>';
+        }
+      }
+      h += "</div>" + TESTNET;
+    } else if (v === 5) {
+      h += '<h1 tabindex="-1">My reviews</h1><p class="sub">Repair claims waiting for an independent check.</p><div class="card"><span class="eyebrow">Next for you</span>' +
+        caseHead('<span class="pill claimed">' + ic("clock") + "Repair claimed</span>") +
+        '<div><p class="eyebrow">The school says</p><p class="quote">All twelve taps were replaced and the pipes no longer leak.</p></div>' +
+        '<div class="photos"><div class="photo"><strong>The problem</strong><span>AI-generated illustration</span></div><div class="photo"><strong>The repair</strong><span>AI-generated illustration</span></div></div>' +
+        '<div class="field"><label for="rev-note">What you found</label><input class="input" id="rev-note" value="All 12 taps work. No leaks at the joints."></div>' +
+        '<div class="btn-row"><button class="btn primary" type="button" data-act="go" data-to="6">Verify repair</button><button class="btn danger" type="button" data-act="dispute">Dispute repair</button></div>' +
+        (ui.dispute ? '<p class="wait-text" role="status">In this demo the reviewer verifies. A dispute would mark the report “Disputed” and keep the release locked.</p>' : "") +
+        "</div>" + TESTNET;
+    } else if (v === 6) {
+      h += '<h1 tabindex="-1">My reviews</h1><div class="card">' + caseHead('<span class="pill good">' + ic("shield") + "Independently verified</span>") +
+        '<div class="result-head"><span class="result-icon good">' + ic("shield") + "</span><div><h2>Verified</h2><p>This repair is now “Independently verified”.</p></div></div>" +
+        '<p class="proofline"><span class="chip">' + ic("shield") + "On Avalanche Fuji</span></p><p>The payment approver can now see that the repair was checked.</p></div>" + TESTNET;
+    } else {
+      h += '<h1 tabindex="-1">Follow a case</h1><div class="field"><label for="ref">Reference from your report slip</label><input class="input" id="ref" value="' + CASE.ref + '"></div>' +
+        '<div class="card">' + caseHead('<span class="pill good">' + ic("shield") + 'Independently verified</span><span class="pill good">' + ic("check") + "Release authorised</span>") + "</div>" +
+        '<div class="card"><h2 class="case-title">Who did what, and the proof</h2><p class="sub">Each step is recorded on the Avalanche Fuji test network. Amounts and names are not public.</p>' + trailHtml(v, "public", false, "pub") + "</div>";
+    }
+    return appbar(actorOf(v)) + '<div class="app">' + h + "</div>";
+  }
+
+  /* -------------------------------- Side panel ------------------------------ */
+  function side(v) {
+    var m = MOMENTS[momentOf(v)];
+    var actor = actorOf(v) || "approver";
+    var mode = trailMode || "staff";
+    var prices = actor !== "reviewer";
+    var seeing = v === LAST_VIEW ? "the payment approver" : "the " + PEOPLE[actor].role.toLowerCase();
+    var sub = mode === "public"
+      ? "What anyone sees: the step, the role, the time and the proof."
+      : "What " + seeing + " sees: the named person on each step" + (prices ? ", with amounts." : ". No prices for this role.");
+    return '<div class="note-card"><span class="eyebrow">Moment ' + (momentOf(v) + 1) + " of 6</span><h2>" + m.h + "</h2><p>" + m.p + "</p></div>" +
+      '<section class="panel" aria-labelledby="trail-h"><div class="panel-head"><h2 id="trail-h">The trail for this case</h2>' +
+      '<div class="seg" role="group" aria-label="Trail view"><button type="button" data-act="mode" data-mode="staff" aria-pressed="' + (mode === "staff") + '">Staff view</button><button type="button" data-act="mode" data-mode="public" aria-pressed="' + (mode === "public") + '">Public view</button></div></div>' +
+      '<p class="panel-sub">' + sub + "</p>" +
+      (mode === "public" ? '<ul class="hidden-list" aria-label="Not shown to the public"><li>Amounts</li><li>Supplier name</li><li>People\'s names</li><li>Documents</li></ul>' : "") +
+      trailHtml(v, mode, prices, "side") + "</section>";
+  }
+
+  /* --------------------------------- Render --------------------------------- */
+  var deviceEl = document.getElementById("device");
+  var sideEl = document.getElementById("side");
+  var momentsEl = document.getElementById("moments");
+  var prevBtn = document.getElementById("prev");
+  var nextBtn = document.getElementById("next");
+
+  function render(focusId) {
+    var cur = momentOf(view);
+    momentsEl.innerHTML = MOMENTS.map(function (m, i) {
+      return '<li><button type="button" data-moment="' + i + '"' + (i === cur ? ' aria-current="step"' : "") + (i < cur ? ' class="past"' : "") + '><span class="n">' + (i + 1) + '</span><span class="t">' + m.t + "</span></button></li>";
+    }).join("");
+    deviceEl.innerHTML = screen(view);
+    sideEl.innerHTML = side(view);
+    prevBtn.disabled = view === 0;
+    prevBtn.style.visibility = view === 0 ? "hidden" : "visible";
+    nextBtn.textContent = cur < MOMENTS.length - 1 ? "Next: " + MOMENTS[cur + 1].t : "Start again";
+    if (focusId) {
+      var el = focusId === "h1" ? deviceEl.querySelector("h1") : document.getElementById(focusId) || document.querySelector(focusId);
+      if (el) el.focus({ preventScroll: focusId !== "h1" });
+    }
+  }
+  function go(v, keepFocus) {
+    view = Math.max(0, Math.min(LAST_VIEW, v));
+    ui = {};
+    trailMode = null;
+    render(keepFocus ? null : "h1");
+  }
+
+  document.addEventListener("click", function (e) {
+    var t = e.target.closest ? e.target.closest("[data-act],[data-moment]") : null;
+    if (!t) return;
+    if (t.dataset.moment !== undefined) { go(MOMENTS[Number(t.dataset.moment)].first, true); return; }
+    var act = t.dataset.act;
+    if (act === "go") go(Number(t.dataset.to));
+    else if (act === "draft") { ui.drafted = true; render("inv-no"); }
+    else if (act === "nudge") { ui.nudged = true; render("blocker"); }
+    else if (act === "confirm") { ui.confirming = true; render("confirm-title"); }
+    else if (act === "cancel") { ui.confirming = false; render('[data-act="confirm"]'); }
+    else if (act === "dispute") { ui.dispute = true; render('[data-act="dispute"]'); }
+    else if (act === "mode") { trailMode = t.dataset.mode; render('[data-act="mode"][data-mode="' + trailMode + '"]'); }
+    else if (act === "proof") { var k = t.dataset.key; ui.proof = ui.proof === k ? null : k; render('[data-act="proof"][data-key="' + k + '"]'); }
+  });
+  prevBtn.addEventListener("click", function () {
+    var cur = momentOf(view);
+    go(view > MOMENTS[cur].first ? MOMENTS[cur].first : MOMENTS[Math.max(0, cur - 1)].first, true);
+  });
+  nextBtn.addEventListener("click", function () {
+    var cur = momentOf(view);
+    go(cur < MOMENTS.length - 1 ? MOMENTS[cur + 1].first : 0, true);
+  });
+
+  render(null);
+})();
+</script>
