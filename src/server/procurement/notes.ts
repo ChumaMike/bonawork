@@ -54,6 +54,16 @@ const ALLOWED_NOTES: Record<FinanceCaseEventType, readonly string[]> = {
   release_authorised: [FINANCE_EVENT_NOTE.release_authorised],
 };
 
+/**
+ * Which way a match event went, read from its note constant. This is how the
+ * public trail knows the outcome without reading the match table.
+ */
+export function matchOutcomeOfNote(note: string): MatchOutcome | undefined {
+  if (note === MATCH_EVENT_NOTE.matched) return "matched";
+  if (note === MATCH_EVENT_NOTE.blocked) return "blocked";
+  return undefined;
+}
+
 /** Every sentence a finance step may show. Tests check responses against this list. */
 export const FINANCE_NOTE_CONSTANTS: readonly string[] = [
   ...new Set(Object.values(ALLOWED_NOTES).flat()),

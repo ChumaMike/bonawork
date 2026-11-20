@@ -3,7 +3,13 @@
  * "Mapping" table in docs/coordination/API_ROUTES.md.
  */
 import { MEMORY_CHAIN_ID } from "@/server/ledger/memory";
-import type { BlockchainReceipt, ReportCategory, ReportStatus, UserRole } from "@/shared";
+import type {
+  BlockchainReceipt,
+  PublicTrailStep,
+  ReportCategory,
+  ReportStatus,
+  UserRole,
+} from "@/shared";
 import type {
   ActorRole,
   EvidenceItem,
@@ -22,6 +28,12 @@ import type {
   TimelineEventType,
 } from "@/data/types";
 import type { CaseEventRow, EvidenceRow, InstitutionRow } from "../../database/schema";
+import {
+  financeActor,
+  financeNote,
+  isFinanceEventType,
+  matchOutcomeOfNote,
+} from "./procurement/notes";
 import type { IssueBundle } from "./reports/common";
 
 /* --------------------------------- Vocabularies ----------------------------- */
@@ -166,7 +178,7 @@ function timelineType(event: CaseEventRow): TimelineEventType {
       return "disputed";
     case "status_changed":
       return event.statusTo === "rejected" ? "declined" : "progress_recorded";
-    // The finance steps keep their case-event names on the timeline.
+    // Finance steps never reach the timeline (see `toTimeline`); the type keeps the switch total.
     case "work_order_approved":
     case "work_order_acknowledged":
     case "invoice_submitted":
@@ -179,16 +191,50 @@ function timelineType(event: CaseEventRow): TimelineEventType {
   }
 }
 
+/**
+ * The public timeline of a report. Finance steps are left out on purpose:
+ * a timeline entry carries the event's stored note, and nothing about a
+ * finance step may be public except what `toPublicTrail` builds. This also
+ * keeps them out of a school's `latestUpdates`.
+ */
 export function toTimeline(bundle: IssueBundle): TimelineEvent[] {
-  return bundle.events.map((event) => ({
-    id: event.id,
-    type: timelineType(event) as TimelineEventType,
-    // For a decline the note is the public reason itself.
-    note: event.statusTo === "rejected" ? (event.reason ?? event.note) : event.note,
-    actor: ACTOR_ROLE_FOR[event.actorRole],
-    occurredAt: event.occurredAt,
-    ledger: toLedgerRecord(event.receipt),
-  }));
+  return bundle.events
+    .filter((event) => !isFinanceEventType(event.type))
+    .map((event) => ({
+      id: event.id,
+      type: timelineType(event) as TimelineEventType,
+      // For a decline the note is the public reason itself.
+      note: event.statusTo === "rejected" ? (event.reason ?? event.note) : event.note,
+      actor: ACTOR_ROLE_FOR[event.actorRole],
+      occurredAt: event.occurredAt,
+      ledger: toLedgerRecord(event.receipt),
+    }));
+}
+
+/**
+ * The procurement steps of a report as anyone may see them: which step, the
+ * role that took it, when, and the proof. Built from the case events alone:
+ * this path reads no finance table, so it has no amount, supplier or person
+ * to leak. The role comes from the event type and the sentence is a code
+ * constant chosen by type, never the row's free text.
+ */
+export function toPublicTrail(bundle: IssueBundle): PublicTrailStep[] {
+  return bundle.events.flatMap((event) => {
+    if (!isFinanceEventType(event.type)) return [];
+    const step: PublicTrailStep = {
+      eventId: event.id,
+      type: event.type,
+      actor: financeActor(event.type, event.actorRole),
+      occurredAt: event.occurredAt,
+      note: financeNote(event.type, event.note),
+      ledger: toLedgerRecord(event.receipt),
+    };
+    if (event.type === "match_recorded") {
+      const outcome = matchOutcomeOfNote(event.note);
+      if (outcome) step.outcome = outcome;
+    }
+    return [step];
+  });
 }
 
 /* ----------------------------------- Issues --------------------------------- */
@@ -272,6 +318,7 @@ export function toIssue(bundle: IssueBundle, viewerId: string | null): Issue {
     review: reviewFor(bundle),
     timeline: toTimeline(bundle),
     evidence: bundle.evidence.map(toEvidenceItem),
+    publicTrail: toPublicTrail(bundle),
   };
 }
 
