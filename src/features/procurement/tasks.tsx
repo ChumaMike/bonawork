@@ -405,6 +405,9 @@ function ReleaseBody({
         conflict={conflict}
         byYou={authorised || (!!releasedBy && releasedBy === session?.user.displayName)}
       />
+      {trail.releaseAuthorisedAt || trail.gate.open ? null : (
+        <AskWhatBlocks key={trail.gate.blockers.length} reference={trail.reference} />
+      )}
       {inCard ? (
         onOpen ? (
           <button type="button" onClick={onOpen} className={`${quietLink} self-start`}>
@@ -416,6 +419,58 @@ function ReleaseBody({
         <StaffTrail trail={trail} timeline={issue.timeline} status={issue.status} />
       )}
     </>
+  );
+}
+
+/**
+ * One question for Bona AI, as a chip: what is blocking this release? The
+ * assistant answers from the release gate. It is an explanation beside the
+ * checklist, in a dashed box of its own: the checklist is what counts.
+ */
+function AskWhatBlocks({ reference }: { reference: string }) {
+  const m = useMessages();
+  const g = m.procurement.gate;
+  const question = g.askAi(reference);
+  // undefined: not asked. "asking": waiting. null: it failed.
+  const [answer, setAnswer] = useState<string | null | "asking">();
+
+  async function ask() {
+    setAnswer("asking");
+    try {
+      const reply = await getApi().askAssistant(
+        [{ id: "question", role: "user", text: question }],
+        question,
+      );
+      setAnswer(reply.text);
+    } catch {
+      setAnswer(null);
+    }
+  }
+
+  return (
+    <div data-testid="ask-bona-ai" className="flex flex-col items-start gap-2">
+      <button
+        type="button"
+        onClick={() => void ask()}
+        disabled={answer === "asking"}
+        aria-busy={answer === "asking" || undefined}
+        className="inline-flex min-h-11 items-center gap-2 rounded-full border-2 border-dashed border-accent bg-accent-soft px-4 text-left text-sm font-semibold text-accent disabled:opacity-60"
+      >
+        <Icon name="sparkle" className="size-4" />
+        {question}
+      </button>
+      {answer !== undefined && answer !== "asking" ? (
+        <div
+          role="status"
+          data-testid="bona-ai-answer"
+          className="w-full rounded-2xl border-2 border-dashed border-line-strong bg-sunken p-4"
+        >
+          <p className="text-sm font-semibold text-muted">{g.aiLabel}</p>
+          <p className="mt-1">{answer ?? g.aiFailed}</p>
+          {answer ? <p className="mt-2 text-sm text-muted">{g.aiNote}</p> : null}
+        </div>
+      ) : null}
+    </div>
   );
 }
 

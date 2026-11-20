@@ -19,7 +19,7 @@ const ACTION =
   "no-print inline-flex min-h-11 items-center gap-1.5 rounded-lg px-3 text-sm font-semibold text-brand-strong hover:bg-brand-soft";
 
 /**
- * What BonaBlock Verify needs for one ledger record: "Copy receipt", and
+ * What Bona Chain Verify needs for one ledger record: "Copy receipt", and
  * "Copy document" for records anchored as a salted commitment document.
  * Each is fetched when asked for and copied as JSON, exactly as the verifier
  * expects it to be pasted.

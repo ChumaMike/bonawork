@@ -67,9 +67,17 @@ export function Logo({ className }: { className?: string }) {
       aria-label={`${BRAND_NAME} — ${m.nav.home}`}
       className={cn("inline-flex min-h-11 shrink-0 items-center", className)}
     >
-      {/* The Bona Chain logo (docs/design/BRAND.md): the phone size, then the header size. */}
-      <BrandLogo size="sm" className="sm:hidden" />
-      <BrandLogo className="hidden sm:inline-flex" />
+      {/*
+        The Bona Chain logo (docs/design/BRAND.md): the phone size, then the
+        header size. Each sits in its own wrapper, because the logo sets its
+        own display and would otherwise override `hidden`.
+      */}
+      <span className="sm:hidden">
+        <BrandLogo size="sm" />
+      </span>
+      <span className="hidden sm:inline">
+        <BrandLogo />
+      </span>
     </Link>
   );
 }

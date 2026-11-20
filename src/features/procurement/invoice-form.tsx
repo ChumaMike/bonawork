@@ -57,6 +57,10 @@ type FieldErrors = {
   form?: string;
 };
 
+/** The entries of `InvoiceDraft.missing` that name a field. */
+const FIELD_NAME =
+  /^(invoiceNumber|orderVersion|totalCents|lines|lines\[\d+\]\.(sku|description|quantity|unitPriceCents))$/;
+
 const LINE_KEYS: Record<LineField, string> = {
   sku: "sku",
   description: "description",
@@ -85,6 +89,8 @@ export function InvoiceForm({
   const [fieldsOpen, setFieldsOpen] = useState(false);
   const [aiDrafted, setAiDrafted] = useState(false);
   const [missing, setMissing] = useState<ReadonlySet<string>>(new Set());
+  // What Bona AI flagged besides unread fields, e.g. a total that is not the sum of the lines.
+  const [flags, setFlags] = useState<string[]>([]);
   const [invoiceNumber, setInvoiceNumber] = useState("");
   const [orderVersion, setOrderVersion] = useState("");
   const [lines, setLines] = useState<LineDraft[]>([emptyLine()]);
@@ -115,6 +121,8 @@ export function InvoiceForm({
       for (const key of Object.values(LINE_KEYS)) all.add(`lines[0].${key}`);
     }
     setMissing(all);
+    // `missing` names fields; anything else in it is a sentence for the supplier to read.
+    setFlags(draft.missing.filter((entry) => !FIELD_NAME.test(entry)));
     setErrors({ lines: [] });
   }
 
@@ -199,6 +207,7 @@ export function InvoiceForm({
           <Textarea
             id="invoice-text"
             rows={7}
+            maxLength={f.pasteLimit}
             value={text}
             onChange={(event) => setText(event.target.value)}
             aria-describedby={describedBy("invoice-text", {
@@ -269,6 +278,15 @@ export function InvoiceForm({
             {aiDrafted ? (
               <Notice icon="sparkle" tone="warning">
                 <p data-testid="ai-banner">{f.aiBanner}</p>
+              </Notice>
+            ) : null}
+            {aiDrafted && flags.length > 0 ? (
+              <Notice icon="alert" tone="warning" title={f.flagsTitle}>
+                <ul data-testid="ai-flags" className="list-disc pl-5">
+                  {flags.map((flag) => (
+                    <li key={flag}>{flag}</li>
+                  ))}
+                </ul>
               </Notice>
             ) : null}
 

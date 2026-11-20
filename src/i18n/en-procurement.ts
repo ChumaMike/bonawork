@@ -178,7 +178,10 @@ export const procurement = {
     pasteTitle: "1. Paste your invoice",
     pasteLabel: "Invoice text",
     pasteHint:
-      "Paste the text of your invoice. Bona AI reads it into the fields below for you to check.",
+      "Paste the text of your invoice, up to 6 000 characters. Bona AI reads it into the fields below for you to check.",
+    /** Bona AI reads at most this much text. */
+    pasteLimit: 6000,
+    flagsTitle: "Bona AI also noticed",
     read: "Read it with Bona AI",
     typeMyself: "Type the fields myself",
     sample: "Use sample invoice",
@@ -273,6 +276,12 @@ export const procurement = {
     confirmBody:
       "This records a release instruction on the Avalanche Fuji test network. No money moves.",
     conflict: "The release could not be authorised. Something changed on this case.",
+    /** The question sent to Bona AI. The assistant answers it from the release gate. */
+    askAi: (reference: string) => `What is blocking payment on ${reference}?`,
+    aiLabel: "Bona AI",
+    aiNote:
+      "Bona AI explains the release gate. It decides nothing and authorises nothing.",
+    aiFailed: "Bona AI could not answer just now. The checklist above is what counts.",
     state: { done: "Done:", problem: "Problem:", waiting: "Waiting:" },
     checklist: "What the release needs",
     acknowledged: {
