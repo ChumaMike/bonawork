@@ -41,27 +41,27 @@ const ROLE_ICON: Record<SessionRole, IconName> = {
 };
 
 /**
- * The demo cards in the order people act on a case, so the page doubles as a
- * map of the trail: the community reports, the six people of the repair trail
- * take their steps, and the district looks on.
+ * The demo cards in two groups. First the three people the live demo signs in
+ * as, in the order they act: the supplier, the independent reviewer and the
+ * payment approver. Then everyone else, still in the order people act on a
+ * case. Each trail card keeps its step tag, so the order of the trail can
+ * still be read off the page.
  */
 const CARD_GROUPS: {
-  id: "community" | "trail" | "oversight";
+  id: "demo" | "more";
   roles: SessionRole[];
 }[] = [
-  { id: "community", roles: ["reporter"] },
+  { id: "demo", roles: ["supplier", "independent_reviewer", "payment_approver"] },
   {
-    id: "trail",
+    id: "more",
     roles: [
+      "reporter",
       "school_admin",
       "buyer",
-      "supplier",
       "receiving_officer",
-      "independent_reviewer",
-      "payment_approver",
+      "district_official",
     ],
   },
-  { id: "oversight", roles: ["district_official"] },
 ];
 
 /**

@@ -289,19 +289,25 @@ test("each role home shows only that role's work, and the receiving officer neve
   await expect(page.getByTestId("role-gate")).toBeVisible();
   await expect(page.getByTestId("release-gate")).toHaveCount(0);
 
-  // The sign-in cards are a map of the trail: the four new roles are on it, in order.
+  // The sign-in cards: the three roles of the live demo first, then everyone else.
+  // The four new roles are all there, each with its step on the trail.
   await page.goto("/sign-in");
   await settled(page);
-  const trailCards = page.locator("[data-testid=card-group][data-group=trail]");
-  await expect(trailCards.getByRole("button")).toHaveText([
-    /School administrator/,
-    /School administrator/,
-    /Programme buyer.*Step 1/,
+  const demoCards = page.locator("[data-testid=card-group][data-group=demo]");
+  await expect(demoCards.getByRole("button")).toHaveText([
     /Supplier.*Steps 2 and 3/,
-    /Receiving officer.*Step 4/,
     /Independent reviewer.*Step 6/,
     /Payment approver.*Step 7/,
   ]);
+  // Whatever other accounts exist, the two remaining trail roles follow, in step order.
+  const moreCards = page.locator("[data-testid=card-group][data-group=more]");
+  await expect(moreCards.getByRole("button").filter({ hasText: /Step \d/ })).toHaveText([
+    /Programme buyer.*Step 1/,
+    /Receiving officer.*Step 4/,
+  ]);
+  await expect(
+    moreCards.getByRole("button").filter({ hasText: "School administrator" }).first(),
+  ).toBeVisible();
   await expectNoSidewaysScroll(page);
 
   // The buyer: reports that wait for a work order, and a form whose total is computed.

@@ -386,14 +386,18 @@ step: "Next: an independent reviewer checks the repair."
 
 ## Sign-in role cards
 
-The demo sign-in page shows one card per account, in the order people act on a case, so the
-page doubles as a map of the trail.
+The demo sign-in page shows one card per account, in two groups. The three people the live
+demo signs in as come first, so the presenter never hunts for a card. Everyone else follows,
+in the order people act on a case. Each trail card keeps its step tag, so the order of the
+trail can still be read off the page.
 
-| Group            | Cards, in order                                                                                                 |
-| ---------------- | --------------------------------------------------------------------------------------------------------------- |
-| Community        | Community reporter                                                                                              |
-| The repair trail | School administrator · Programme buyer · Supplier · Receiving officer · Independent reviewer · Payment approver |
-| Oversight        | District official                                                                                               |
+| Group            | Cards, in order                                                                                     |
+| ---------------- | --------------------------------------------------------------------------------------------------- |
+| In the live demo | Supplier · Independent reviewer · Payment approver                                                  |
+| More roles       | Community reporter · School administrator · Programme buyer · Receiving officer · District official |
+
+(Changed on 20 November after the owner's rehearsal. It was three groups: Community, The
+repair trail, Oversight.)
 
 Card anatomy (the whole card is one button):
 

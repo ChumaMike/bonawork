@@ -22,14 +22,16 @@ tight spacing, "Bona" in ink and "Chain" in the accent colour.
 
 ### Files
 
-| File                                    | Use it for                                                         |
-| --------------------------------------- | ------------------------------------------------------------------ |
-| `public/brand/bona-chain-logo.svg`      | Mark and name on a light background: slides, documents, README     |
-| `public/brand/bona-chain-logo-dark.svg` | Mark and name on a dark background or over a dark photo            |
-| `public/brand/bona-chain-mark.svg`      | The mark alone, in colour                                          |
-| `public/brand/bona-chain-mark-mono.svg` | The mark alone in one colour (it takes the text colour)            |
-| `public/icon.svg`                       | Browser tab and app icon: cream mark on an umber tile              |
-| `public/icon-maskable.svg`              | Android adaptive icon: the same, full bleed, mark in the safe zone |
+| File                                    | Use it for                                                               |
+| --------------------------------------- | ------------------------------------------------------------------------ |
+| `public/brand/bona-chain-logo.svg`      | Mark and name on a light background: slides, documents, README           |
+| `public/brand/bona-chain-logo-dark.svg` | Mark and name on a dark background or over a dark photo                  |
+| `public/brand/bona-chain-mark.svg`      | The mark alone, in colour                                                |
+| `public/brand/bona-chain-mark-mono.svg` | The mark alone in one colour (it takes the text colour)                  |
+| `public/icon.svg`                       | Browser tab and app icon: cream mark on an umber tile                    |
+| `public/icon-maskable.svg`              | Android adaptive icon: the same, full bleed, mark in the safe zone       |
+| `src/app/favicon.ico`                   | The same tile at 16, 32 and 48 px, for browsers that ignore the SVG icon |
+| `verifier/src/app/icon.svg`             | A copy of `public/icon.svg`, so Bona Chain Verify has the same tab icon  |
 
 In the logo files the name is drawn as outlines, so they look the same on a machine without
 the font. All six are built by one script from the same shapes:
@@ -38,7 +40,11 @@ the font. All six are built by one script from the same shapes:
 node docs/design/brand/build-logo.mjs rings
 ```
 
-Change the shapes there, never in the files by hand.
+Change the shapes there, never in the files by hand. After a change, also run
+`node docs/design/brand/build-favicon.mjs` (it draws `favicon.ico` from `public/icon.svg`)
+and copy `public/icon.svg` to `verifier/src/app/icon.svg`. The verifier is a separate app and
+cannot import `<BrandLogo>`, so its header in `verifier/src/app/page.tsx` carries its own
+copy of the three shapes.
 
 ### In the app
 

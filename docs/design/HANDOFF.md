@@ -3,6 +3,44 @@
 Branch `design/brand`, worktree `BonaChain-design`. Newest entry first. The coordinator merges;
 nothing here has been pushed, merged or deployed.
 
+## 5. Verifier logo, tab icon and the sign-in card groups
+
+Asked for by the coordinator on 20 November, after the verifier was merged and after the
+owner's rehearsal.
+
+**What changed**
+
+| File                                   | Change                                                                                                                                                                                |
+| -------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `verifier/src/app/page.tsx`            | The header shows the Seeing links mark in place of the brick wall. Nothing else in the verifier was touched (no `verifier/src/lib/**`).                                               |
+| `verifier/src/app/icon.svg`            | New: the verifier's tab icon, a copy of `public/icon.svg`.                                                                                                                            |
+| `src/app/favicon.ico`                  | Replaced. The page lists `/favicon.ico` before `/icon.svg`, so some browsers were still showing the old tab icon.                                                                     |
+| `docs/design/brand/build-favicon.mjs`  | New: builds `favicon.ico` from `public/icon.svg`.                                                                                                                                     |
+| `src/features/auth/sign-in-screen.tsx` | The demo cards are in two groups: "In the live demo" (Supplier, Independent reviewer, Payment approver), then "More roles". Same accounts, same buttons, same behaviour.              |
+| `src/i18n/en-procurement.ts`           | The two group headings (`signIn.groups.demo`, `signIn.groups.more`) replace the three old ones.                                                                                       |
+| `e2e/procurement.spec.ts`              | One assertion. It pinned the old order of the cards inside the "trail" group, so it now checks the two new groups instead. All four new roles and their step tags are still asserted. |
+
+**For the coordinator**: `e2e/procurement.spec.ts` belongs to the frontend builder. The edit
+is the one assertion above; nothing else in that file changed.
+
+**Checked by eye**
+
+- The verifier's sixth result, "Recorded on Avalanche", at 390 px on the live verifier, opened
+  from the public trail of a live case: the green card, the explanation and the record table
+  read well, and the page does not scroll sideways.
+- The sign-in page at 390, 768 and 1440 px: no sideways scroll; the three demo cards fill one
+  row on a wide screen.
+
+**Checks: not complete. Please run them before merging.** Lint and typecheck passed. The
+unit tests and the browser tests did not finish: the machine ran critically low on memory and
+the run was stopped (two server test files had already timed out in setup; they are not
+touched by this change). So for this entry:
+
+- `pnpm test` has not passed on this commit.
+- The edited assertion in `e2e/procurement.spec.ts` has not been run in a browser. The page
+  itself was checked: the fixture sign-in page has the group `demo` with three buttons and the
+  group `more` with five, in the order the assertion expects.
+
 ## 4. Polish pass on the real screens (deliverable C)
 
 Done on `main` at `2b156a9`, on the fixture data, walking the demo path as every role at 390,
