@@ -3,6 +3,39 @@
 Branch `design/brand`, worktree `BonaChain-design`. Newest entry first. The coordinator merges;
 nothing here has been pushed, merged or deployed.
 
+## 3. The logo (deliverable A, second half)
+
+The owner picked **Seeing links** on 20 November (option 1 on the options page; the pick is
+also stored in that page's database as `logo: "rings"`, with no change notes).
+
+**What changed**
+
+- `public/brand/bona-chain-mark.svg`, `bona-chain-mark-mono.svg`, `bona-chain-logo.svg`,
+  `bona-chain-logo-dark.svg`: new.
+- `public/icon.svg`, `public/icon-maskable.svg`: the brick icon is replaced by the new mark.
+- `public/manifest.webmanifest`: `name` and `short_name` are now "Bona Chain". Nothing else
+  in it changed (the description still needs builder C's wording).
+- `src/components/brand/brand-logo.tsx`: `<BrandLogo>` and `<BrandMark>`, with
+  `brand-logo.test.tsx` (6 tests).
+- `docs/design/BRAND.md`: logo, files, sizes, clear space, colours with measured contrast,
+  do and don't.
+- `docs/design/brand/build-logo.mjs`: the mark sits larger in the icon tile for this pick.
+
+**Not done yet, on purpose**: the header, sign-in page, landing page and the verifier still
+show the old brick logo and the name "BonaBlock". `src/components/chrome.tsx` belongs to
+builder B and the verifier to builder E until the polish pass, so I have not edited them.
+Swapping `Logo` in `chrome.tsx` to `<BrandLogo>` is a three-line change; either builder B
+does it now or I do it in the polish pass.
+
+**For the coordinator**
+
+- Safe to merge now: nothing outside the design-owned paths was touched.
+- After the merge the browser-tab icon and the installed-app name change at once. The header
+  logo does not, until `chrome.tsx` uses `<BrandLogo>`.
+- The verifier app has its own icon and header logo; they are not covered by this commit.
+
+**Checks**: `pnpm check` passed with these changes on top of `main` at `bb4d46c`.
+
 ## 2. Screen specification and core-flow mock-up (deliverable B)
 
 **What changed**

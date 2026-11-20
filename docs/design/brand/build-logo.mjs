@@ -26,6 +26,8 @@ export const MARKS = {
   rings: {
     name: "Seeing links",
     edges: [6.25, 33.75],
+    // A narrow mark: it can sit larger in the icon tile and still clear the corners.
+    iconSizes: [50, 40],
     draw: (c, a) =>
       `<circle cx="20" cy="15" r="11.5" fill="none" stroke="${c}" stroke-width="3.5"/>` +
       `<circle cx="20" cy="25" r="11.5" fill="none" stroke="${c}" stroke-width="3.5"/>` +
@@ -107,6 +109,8 @@ export function build(id) {
     throw new Error(
       `Unknown mark "${id}". Use one of: ${Object.keys(MARKS).join(", ")}.`,
     );
+  // The mark's size inside the 64 px tile, and inside the maskable icon's safe zone.
+  const [tile, maskable] = mark.iconSizes ?? [44, 34];
   return {
     "brand/bona-chain-mark.svg": svg(40, 40, mark.draw(INK, RUST), "Bona Chain"),
     "brand/bona-chain-mark-mono.svg": svg(
@@ -117,8 +121,8 @@ export function build(id) {
     ),
     "brand/bona-chain-logo.svg": lockup(mark, INK, RUST),
     "brand/bona-chain-logo-dark.svg": lockup(mark, CREAM, SUN),
-    "icon.svg": icon(mark, { radius: 14, markSize: 44 }),
-    "icon-maskable.svg": icon(mark, { radius: 0, markSize: 34 }),
+    "icon.svg": icon(mark, { radius: 14, markSize: tile }),
+    "icon-maskable.svg": icon(mark, { radius: 0, markSize: maskable }),
   };
 }
 
