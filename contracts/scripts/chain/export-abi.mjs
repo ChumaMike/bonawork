@@ -10,7 +10,11 @@ const CONTRACTS = [
     contract: "InstitutionOperations",
     exportName: "institutionOperationsAbi",
   },
-  { file: "finance", contract: "InstitutionFinance", exportName: "institutionFinanceAbi" },
+  {
+    file: "finance",
+    contract: "InstitutionFinance",
+    exportName: "institutionFinanceAbi",
+  },
 ];
 
 const outDir = new URL("../../abi/chain/", import.meta.url);
