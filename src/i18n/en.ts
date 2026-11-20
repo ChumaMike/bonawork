@@ -684,7 +684,8 @@ export const en = {
 
   auth: {
     title: "Sign in",
-    intro: "For school administrators, independent reviewers and registered reporters.",
+    intro:
+      "For the people who handle a case: schools, buyers, suppliers, receiving officers, reviewers and approvers. Registered reporters too.",
     email: "Email address",
     password: "Password",
     submit: "Sign in",
