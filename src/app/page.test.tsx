@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import "@testing-library/jest-dom/vitest";
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, render, screen, within } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
 import { LedgerPanel } from "@/components/ledger-state";
 import { StatusProgress } from "@/components/status";
@@ -22,12 +22,13 @@ describe("home page", () => {
     expect(screen.getByRole("button", { name: "Find school" })).toBeInTheDocument();
   });
 
-  it("offers the three other things people do, and nothing else to tap", () => {
+  it("offers report, track, all problems and the schools list, and no staff workspace", () => {
     render(<Home />);
     const expected: [string, string][] = [
       ["Report a problem", "/report"],
       ["Check on my report", "/track"],
       ["See all problems", "/issues"],
+      ["See all schools", "/schools"],
     ];
     for (const [name, href] of expected) {
       expect(screen.getByRole("link", { name: new RegExp(name) })).toHaveAttribute(
@@ -35,7 +36,51 @@ describe("home page", () => {
         href,
       );
     }
+    // Nothing else to tap: staff workspaces stay behind sign-in and the footer.
     expect(screen.getAllByRole("link")).toHaveLength(expected.length);
+  });
+
+  it("says what Bona Chain does in three steps: report, check, prove", () => {
+    render(<Home />);
+    const how = screen.getByRole("heading", { level: 2, name: "What Bona Chain does" });
+    const steps = within(how.closest("section")!).getAllByRole("listitem");
+    expect(steps.map((step) => step.textContent)).toEqual([
+      expect.stringMatching(/^1Report/),
+      expect.stringMatching(/^2Check/),
+      expect.stringMatching(/^3Prove/),
+    ]);
+  });
+
+  it("explains the trail in plain words, with the role that takes each step", () => {
+    render(<Home />);
+    const rows = within(screen.getByTestId("trail-explainer")).getAllByRole("listitem");
+    const read = rows.map((row) => [
+      within(row).getByRole("heading", { level: 3 }).textContent,
+      // The role label is the badge under the heading.
+      row.querySelector("h3 + span")?.textContent,
+    ]);
+    expect(read).toEqual([
+      ["Problem reported", "Community member"],
+      ["Work order approved", "Programme buyer"],
+      ["Supplier acknowledged the order", "Supplier"],
+      ["Invoice submitted", "Supplier"],
+      ["Delivery recorded", "Receiving officer"],
+      ["Invoice checked against order and delivery", "Bona Chain rules"],
+      ["Repair independently verified", "Independent reviewer"],
+      ["Release authorised", "Payment approver"],
+    ]);
+    expect(
+      screen.getByText(/the last step records an instruction, not a payment/),
+    ).toBeInTheDocument();
+  });
+
+  it("shows no amount, and never says paid or resolved", () => {
+    const { container } = render(<Home />);
+    const text = container.textContent ?? "";
+    expect(text).not.toMatch(/\bR\s?\d/);
+    expect(text).not.toMatch(/\bpaid\b|\bresolved\b|BonaBlock/i);
+    // No finished case in the practice data: the showcase section is absent, not empty.
+    expect(screen.queryByTestId("public-trail-showcase")).not.toBeInTheDocument();
   });
 });
 

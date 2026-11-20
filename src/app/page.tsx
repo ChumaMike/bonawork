@@ -1,14 +1,25 @@
+import Link from "next/link";
 import { PhotoHeader } from "@/components/media/photo";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/field";
 import { Icon } from "@/components/ui/icon";
 import { HomeTiles } from "@/features/home/home-tiles";
+import { FeaturedTrail } from "@/features/landing/public-trail-showcase";
+import { TrailExplainer } from "@/features/landing/trail-explainer";
 import { getMessages } from "@/i18n";
 
 /**
- * Home asks one question — which school? — because everything a parent or a
- * caretaker comes to do starts at their school. The three other things people
- * do sit under it as picture tiles (staff see their workspace there instead). Nothing else is on the first screen.
+ * The public landing page.
+ *
+ * The first screen asks one question (which school?) because everything a
+ * parent or a caretaker comes to do starts at their school, and offers the
+ * three other things people do as picture tiles. Below it, for someone who has
+ * never seen Bona Chain: what it does in three steps, the trail from a report
+ * to a release instruction in plain words, and one finished case shown as its
+ * public trail.
+ *
+ * Nothing on this page carries an amount, a supplier name or a person's name,
+ * and it links to no staff workspace: those stay behind sign-in.
  */
 export default function Home() {
   const m = getMessages();
@@ -48,26 +59,17 @@ export default function Home() {
           {l.actionsTitle}
         </h2>
         <HomeTiles />
-
-        <details className="mt-6 rounded-2xl border border-line bg-surface px-4 py-1">
-          <summary className="flex min-h-12 cursor-pointer items-center font-semibold">
-            {l.howTitle}
-          </summary>
-          <ol className="flex flex-col gap-3 pb-4">
-            {l.steps.map((step, index) => (
-              <li key={step.title} className="flex gap-3">
-                <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-brand font-bold text-on-brand">
-                  {index + 1}
-                </span>
-                <span>
-                  <span className="block font-semibold">{step.title}</span>
-                  <span className="text-muted">{step.body}</span>
-                </span>
-              </li>
-            ))}
-          </ol>
-        </details>
+        <Link
+          href="/schools"
+          className="mt-3 inline-flex min-h-11 items-center gap-1.5 font-semibold text-brand-strong underline underline-offset-4"
+        >
+          {l.browseSchools}
+          <Icon name="arrowRight" className="size-4" />
+        </Link>
       </section>
+
+      <TrailExplainer />
+      <FeaturedTrail />
     </>
   );
 }

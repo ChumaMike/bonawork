@@ -301,21 +301,91 @@ export const en = {
       title: "See all problems",
       body: "What people have reported, at every school.",
     },
-    howTitle: `How ${PRODUCT} works`,
+    browseSchools: "See all schools",
+    howTitle: `What ${PRODUCT} does`,
     steps: [
       {
-        title: "See it",
-        body: "Find your school and see the problems people have already reported.",
+        title: "Report",
+        body: "Anyone can report a broken toilet, a leak or an unsafe wall at a school, and add a photo. No account is needed.",
       },
       {
-        title: "Report it",
-        body: "Describe the problem and add a photo. If it is already reported, add your voice.",
+        title: "Check",
+        body: "Fixing it takes several people. Each one does a single step, and no one checks their own work.",
       },
       {
-        title: "Prove it",
-        body: "Every step is kept on a public record. A repair only counts when an independent reviewer confirms it.",
+        title: "Prove",
+        body: "Every step is recorded on a public test network. Anyone can check that the record was never changed.",
       },
     ],
+    /**
+     * The trail in plain words: the report, then the seven steps. `event` is
+     * the row title (from `event` above) and `actor` the role label.
+     */
+    trail: {
+      title: "From a report to a checked repair",
+      intro:
+        "One problem, seven steps after the report. Each step belongs to one role, and each leaves a record anyone can check.",
+      start: "Start",
+      step: (number: number) => `Step ${number}`,
+      rows: [
+        {
+          event: "reported",
+          actor: "community",
+          body: "Someone at the school or in the community reports the problem and adds a photo.",
+        },
+        {
+          event: "work_order_approved",
+          actor: "buyer",
+          body: "A programme buyer approves a work order: what must be fixed and what is needed for it.",
+        },
+        {
+          event: "work_order_acknowledged",
+          actor: "supplier",
+          body: "The supplier confirms that it has seen the order and accepts it.",
+        },
+        {
+          event: "invoice_submitted",
+          actor: "supplier",
+          body: "The supplier sends its invoice for the work.",
+        },
+        {
+          event: "goods_receipt_recorded",
+          actor: "receiving_officer",
+          body: "A receiving officer at the school records what really arrived.",
+        },
+        {
+          event: "match_recorded",
+          actor: "system",
+          body: "Rules written in code compare the invoice with the order and the delivery. If anything differs, the invoice is blocked until the supplier corrects it.",
+        },
+        {
+          event: "verified",
+          actor: "reviewer",
+          body: "An independent reviewer, never the school itself, checks that the repair was really done.",
+        },
+        {
+          event: "release_authorised",
+          actor: "payment_approver",
+          body: "Only then can a payment approver authorise the release. This person took none of the earlier steps.",
+        },
+      ] satisfies Array<{ event: TimelineEventType; actor: ActorRole; body: string }>,
+      noMoney:
+        "No real money moves. This runs on a test network, and the last step records an instruction, not a payment.",
+      privacy:
+        "The public sees each step, the role that took it, the time and the proof. Amounts and names are not public.",
+    },
+    /** One finished case, shown as its public trail. */
+    showcase: {
+      title: "A finished case: who did what, and the proof",
+      intro:
+        "This case comes from the demo data. Its trail shows each step, the role that took it, the time and the proof. Amounts and names are not public.",
+      caseAt: (reference: string, school: string) => `${reference} at ${school}`,
+      blocked:
+        "The invoice did not match the order and the delivery. The supplier had to send a corrected invoice.",
+      matched: "The invoice matches the order and the delivery.",
+      released: "An instruction, not a payment.",
+      open: "Open this case",
+    },
     principleTitle: "Our rule",
     recentTitle: "Recent public issues",
     seeAll: "See all issues",
