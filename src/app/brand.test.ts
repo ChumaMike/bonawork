@@ -57,7 +57,7 @@ describe("the product name", () => {
   });
 
   it("the web manifest does not say BonaBlock", () => {
-    expect(manifest.name).toBe("Bona Chain for Schools");
+    expect(manifest.name).toBe("Bona Chain");
     expect(manifest.short_name).toBe(PRODUCT);
     const stale = messages(manifest, "").filter(([, text]) => OLD_NAME.test(text));
     expect(stale).toEqual([]);
