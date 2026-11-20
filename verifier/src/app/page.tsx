@@ -27,29 +27,16 @@ export default async function Page() {
       <header className="no-print border-b border-line bg-surface">
         <div className="mx-auto flex min-h-16 w-full max-w-xl flex-wrap items-center justify-between gap-x-3 gap-y-1 px-4 py-3 sm:px-6">
           <span className="inline-flex min-w-0 items-center gap-2.5">
-            {/* The BonaBlock mark: a brick wall with an eye in the middle brick. */}
-            <svg viewBox="0 0 40 40" className="size-9 shrink-0" aria-hidden="true">
-              <g className="fill-brand">
-                <rect x="3" y="4" width="15" height="8" rx="2" />
-                <rect x="20.5" y="4" width="16.5" height="8" rx="2" />
-                <rect x="3" y="14.5" width="5.5" height="11" rx="2" />
-                <rect x="31.5" y="14.5" width="5.5" height="11" rx="2" />
-                <rect x="3" y="28" width="17" height="8" rx="2" />
-                <rect x="22.5" y="28" width="14.5" height="8" rx="2" />
-              </g>
-              <rect
-                x="11"
-                y="14.5"
-                width="18"
-                height="11"
-                rx="2.4"
-                className="fill-sun"
-              />
-              <path
-                d="M13.4 20c1.9-2.5 4.1-3.7 6.6-3.7s4.7 1.2 6.6 3.7c-1.9 2.5-4.1 3.7-6.6 3.7s-4.7-1.2-6.6-3.7z"
-                className="fill-surface"
-              />
-              <circle cx="20" cy="20" r="2.1" className="fill-brand" />
+            {/* The Bona Chain mark: two chain links, and an eye where they join. */}
+            <svg
+              viewBox="0 0 40 40"
+              fill="none"
+              className="size-9 shrink-0 text-brand"
+              aria-hidden="true"
+            >
+              <circle cx="20" cy="15" r="11.5" stroke="currentColor" strokeWidth="3.5" />
+              <circle cx="20" cy="25" r="11.5" stroke="currentColor" strokeWidth="3.5" />
+              <circle cx="20" cy="20" r="3.1" className="fill-earth" />
             </svg>
             <span className="font-display text-xl font-bold tracking-tight text-ink">
               Bona <span className="text-earth">Chain</span>{" "}

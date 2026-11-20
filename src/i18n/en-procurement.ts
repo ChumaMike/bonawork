@@ -360,9 +360,8 @@ export const procurement = {
   signIn: {
     note: "This is a demo. Tap a role to sign in as that person. Nothing here is real.",
     groups: {
-      community: "Community",
-      trail: "The repair trail",
-      oversight: "Oversight",
+      demo: "In the live demo",
+      more: "More roles",
     },
     step: {
       school_admin: "Reports and repairs",
