@@ -157,15 +157,30 @@ describe("procurement services", () => {
       (await listWorkQueue(world.ctx.db, people.buyer)).map((i) => i.reference),
     ).not.toContain(CASE);
 
-    // Nothing can be delivered or invoiced against an order nobody acknowledged.
+    // An approved order cannot be approved again, and nothing is invoiced before it is acknowledged.
     expect(
       (
         await refusal(() =>
-          recordGoodsReceipt(deps(), {
+          approveWorkOrder(deps(), {
             ...target,
-            actor: people.receiver,
-            receipt: {
-              lines: [{ sku: "BOARD-01", description: "Ceiling board", quantity: 6 }],
+            actor: people.buyer,
+            order: { supplierRef: "SUP-TEST-01", description: "Changed my mind", lines },
+          }),
+        )
+      ).code,
+    ).toBe("conflict");
+    expect(
+      (
+        await refusal(() =>
+          submitInvoice(deps(), {
+            ...target,
+            actor: people.supplier,
+            invoice: {
+              invoiceNumber: "INV-099",
+              orderVersion: 1,
+              lines,
+              totalCents: TOTAL,
+              aiDrafted: false,
             },
           }),
         )

@@ -65,8 +65,13 @@ async function requireSupplier(tx: Db, supplierRef: string): Promise<UserRow> {
 }
 
 /**
- * `POST /api/issues/:id/work-order`: creates the order at version 1, or its
- * next version. A new version must be acknowledged again by the supplier.
+ * `POST /api/issues/:id/work-order`: creates the order, at version 1.
+ *
+ * An approved order cannot be revised: on the ledger a work order id is
+ * approved once. The tables keep versions (`work_order_versions`,
+ * `currentVersion`) and the rule engine still knows `order_version_changed`,
+ * so revisions can be added without a schema change; a second approval for
+ * the same case is refused with 409 until then.
  */
 export async function approveWorkOrder(
   deps: ProcurementDeps,
@@ -96,44 +101,28 @@ export async function approveWorkOrder(
         "Separation of duties: a buyer cannot give a work order to themselves.",
       );
     }
-    const existing = await loadOrderState(tx, report);
-    const orderId = existing?.order.id ?? newId();
-    const version = existing ? existing.order.currentVersion + 1 : 1;
-
-    if (existing) {
-      if (existing.release) {
-        throw new HttpError(
-          "conflict",
-          "The release for this work order was already authorised; it cannot change.",
-        );
-      }
-      requireSeparation(existing, actor, "approve");
-      if (existing.order.supplierId !== supplier.id) {
-        throw new HttpError(
-          "conflict",
-          "This work order is bound to another supplier. A new version keeps the same supplier.",
-        );
-      }
-      await tx
-        .update(schema.workOrders)
-        .set({ currentVersion: version })
-        .where(eq(schema.workOrders.id, orderId));
-    } else {
-      await tx.insert(schema.workOrders).values({
-        id: orderId,
-        reportId: report.id,
-        institutionId: report.institutionId,
-        buyerId: actor.id,
-        supplierId: supplier.id,
-        supplierName: supplier.supplierName ?? supplier.displayName,
-        supplierRef: supplier.supplierRef!,
-        currentVersion: 1,
-        acknowledgedVersion: null,
-        acknowledgedBy: null,
-        acknowledgedAt: null,
-        createdAt: at,
-      });
+    if (await loadOrderState(tx, report)) {
+      throw new HttpError(
+        "conflict",
+        "This case already has a work order. An approved order cannot be changed.",
+      );
     }
+    const orderId = newId();
+    const version = 1;
+    await tx.insert(schema.workOrders).values({
+      id: orderId,
+      reportId: report.id,
+      institutionId: report.institutionId,
+      buyerId: actor.id,
+      supplierId: supplier.id,
+      supplierName: supplier.supplierName ?? supplier.displayName,
+      supplierRef: supplier.supplierRef!,
+      currentVersion: version,
+      acknowledgedVersion: null,
+      acknowledgedBy: null,
+      acknowledgedAt: null,
+      createdAt: at,
+    });
 
     const versionId = newId();
     const document: WorkOrderDocument = {

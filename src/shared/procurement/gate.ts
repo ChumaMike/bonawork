@@ -25,13 +25,21 @@ export interface ReleaseGateInput {
   invoicerId: Id | null;
   receiverIds: readonly Id[];
   reviewerId: Id | null;
+  /**
+   * Anyone else who acted on the case in a role the authoriser may not also
+   * hold: the school staff who acted on the report (the administrator who
+   * claimed the repair) and reviewers of earlier claims. InstitutionFinance
+   * refuses the same accounts on-chain.
+   */
+  otherActorIds?: readonly Id[];
 }
 
 /**
  * Whether a release instruction may be authorised now. Open only when the
  * report is `verified`, the latest match is `matched` on the current order
  * version, the order is acknowledged, there is no earlier release, and the
- * authoriser is not the approver, the invoicer, a receiver or the reviewer.
+ * authoriser is not the approver, the invoicer, a receiver, the reviewer or
+ * anyone who acted for the school on the report.
  * Returns every blocker, in the order of `RELEASE_BLOCKER_CODES`.
  */
 export function releaseGate(input: ReleaseGateInput): ReleaseGate {
@@ -54,6 +62,7 @@ export function releaseGate(input: ReleaseGateInput): ReleaseGate {
     input.invoicerId,
     ...input.receiverIds,
     input.reviewerId,
+    ...(input.otherActorIds ?? []),
   ];
   if (acted.includes(input.authoriserId)) block("same_person");
 

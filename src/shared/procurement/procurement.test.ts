@@ -423,6 +423,16 @@ describe("releaseGate", () => {
     ["the authoriser submitted the invoice", { authoriserId: id(2) }, "same_person"],
     ["the authoriser received the goods", { authoriserId: id(3) }, "same_person"],
     ["the authoriser reviewed the repair", { authoriserId: id(4) }, "same_person"],
+    [
+      "the authoriser claimed the repair for the school",
+      { authoriserId: id(6), otherActorIds: [id(6)] },
+      "same_person",
+    ],
+    [
+      "the authoriser reviewed an earlier claim",
+      { authoriserId: id(7), otherActorIds: [id(6), id(7)] },
+      "same_person",
+    ],
   ];
   it.each(shut)("is shut when %s", (_name, change, code) => {
     expect(releaseGate({ ...openGate(), ...change })).toEqual({
@@ -442,6 +452,10 @@ describe("releaseGate", () => {
     });
     expect(gate.open).toBe(false);
     expect(gate.blockers.map((b) => b.code)).toEqual([...RELEASE_BLOCKER_CODES]);
+  });
+
+  it("stays open when other people acted for the school", () => {
+    expect(releaseGate({ ...openGate(), otherActorIds: [id(6), id(7)] }).open).toBe(true);
   });
 
   it("does not treat a missing invoicer or reviewer as the authoriser", () => {

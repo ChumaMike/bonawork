@@ -64,6 +64,8 @@ export interface OrderState {
   reviews: IndependentReviewRow[];
   /** The finance case events of the report, in timeline order. */
   events: CaseEventRow[];
+  /** The accounts that acted for the school on the report (assessment, protection, repair claim). */
+  schoolActorIds: string[];
 }
 
 export function requireCan(actor: Actor, permission: Permission): void {
@@ -151,6 +153,15 @@ export async function loadOrderStates(
       events: events.filter(
         (e) => e.reportId === order.reportId && isFinanceEventType(e.type),
       ),
+      schoolActorIds: [
+        ...new Set(
+          events.flatMap((e) =>
+            e.reportId === order.reportId && e.actorRole === "school_admin" && e.actorId
+              ? [e.actorId]
+              : [],
+          ),
+        ),
+      ],
     });
   }
   return states;
@@ -279,6 +290,9 @@ export function gateFor(state: OrderState, authoriserId: string | null): Release
     invoicerId: state.invoices.at(-1)?.submittedBy ?? null,
     receiverIds: state.receipts.map((r) => r.receivedBy),
     reviewerId: verifyingReview(state)?.reviewerId ?? null,
+    // The ledger refuses the same accounts: anyone who acted for the school on
+    // the report, and anyone who reviewed it, whatever the review found.
+    otherActorIds: [...state.schoolActorIds, ...state.reviews.map((r) => r.reviewerId)],
   });
 }
 

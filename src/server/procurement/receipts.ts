@@ -51,12 +51,6 @@ export async function recordGoodsReceipt(
         "The release for this work order was already authorised.",
       );
     }
-    if (state.order.acknowledgedVersion !== state.order.currentVersion) {
-      throw new HttpError(
-        "invalid_transition",
-        "The supplier has not acknowledged the current work order yet, so nothing can have been delivered against it.",
-      );
-    }
     const ordered = new Set(state.current.lines.map((line) => line.sku));
     const stray = lines.find((line) => !ordered.has(line.sku));
     if (stray) {
