@@ -29,6 +29,7 @@ import { useQuery } from "@/data/use-query";
 import { useMessages } from "@/i18n";
 import { formatDate, timeAgo } from "@/lib/format";
 import { RequireRole } from "../auth/require-role";
+import { StaffCaseTrail } from "../procurement/tasks";
 import { lastEvent } from "./queue";
 import { allAnswered, checksLine, composeReviewNote } from "./review-note";
 
@@ -377,6 +378,9 @@ function ReviewFlow({
           </div>
 
           <Quote label={r.claimSays}>{claim?.note || r.noClaimNote}</Quote>
+
+          {/* Who ordered, delivered and invoiced, by name. A reviewer is given no prices. */}
+          <StaffCaseTrail issue={issue} />
 
           <section aria-labelledby="checks-title">
             <h2 id="checks-title" className="text-xl">

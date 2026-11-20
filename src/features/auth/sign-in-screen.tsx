@@ -12,7 +12,7 @@ import { getApi } from "@/data/api";
 import { ApiError } from "@/data/errors";
 import { signIn, signInAsDemo, signOut, useSession } from "@/data/session";
 import { useQuery } from "@/data/use-query";
-import type { SessionRole } from "@/data/types";
+import type { DemoAccount, SessionRole } from "@/data/types";
 import { useMessages } from "@/i18n";
 import { safeNext } from "@/lib/safe-next";
 
@@ -40,6 +40,30 @@ const ROLE_ICON: Record<SessionRole, IconName> = {
 };
 
 /**
+ * The demo cards in the order people act on a case, so the page doubles as a
+ * map of the trail: the community reports, the six people of the repair trail
+ * take their steps, and the district looks on.
+ */
+const CARD_GROUPS: {
+  id: "community" | "trail" | "oversight";
+  roles: SessionRole[];
+}[] = [
+  { id: "community", roles: ["reporter"] },
+  {
+    id: "trail",
+    roles: [
+      "school_admin",
+      "buyer",
+      "supplier",
+      "receiving_officer",
+      "independent_reviewer",
+      "payment_approver",
+    ],
+  },
+  { id: "oversight", roles: ["district_official"] },
+];
+
+/**
  * Sign in for staff and registered reporters. Calm and linear: the two fields
  * read as steps, errors are plain sentences, and nothing nags. In demo mode
  * the sample accounts are offered as role cards: one tap signs in as that
@@ -48,6 +72,7 @@ const ROLE_ICON: Record<SessionRole, IconName> = {
 export function SignInScreen() {
   const m = useMessages();
   const a = m.auth;
+  const s = m.procurement.signIn;
   const router = useRouter();
   const next = safeNext(useSearchParams().get("next"));
   const { status, session } = useSession();
@@ -56,16 +81,16 @@ export function SignInScreen() {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
-  const [demoFor, setDemoFor] = useState<SessionRole | null>(null);
+  const [demoFor, setDemoFor] = useState<DemoAccount | null>(null);
   const submitRef = useRef<HTMLButtonElement>(null);
   const demoAccounts =
     useQuery("demo-accounts", () => getApi().listDemoAccounts()).data ?? [];
 
-  async function enterAs(account: { email: string; role: SessionRole }) {
+  async function enterAs(account: DemoAccount) {
     if (busy) return;
     setBusy(true);
     setError(null);
-    setDemoFor(account.role);
+    setDemoFor(account);
     try {
       const signedIn = await signInAsDemo(account.email);
       router.push(next ?? HOME[signedIn.user.role]);
@@ -148,47 +173,74 @@ export function SignInScreen() {
           <h2 id="sample-accounts" className="font-semibold text-accent">
             {a.sampleTitle}
           </h2>
-          <p className="mt-1 text-sm">{a.sampleBody}</p>
-          <ul className="mt-3 grid gap-2 sm:grid-cols-2">
-            {demoAccounts.map((account) => {
-              const entering = demoFor === account.role && busy;
-              return (
-                <li key={account.email}>
-                  <button
-                    type="button"
-                    aria-busy={entering || undefined}
-                    disabled={busy && !entering}
-                    onClick={() => enterAs(account)}
-                    className={cn(
-                      "flex min-h-12 w-full items-start gap-3 rounded-xl border-2 bg-surface p-3 text-left hover:border-brand disabled:opacity-60",
-                      entering ? "border-brand" : "border-line",
-                    )}
-                  >
-                    <span
-                      aria-hidden="true"
-                      className="mt-0.5 inline-flex size-9 shrink-0 items-center justify-center rounded-full bg-brand-soft text-brand-strong"
-                    >
-                      <Icon name={ROLE_ICON[account.role]} className="size-5" />
-                    </span>
-                    <span className="min-w-0">
-                      <span className="block font-semibold">{a.role[account.role]}</span>
-                      <span className="block text-sm text-muted">
-                        {a.roleCan[account.role]}
-                      </span>
-                      <span className="mt-1 block text-xs break-all text-muted">
-                        {account.displayName} · {account.email}
-                      </span>
-                    </span>
-                  </button>
-                </li>
-              );
-            })}
-          </ul>
+          <p className="mt-1 text-sm">{s.note}</p>
+          {CARD_GROUPS.map((group) => {
+            const accounts = group.roles.flatMap((role) =>
+              demoAccounts.filter((account) => account.role === role),
+            );
+            if (accounts.length === 0) return null;
+            return (
+              <div key={group.id} data-testid="card-group" data-group={group.id}>
+                <h3 className="mt-4 text-sm font-semibold tracking-wide text-muted uppercase">
+                  {s.groups[group.id]}
+                </h3>
+                <ul className="mt-2 grid gap-2 md:grid-cols-2">
+                  {accounts.map((account) => {
+                    const entering = demoFor?.email === account.email && busy;
+                    const step = s.step[account.role as keyof typeof s.step];
+                    return (
+                      <li key={account.email}>
+                        <button
+                          type="button"
+                          aria-busy={entering || undefined}
+                          disabled={busy && !entering}
+                          onClick={() => enterAs(account)}
+                          className={cn(
+                            "flex h-full min-h-12 w-full items-start gap-3 rounded-xl border-2 bg-surface p-3 text-left hover:border-brand disabled:opacity-60",
+                            entering ? "border-brand" : "border-line",
+                          )}
+                        >
+                          <span
+                            aria-hidden="true"
+                            className="inline-flex size-11 shrink-0 items-center justify-center rounded-full bg-earth-soft text-earth-strong"
+                          >
+                            <Icon name={ROLE_ICON[account.role]} className="size-5" />
+                          </span>
+                          <span className="min-w-0 flex-1">
+                            <span className="flex flex-wrap items-baseline justify-between gap-x-2">
+                              <span className="font-display text-lg font-semibold">
+                                {a.role[account.role]}
+                              </span>
+                              {step ? (
+                                <span className="text-xs font-semibold text-earth-strong">
+                                  {step}
+                                </span>
+                              ) : null}
+                            </span>
+                            <span className="block text-sm break-all text-muted">
+                              {account.displayName} · {account.email}
+                            </span>
+                            <span className="mt-1 block text-sm">
+                              {a.roleCan[account.role]}
+                            </span>
+                            <span className="mt-1 flex items-center gap-1 text-sm font-semibold text-brand-strong">
+                              {s.signInAs(a.aRole[account.role])}
+                              <Icon name="arrowRight" className="size-4" />
+                            </span>
+                          </span>
+                        </button>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </div>
+            );
+          })}
           <p
             aria-live="polite"
             className="mt-3 min-h-5 text-sm font-semibold text-accent"
           >
-            {demoFor && busy ? a.sampleSigningIn(a.role[demoFor]) : ""}
+            {demoFor && busy ? a.sampleSigningIn(a.role[demoFor.role]) : ""}
           </p>
         </section>
       ) : null}

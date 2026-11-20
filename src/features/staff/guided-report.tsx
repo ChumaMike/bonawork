@@ -18,6 +18,7 @@ import { ApiError, getApi } from "@/data/api";
 import type { EvidenceUpload, Issue } from "@/data/types";
 import { useMessages } from "@/i18n";
 import { timeAgo } from "@/lib/format";
+import { StaffCaseTrail } from "../procurement/tasks";
 import {
   ANSWERS,
   lastEvent,
@@ -124,6 +125,8 @@ export function GuidedReport({
           <div className="flex flex-col gap-5">
             <ReportSummary issue={issue} />
             <Standing issue={issue} />
+            {/* Who ordered, delivered and invoiced, by name. A school is given no prices. */}
+            <StaffCaseTrail issue={issue} />
             {answers.main.length > 0 ? (
               <AnswerChoice
                 main={answers.main}

@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useSyncExternalStore } from "react";
 import { USING_FIXTURES } from "@/data/api";
-import { useAudience, workspaceFor, type Audience } from "@/data/audience";
+import { useAudience, WORKSPACE, workspaceFor, type Audience } from "@/data/audience";
 import { signOut, useSession } from "@/data/session";
 import { useMessages } from "@/i18n";
 import { Avatar } from "./ui/avatar";
@@ -362,17 +362,28 @@ export function PreviewBanner() {
   );
 }
 
+/** The procurement workspaces, in the order their roles act on a case. */
+const PROCUREMENT_ROLES = [
+  "buyer",
+  "supplier",
+  "receiving_officer",
+  "payment_approver",
+] as const;
+
 export function SiteFooter() {
   const m = useMessages();
   const audience = useAudience();
   // Signed out: the way in for staff. A community reporter does not need it.
   // Staff: only their own workspace.
-  const staffLinks = (
-    [
-      { href: "/admin", label: m.nav.admin, role: "school_admin" },
-      { href: "/reviewer", label: m.nav.reviewer, role: "independent_reviewer" },
-    ] as const
-  ).filter((link) => (audience.role === null ? true : link.role === audience.role));
+  const staffLinks = [
+    { href: "/admin", label: m.nav.admin, role: "school_admin" },
+    { href: "/reviewer", label: m.nav.reviewer, role: "independent_reviewer" },
+    ...PROCUREMENT_ROLES.map((role) => ({
+      href: WORKSPACE[role].href,
+      label: `${m.auth.role[role]}: ${m.nav.workspace[role]}`,
+      role,
+    })),
+  ].filter((link) => (audience.role === null ? true : link.role === audience.role));
   return (
     <footer className="no-print bottom-bar-pad border-t border-line bg-surface lg:pb-0">
       <Pattern variant="divider" tone="earth" />

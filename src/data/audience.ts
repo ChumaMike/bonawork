@@ -9,7 +9,8 @@ import type { SessionRole } from "./types";
  * Who the screens are talking to. Reporting a problem, "I'm affected too" and
  * adding evidence to a report are community actions: anyone who is signed out,
  * or signed in as a community reporter. Staff (school administrators, district
- * officials, independent reviewers) get their own workspace instead, so the
+ * officials, independent reviewers, and the four procurement roles: buyer,
+ * supplier, receiving officer, payment approver) get their own workspace instead, so the
  * public screens hide those actions from them. The backend refuses the same
  * actions for staff (`ROLE_PERMISSIONS`); this only keeps the screens honest.
  */
@@ -20,6 +21,15 @@ export type Audience =
 
 export function isCommunityRole(role: SessionRole | null): boolean {
   return role === null || can(role, "report:create");
+}
+
+/**
+ * Whether this person may read the staff version of a case's procurement
+ * trail. Everyone else, signed in or not, gets the public trail: steps,
+ * roles, times and proof. The backend decides this again on every request.
+ */
+export function canReadProcurement(role: SessionRole | null): boolean {
+  return role !== null && can(role, "procurement:read");
 }
 
 export function useAudience(): Audience {
