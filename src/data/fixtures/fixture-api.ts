@@ -7,7 +7,7 @@
  * Nothing is sent anywhere and nothing is written to a blockchain: every new
  * record gets `ledger: { source: "none" }`.
  */
-import type { IsoDateTime } from "@/shared";
+import { can, type IsoDateTime } from "@/shared";
 import type { BonaApi } from "../api";
 import { ApiError } from "../errors";
 import type {
@@ -25,15 +25,20 @@ import type {
   TimelineEventType,
 } from "../types";
 import { answerQuestion } from "./assistant";
+import { createProcurementMethods } from "./procurement-api";
+import { trailFor } from "./procurement-rules";
+import { buildSampleProcurement, type FixtureCase } from "./procurement-seed";
 import {
   buildSampleIssues,
   formatReference,
+  isFinanceEvent,
+  publicStepOf,
   SAMPLE_ACCOUNTS,
   SAMPLE_PASSWORD,
   SAMPLE_SCHOOLS,
 } from "./seed";
 
-const STORAGE_KEY = "bona.fixtures.v2";
+const STORAGE_KEY = "bona.fixtures.v3";
 const SESSION_KEY = "bona.fixtures.session.v1";
 const OPEN_STATUSES = new Set(["reported", "under_assessment", "being_addressed"]);
 
@@ -85,16 +90,22 @@ const DOCUMENT_TYPE: Partial<Record<TimelineEventType, string>> = {
   repair_claimed: "repair_claim",
   verified: "review",
   disputed: "review",
+  work_order_approved: "work_order",
+  invoice_submitted: "supplier_invoice",
+  goods_receipt_recorded: "goods_receipt",
+  match_recorded: "match_result",
+  release_authorised: "release_decision",
 };
 
-/** The procurement trail has no sample data yet: every call is refused the same way. */
-const notImplementedYet = async (): Promise<never> => {
-  throw new ApiError("not_found", "not implemented yet");
-};
+/** What a visit keeps: the issues, and the procurement trail of the cases that have one. */
+interface FixtureState {
+  issues: Issue[];
+  cases: Record<string, FixtureCase>;
+}
 
 export function createFixtureApi(options: FixtureOptions = {}): BonaApi {
   const { latency = 150, persist = true } = options;
-  let issues: Issue[] | null = null;
+  let state: FixtureState | null = null;
   let session: Session | null | undefined;
 
   function currentSession(): Session | null {
@@ -132,23 +143,26 @@ export function createFixtureApi(options: FixtureOptions = {}): BonaApi {
     return current;
   }
 
-  function load(): Issue[] {
-    if (issues) return issues;
+  function loadState(): FixtureState {
+    if (state) return state;
     if (persist) {
       try {
         const stored = window.sessionStorage.getItem(STORAGE_KEY);
-        if (stored) return (issues = JSON.parse(stored) as Issue[]);
+        if (stored) return (state = JSON.parse(stored) as FixtureState);
       } catch {
         // Storage unavailable or unreadable: fall back to a fresh seed.
       }
     }
-    return (issues = buildSampleIssues());
+    const issues = buildSampleIssues();
+    return (state = { issues, cases: buildSampleProcurement(issues) });
   }
 
+  const load = (): Issue[] => loadState().issues;
+
   function save(): void {
-    if (!persist || !issues) return;
+    if (!persist || !state) return;
     try {
-      window.sessionStorage.setItem(STORAGE_KEY, JSON.stringify(issues));
+      window.sessionStorage.setItem(STORAGE_KEY, JSON.stringify(state));
     } catch {
       // Storage unavailable: state simply lasts until the page reloads.
     }
@@ -189,17 +203,21 @@ export function createFixtureApi(options: FixtureOptions = {}): BonaApi {
     type: TimelineEventType,
     actor: ActorRole,
     note: string,
+    at: IsoDateTime = now(),
   ): TimelineEvent {
     const event: TimelineEvent = {
       id: `${issue.id}-event-${issue.timeline.length + 1}`,
       type,
       note,
       actor,
-      occurredAt: now(),
+      occurredAt: at,
       ledger: { source: "none" },
     };
     issue.timeline.push(event);
     issue.updatedAt = event.occurredAt;
+    // The public trail is the procurement steps of the timeline, and nothing more.
+    const step = publicStepOf(event);
+    if (step) issue.publicTrail = [...(issue.publicTrail ?? []), step];
     return event;
   }
 
@@ -401,6 +419,7 @@ export function createFixtureApi(options: FixtureOptions = {}): BonaApi {
         review: null,
         timeline: [],
         evidence: [],
+        publicTrail: [],
       };
       addEvent(
         issue,
@@ -530,6 +549,9 @@ export function createFixtureApi(options: FixtureOptions = {}): BonaApi {
       }
       issue.status = "independently_verified";
       const event = addEvent(issue, "verified", "reviewer", note);
+      // The person who verified may not also authorise the release.
+      const record = loadState().cases[issue.id];
+      if (record) record.reviewerId = currentSession()?.user.id ?? null;
       issue.review = {
         state: "verified",
         reviewerLabel: issue.review?.reviewerLabel ?? "Independent reviewer (sample)",
@@ -607,6 +629,17 @@ export function createFixtureApi(options: FixtureOptions = {}): BonaApi {
             };
       const documentType = event ? DOCUMENT_TYPE[event.type] : undefined;
       if (!documentType) return { receipt };
+      // A procurement document is for people who may read that trail. Everyone
+      // else gets the receipt alone, as the backend answers them.
+      if (event && isFinanceEvent(event.type)) {
+        const reader = currentSession()?.user;
+        const record = loadState().cases[issue.id];
+        const allowed =
+          reader && can(reader.role, "procurement:read") && record
+            ? trailFor(record, issue, reader) !== null
+            : false;
+        if (!allowed) return { receipt };
+      }
       return {
         receipt,
         document: {
@@ -620,15 +653,16 @@ export function createFixtureApi(options: FixtureOptions = {}): BonaApi {
     },
 
     /* Procurement trail */
-    listWorkQueue: notImplementedYet,
-    getMoneyTrail: notImplementedYet,
-    approveWorkOrder: notImplementedYet,
-    acknowledgeOrder: notImplementedYet,
-    draftInvoice: notImplementedYet,
-    submitInvoice: notImplementedYet,
-    recordGoodsReceipt: notImplementedYet,
-    explainMismatch: notImplementedYet,
-    authoriseRelease: notImplementedYet,
+    ...createProcurementMethods({
+      wait,
+      now,
+      save,
+      session: currentSession,
+      issues: load,
+      find,
+      cases: () => loadState().cases,
+      addEvent,
+    }),
 
     async findEvidenceByDigest(digest) {
       await wait();
