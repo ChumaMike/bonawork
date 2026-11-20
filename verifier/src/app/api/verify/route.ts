@@ -10,7 +10,10 @@ import type { Source } from "../../../lib/verify";
  *   (0x-hex computed elsewhere); optional `reportId` (UUID). For a
  *   ReportAcknowledged receipt send only `receipt` and `reportId`.
  * application/json: `{ receipt, document?, digest?, reportId? }` where
- *   `receipt` / `document` may be objects or JSON strings.
+ *   `receipt` / `document` may be objects or JSON strings. With a `digest`
+ *   for a finance receipt, `workOrderId` (UUID) and, for MatchRecorded,
+ *   `matchPassed` (boolean: the document's outcome is "pass") may be sent so
+ *   the ledger's own values are compared with them.
  *
  * Files and documents are hashed in memory and discarded; nothing is stored or
  * logged. The response contains only fingerprints, the tx hash, block,
@@ -43,6 +46,7 @@ export async function GET(): Promise<Response> {
         rpcUrl: config.rpcUrl,
         chainId: config.chainId,
         expectedContractAddress: config.expectedContractAddress ?? null,
+        expectedFactoryAddress: config.expectedFactoryAddress ?? null,
         note: "This tool talks only to the Avalanche network. Bona Chain's servers are not involved.",
       },
       { headers: { "Cache-Control": "no-store" } },
@@ -56,7 +60,16 @@ export async function GET(): Promise<Response> {
 }
 
 type Parsed =
-  | { ok: true; input: { receipt: unknown; source: Source; reportId?: string } }
+  | {
+      ok: true;
+      input: {
+        receipt: unknown;
+        source: Source;
+        reportId?: string;
+        workOrderId?: string;
+        matchPassed?: boolean;
+      };
+    }
   | { ok: false; error: string };
 
 async function readRequest(request: Request): Promise<Parsed> {
@@ -118,7 +131,16 @@ async function readRequest(request: Request): Promise<Parsed> {
     } else if (typeof b.digest === "string" && b.digest.trim()) {
       source = { kind: "digest", digest: b.digest };
     }
-    return { ok: true, input: { receipt: receipt.value, source, reportId } };
+    return {
+      ok: true,
+      input: {
+        receipt: receipt.value,
+        source,
+        reportId,
+        workOrderId: optionalString(b.workOrderId),
+        matchPassed: typeof b.matchPassed === "boolean" ? b.matchPassed : undefined,
+      },
+    };
   }
 
   return { ok: false, error: "Send multipart/form-data or application/json." };

@@ -12,7 +12,9 @@ export const MODE_LABEL: Record<Mode, string> = {
 export function modeForEvent(event: RegistryEvent): Mode {
   const rule = EVENT_RULE[event];
   if (rule.field === "digest") return "evidence";
-  if (rule.field === null) return "acknowledgement";
+  // Nothing to hand over: the event carries no fingerprint, or (a payment
+  // dispute) no document format is published for it. Its presence is checked.
+  if (rule.field === null || rule.document === null) return "acknowledgement";
   return "document";
 }
 

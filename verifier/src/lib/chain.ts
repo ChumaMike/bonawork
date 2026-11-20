@@ -1,4 +1,5 @@
 import { createPublicClient, http, TransactionReceiptNotFoundError } from "viem";
+import { bonaChainFactoryViewsAbi } from "../abi/bona-chain";
 import type { ChainReader, TxReceiptLike } from "./verify";
 
 /**
@@ -10,6 +11,17 @@ export function createChainReader(rpcUrl: string): ChainReader {
   const client = createPublicClient({ transport: http(rpcUrl, { retryCount: 1 }) });
   return {
     getChainId: () => client.getChainId(),
+    async getContractKind(factory, address) {
+      // Read from the factory itself. An address with no factory behind it
+      // throws here, which is never mistaken for "genuine".
+      const kind = await client.readContract({
+        address: factory,
+        abi: bonaChainFactoryViewsAbi,
+        functionName: "kindOf",
+        args: [address],
+      });
+      return Number(kind);
+    },
     async getTransactionReceipt(hash): Promise<TxReceiptLike | null> {
       try {
         const receipt = await client.getTransactionReceipt({ hash });

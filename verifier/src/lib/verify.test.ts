@@ -5,6 +5,7 @@ import { canonicalJson, computeCommitment, idToBytes32, sha256Hex } from "./cano
 import {
   verify,
   type ChainReader,
+  type OPERATIONS_EVENTS,
   type RegistryEvent,
   type TxReceiptLike,
   type VerifyResult,
@@ -25,7 +26,7 @@ const SALT = `0x${"5a".repeat(32)}`;
 
 /** Build a structurally correct log exactly as the EVM would emit it. */
 function fakeLog(
-  eventName: RegistryEvent,
+  eventName: (typeof OPERATIONS_EVENTS)[number],
   args: Record<string, unknown>,
   address = CONTRACT,
 ) {

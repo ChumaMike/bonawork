@@ -50,6 +50,12 @@ export function canonicalJson(value: unknown): string {
  * one you need the document, salt included. These are the exact field sets
  * of BonaBlock's `*DocumentSchema`s; unknown keys are ignored, as the app's
  * schema validation strips them before hashing.
+ *
+ * The last five are the documents of the procurement trail: a work order, a
+ * supplier's invoice, a goods receipt, the three-way match result and the
+ * release decision. They hold amounts and line detail, so the app shows them
+ * only to people allowed to read them; the fingerprint on the ledger reveals
+ * none of it.
  */
 export const DOCUMENT_FIELDS = {
   report: [
@@ -90,7 +96,89 @@ export const DOCUMENT_FIELDS = {
     "createdAt",
     "salt",
   ],
+  work_order: [
+    "type",
+    "workOrderId",
+    "reportId",
+    "institutionId",
+    "version",
+    "description",
+    "lines",
+    "totalCents",
+    "currency",
+    "createdAt",
+    "salt",
+  ],
+  supplier_invoice: [
+    "type",
+    "invoiceId",
+    "workOrderId",
+    "reportId",
+    "invoiceNumber",
+    "orderVersion",
+    "lines",
+    "totalCents",
+    "currency",
+    "createdAt",
+    "salt",
+  ],
+  goods_receipt: [
+    "type",
+    "receiptId",
+    "workOrderId",
+    "reportId",
+    "orderVersion",
+    "lines",
+    "evidenceDigests",
+    "createdAt",
+    "salt",
+  ],
+  match_result: [
+    "type",
+    "matchId",
+    "workOrderId",
+    "reportId",
+    "workOrderCommitment",
+    "invoiceCommitment",
+    "receiptCommitments",
+    "outcome",
+    "reasons",
+    "engineVersion",
+    "createdAt",
+    "salt",
+  ],
+  release_decision: [
+    "type",
+    "releaseId",
+    "workOrderId",
+    "reportId",
+    "matchCommitment",
+    "reviewCommitment",
+    "decision",
+    "createdAt",
+    "salt",
+  ],
 } as const;
+
+/** A line of a work order or an invoice. */
+const ORDER_LINE_FIELDS = ["sku", "description", "quantity", "unitPriceCents"] as const;
+/** A line of a goods receipt: what arrived. It carries no price. */
+const RECEIPT_LINE_FIELDS = ["sku", "description", "quantity"] as const;
+/** One reason a three-way match did not pass. */
+const MATCH_REASON_FIELDS = ["code", "sku", "expected", "actual"] as const;
+
+/**
+ * Lists of objects inside a document, and the exact fields of each object.
+ * The app's schema strips unknown keys from these too before hashing.
+ */
+export const NESTED_FIELDS: Partial<
+  Record<keyof typeof DOCUMENT_FIELDS, Record<string, readonly string[]>>
+> = {
+  work_order: { lines: ORDER_LINE_FIELDS },
+  supplier_invoice: { lines: ORDER_LINE_FIELDS },
+  goods_receipt: { lines: RECEIPT_LINE_FIELDS },
+  match_result: { reasons: MATCH_REASON_FIELDS },
+};
 
 export type DocumentType = keyof typeof DOCUMENT_FIELDS;
 
@@ -124,8 +212,25 @@ export function pickDocumentFields(
   doc: Record<string, unknown>,
 ): Record<string, unknown> {
   const type = doc.type as DocumentType;
+  const nested = NESTED_FIELDS[type] ?? {};
   const out: Record<string, unknown> = {};
-  for (const key of DOCUMENT_FIELDS[type]) out[key] = doc[key];
+  for (const key of DOCUMENT_FIELDS[type]) {
+    const value = doc[key];
+    const fields = nested[key];
+    out[key] =
+      fields && Array.isArray(value)
+        ? value.map((item) => (isRecord(item) ? pickFields(item, fields) : item))
+        : value;
+  }
+  return out;
+}
+
+function pickFields(
+  item: Record<string, unknown>,
+  fields: readonly string[],
+): Record<string, unknown> {
+  const out: Record<string, unknown> = {};
+  for (const key of fields) out[key] = item[key];
   return out;
 }
 

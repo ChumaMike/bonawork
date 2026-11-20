@@ -139,7 +139,8 @@ export function ResultView({
             <Row name="Recorded">{formatRecordedAt(facts.eventTimestamp)}</Row>
           ) : null}
           <Row name="By the Bona Chain contract">
-            {result.verifier.expectedContractAddress ? (
+            {result.verifier.expectedContractAddress ||
+            result.verifier.expectedFactoryAddress ? (
               <span className="text-good">Yes</span>
             ) : (
               <span className="font-medium text-muted">Not checked here</span>

@@ -125,6 +125,11 @@ const DOCUMENT_NAME: Record<string, string> = {
   interim_protection: "a temporary protection",
   repair_claim: "a repair claim",
   review: "a review",
+  work_order: "a work order",
+  supplier_invoice: "a supplier invoice",
+  goods_receipt: "a goods receipt",
+  match_result: "a three-way match result",
+  release_decision: "a release authorisation",
 };
 
 export type DocumentRead =
@@ -185,6 +190,18 @@ export function checkDocument(value: unknown, event: RegistryEvent): DocumentRea
       : event === "RepairDisputed"
         ? "disputed"
         : null;
+  if (
+    event === "MatchRecorded" &&
+    document.outcome !== "pass" &&
+    document.outcome !== "fail"
+  ) {
+    return {
+      ok: false,
+      problem:
+        "These details do not say whether the match passed. Copy the document from the same record as the receipt.",
+      detail: `A MatchRecorded receipt needs a match result with outcome "pass" or "fail", not "${String(document.outcome)}".`,
+    };
+  }
   if (outcome && document.outcome !== outcome) {
     return {
       ok: false,
@@ -222,7 +239,9 @@ export function documentWords(
     ["category", "Category"],
     ["measure", "What was put in place"],
     ["summary", "What was done"],
+    ["invoiceNumber", "Invoice number"],
     ["outcome", "Outcome"],
+    ["decision", "Decision"],
     ["findings", "Findings"],
     ["createdAt", "Written"],
   ];
@@ -231,5 +250,22 @@ export function documentWords(
     const value = document[key];
     if (typeof value === "string" && value.trim()) words.push({ name, text: value });
   }
+  // A finance document: how many lines it lists and its total, read from the
+  // document on this device. Money is whole cents in the document.
+  const written = words.findIndex((word) => word.name === "Written");
+  const at = written >= 0 ? written : words.length;
+  const extra: { name: string; text: string }[] = [];
+  if (Array.isArray(document.lines)) {
+    const count = document.lines.length;
+    extra.push({ name: "Lines", text: `${count} ${count === 1 ? "line" : "lines"}` });
+  }
+  if (typeof document.totalCents === "number" && Number.isFinite(document.totalCents)) {
+    const currency = typeof document.currency === "string" ? document.currency : "";
+    extra.push({
+      name: "Total",
+      text: `${currency} ${(document.totalCents / 100).toFixed(2)}`.trim(),
+    });
+  }
+  words.splice(at, 0, ...extra);
   return words;
 }
