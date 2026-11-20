@@ -34,6 +34,7 @@ export function httpErrorFromLedger(error: LedgerError): HttpError {
   const name = error.contractError ? ` (${error.contractError})` : "";
   switch (error.code) {
     case "self_verification":
+    case "separation_of_duties":
     case "unauthorized":
       return new HttpError(
         "forbidden",
@@ -43,6 +44,11 @@ export function httpErrorFromLedger(error: LedgerError): HttpError {
       return new HttpError(
         "invalid_transition",
         `The ledger refused this write${name}: ${error.message}`,
+      );
+    case "release_blocked":
+      return new HttpError(
+        "conflict",
+        `The ledger will not let this release through yet${name}: ${error.message}`,
       );
     case "duplicate":
       return new HttpError(

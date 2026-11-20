@@ -9,22 +9,29 @@ import type { Hex32 } from "@/shared";
 import { createFixtureApi } from "./fixtures/fixture-api";
 import { createHttpApi } from "./http-api";
 import type {
+  ApproveWorkOrderInput,
   DemoAccount,
   AssistantMessage,
   DigestMatch,
   EvidenceItem,
   EvidencePurpose,
   EvidenceUpload,
+  InvoiceDraft,
   Issue,
   IssueFilter,
   IssueSummary,
+  MismatchExplanation,
+  MoneyTrail,
+  RecordGoodsReceiptInput,
   RecordProof,
   School,
   SchoolProfile,
   Session,
   SubmissionReceipt,
+  SubmitInvoiceInput,
   SubmitReportInput,
   VerificationProbe,
+  WorkQueueItem,
 } from "./types";
 
 export interface BonaApi {
@@ -92,6 +99,39 @@ export interface BonaApi {
   ): Promise<Issue>;
   /** Asks whether the signed-in user could verify this repair. Any staff role may ask. */
   probeVerification(issueId: string): Promise<VerificationProbe>;
+
+  /*
+   * Procurement trail. Every call needs a signed-in procurement role; each
+   * write returns the trail as the caller may now see it. No real money
+   * moves: the last step is a release instruction.
+   */
+  /** The cases that need the signed-in person now. Empty for roles with nothing to do. */
+  listWorkQueue(): Promise<WorkQueueItem[]>;
+  /**
+   * The procurement trail of one case, filtered for the caller. Null when the
+   * case has no work order, or none the caller may see.
+   */
+  getMoneyTrail(issueId: string): Promise<MoneyTrail | null>;
+  /** Buyer. Creates the work order, or its next version. */
+  approveWorkOrder(issueId: string, input: ApproveWorkOrderInput): Promise<MoneyTrail>;
+  /** Supplier. Acknowledges the current order version. */
+  acknowledgeOrder(issueId: string): Promise<MoneyTrail>;
+  /** Supplier. Bona AI reads pasted invoice text into fields. Writes nothing. */
+  draftInvoice(issueId: string, text: string): Promise<InvoiceDraft>;
+  /** Supplier. The rule engine then matches it; the result is in the returned trail. */
+  submitInvoice(issueId: string, input: SubmitInvoiceInput): Promise<MoneyTrail>;
+  /** Receiving officer. */
+  recordGoodsReceipt(
+    issueId: string,
+    input: RecordGoodsReceiptInput,
+  ): Promise<MoneyTrail>;
+  /** Why this match was blocked, in plain words. Explains the rule engine; decides nothing. */
+  explainMismatch(issueId: string, matchId: string): Promise<MismatchExplanation>;
+  /**
+   * Payment approver. Rejects with an `ApiError` of code `conflict` while the
+   * release gate is shut; `getMoneyTrail(issueId).gate.blockers` says why.
+   */
+  authoriseRelease(issueId: string): Promise<MoneyTrail>;
 
   /* Verification */
   /**

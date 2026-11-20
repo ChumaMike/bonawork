@@ -14,11 +14,14 @@ import type {
   SessionRole,
   TimelineEventType,
 } from "@/data/types";
+import { procurement } from "./en-procurement";
 
 const plural = (count: number, one: string, many: string) =>
   `${count} ${count === 1 ? one : many}`;
 
 export const en = {
+  /** The procurement screens. Edit `./en-procurement.ts`, not this entry. */
+  procurement,
   brand: {
     name: "BonaBlock",
     forSchools: "BonaBlock for Schools",
@@ -57,6 +60,10 @@ export const en = {
       school_admin: "My dashboard",
       independent_reviewer: "My reviews",
       district_official: "All reports",
+      buyer: "Work orders",
+      supplier: "My orders",
+      receiving_officer: "Deliveries",
+      payment_approver: "Releases",
     } satisfies Record<Exclude<SessionRole, "reporter">, string>,
   },
 
@@ -81,6 +88,22 @@ export const en = {
       district_official: {
         title: "All reports",
         body: "Every report in the district, and where it stands.",
+      },
+      buyer: {
+        title: "Work orders",
+        body: "Reported problems that need a work order approved.",
+      },
+      supplier: {
+        title: "My orders",
+        body: "Orders to acknowledge and invoices to submit.",
+      },
+      receiving_officer: {
+        title: "Deliveries",
+        body: "Orders waiting for you to record what arrived.",
+      },
+      payment_approver: {
+        title: "Releases",
+        body: "Verified repairs waiting for a release instruction.",
       },
     } satisfies Record<Exclude<SessionRole, "reporter">, { title: string; body: string }>,
   },
@@ -162,6 +185,10 @@ export const en = {
     school_admin: "School",
     district: "District",
     reviewer: "Independent reviewer",
+    buyer: "Programme buyer",
+    supplier: "Supplier",
+    receiving_officer: "Receiving officer",
+    payment_approver: "Payment approver",
     system: "BonaBlock",
   } satisfies Record<ActorRole, string>,
 
@@ -175,6 +202,14 @@ export const en = {
     disputed: "Repair disputed",
     declined: "Declined by school",
     evidence_added: "Evidence added",
+    work_order_approved: "Work order approved",
+    work_order_acknowledged: "Supplier acknowledged the order",
+    invoice_submitted: "Invoice submitted",
+    goods_receipt_recorded: "Goods receipt recorded",
+    match_recorded: "Three-way match recorded",
+    payment_dispute_opened: "Payment dispute opened",
+    payment_dispute_closed: "Payment dispute closed",
+    release_authorised: "Release authorised",
   } satisfies Record<TimelineEventType, string>,
 
   evidencePurpose: {
@@ -590,6 +625,10 @@ export const en = {
       school_admin: "School administrator",
       district_official: "District official",
       independent_reviewer: "Independent reviewer",
+      buyer: "Programme buyer",
+      supplier: "Supplier",
+      receiving_officer: "Receiving officer",
+      payment_approver: "Payment approver",
     } satisfies Record<SessionRole, string>,
     /** The same roles as they read inside a sentence. */
     aRole: {
@@ -597,6 +636,10 @@ export const en = {
       school_admin: "a school administrator",
       district_official: "a district official",
       independent_reviewer: "an independent reviewer",
+      buyer: "a programme buyer",
+      supplier: "a supplier",
+      receiving_officer: "a receiving officer",
+      payment_approver: "a payment approver",
     } satisfies Record<SessionRole, string>,
     gateTitle: "Sign-in needed",
     gateBody: (aRole: string) => `This page is only for ${aRole}.`,
@@ -615,6 +658,11 @@ export const en = {
       district_official: "See every report in the district.",
       independent_reviewer:
         "Check repair claims and verify or dispute them. Never on the school's staff.",
+      buyer: "Approve the work order for a reported problem.",
+      supplier: "Acknowledge the order and submit the invoice for it.",
+      receiving_officer: "Record what was actually delivered.",
+      payment_approver:
+        "Authorise the release instruction once the repair is verified. No money moves here.",
     } satisfies Record<SessionRole, string>,
     emailHint: "The address your BonaBlock account was set up with.",
     passwordNext: "Now your password.",

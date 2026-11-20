@@ -20,6 +20,15 @@ type Entry = { status: ChainStatus; evidence: Set<Hex32>; protections: Set<Hex32
 const refuse = (name: ContractErrorName, detail: string) =>
   LedgerError.fromContract(name, detail);
 
+/** Finance writes are not modelled here yet: every one of them is refused. */
+const financeOff = async (): Promise<never> => {
+  throw new LedgerError(
+    "not_configured",
+    null,
+    "The in-memory ledger does not record finance steps yet.",
+  );
+};
+
 /**
  * A LedgerPort that keeps everything in memory and applies the same ordering
  * rules as BonaRegistry. For local development and tests only: receipts carry
@@ -73,6 +82,7 @@ export function createMemoryLedger(): LedgerPort {
       networkName: "In-memory ledger (not a blockchain)",
       explorerTxUrl: () => null,
       live: false,
+      finance: "off",
     }),
     async registerReport({ reportId, commitment }) {
       const key = idToBytes32(reportId);
@@ -153,5 +163,14 @@ export function createMemoryLedger(): LedgerPort {
       if (!found) throw new LedgerError("not_found", null, `unknown transaction ${txId}`);
       return found;
     },
+    approveWorkOrder: financeOff,
+    acknowledgeWorkOrder: financeOff,
+    submitInvoice: financeOff,
+    recordGoodsReceipt: financeOff,
+    recordMatchResult: financeOff,
+    openPaymentDispute: financeOff,
+    closePaymentDispute: financeOff,
+    authoriseRelease: financeOff,
+    probeRelease: financeOff,
   };
 }

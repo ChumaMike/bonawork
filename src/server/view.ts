@@ -50,6 +50,10 @@ export const ACTOR_ROLE_FOR: Record<UserRole | "system", ActorRole> = {
   school_admin: "school_admin",
   district_official: "district",
   independent_reviewer: "reviewer",
+  buyer: "buyer",
+  supplier: "supplier",
+  receiving_officer: "receiving_officer",
+  payment_approver: "payment_approver",
   system: "system",
 };
 
@@ -162,6 +166,16 @@ function timelineType(event: CaseEventRow): TimelineEventType {
       return "disputed";
     case "status_changed":
       return event.statusTo === "rejected" ? "declined" : "progress_recorded";
+    // The finance steps keep their case-event names on the timeline.
+    case "work_order_approved":
+    case "work_order_acknowledged":
+    case "invoice_submitted":
+    case "goods_receipt_recorded":
+    case "match_recorded":
+    case "payment_dispute_opened":
+    case "payment_dispute_closed":
+    case "release_authorised":
+      return event.type;
   }
 }
 

@@ -18,6 +18,14 @@ const EVENT_STYLE: Record<TimelineEventType, { icon: IconName; tone: string }> =
   disputed: { icon: "alert", tone: "bg-st-disputed-soft text-st-disputed" },
   declined: { icon: "ban", tone: "bg-st-declined-soft text-st-declined" },
   evidence_added: { icon: "file", tone: "bg-sunken text-muted" },
+  work_order_approved: { icon: "file", tone: "bg-brand-soft text-brand-strong" },
+  work_order_acknowledged: { icon: "check", tone: "bg-brand-soft text-brand-strong" },
+  invoice_submitted: { icon: "send", tone: "bg-brand-soft text-brand-strong" },
+  goods_receipt_recorded: { icon: "cube", tone: "bg-brand-soft text-brand-strong" },
+  match_recorded: { icon: "filter", tone: "bg-sunken text-muted" },
+  payment_dispute_opened: { icon: "alert", tone: "bg-st-disputed-soft text-st-disputed" },
+  payment_dispute_closed: { icon: "check", tone: "bg-sunken text-muted" },
+  release_authorised: { icon: "lock", tone: "bg-brand-soft text-brand-strong" },
 };
 
 /** Entries anchored as a salted commitment document, which the verifier needs too. */
@@ -27,6 +35,11 @@ const HAS_DOCUMENT = new Set<TimelineEventType>([
   "repair_claimed",
   "verified",
   "disputed",
+  "work_order_approved",
+  "invoice_submitted",
+  "goods_receipt_recorded",
+  "match_recorded",
+  "release_authorised",
 ]);
 
 /**

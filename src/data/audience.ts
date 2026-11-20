@@ -38,6 +38,10 @@ export const WORKSPACE: Record<
   school_admin: { href: "/admin", icon: "school" },
   independent_reviewer: { href: "/reviewer", icon: "shieldCheck" },
   district_official: { href: "/issues", icon: "list" },
+  buyer: { href: "/buyer", icon: "file" },
+  supplier: { href: "/supplier", icon: "building" },
+  receiving_officer: { href: "/receiving", icon: "check" },
+  payment_approver: { href: "/payments", icon: "lock" },
 };
 
 export function workspaceFor(role: SessionRole | null) {

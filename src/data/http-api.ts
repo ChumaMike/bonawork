@@ -14,9 +14,12 @@ import type {
   EvidenceItem,
   EvidencePurpose,
   EvidenceUpload,
+  InvoiceDraft,
   Issue,
   IssueFilter,
   IssueSummary,
+  MismatchExplanation,
+  MoneyTrail,
   RecordProof,
   School,
   SchoolProfile,
@@ -24,6 +27,7 @@ import type {
   SubmissionReceipt,
   SubmitReportInput,
   VerificationProbe,
+  WorkQueueItem,
 } from "./types";
 
 interface Options {
@@ -37,6 +41,8 @@ const KNOWN_CODES = [
   "forbidden",
   "not_found",
   "invalid_transition",
+  "conflict",
+  "invalid_input",
 ] as const;
 
 /** Build the `ApiError` for an envelope error; unknown codes keep the server's string. */
@@ -210,6 +216,29 @@ export function createHttpApi(baseUrl = ""): BonaApi {
       call<VerificationProbe>(issuePath(issueId, "/verification/probe"), {
         method: "POST",
       }),
+
+    /* Procurement trail */
+    listWorkQueue: () => call<WorkQueueItem[]>("/api/work/queue"),
+    getMoneyTrail: (issueId) => optional<MoneyTrail>(issuePath(issueId, "/procurement")),
+    approveWorkOrder: (issueId, input) =>
+      call<MoneyTrail>(issuePath(issueId, "/work-order"), { json: input }),
+    acknowledgeOrder: (issueId) =>
+      call<MoneyTrail>(issuePath(issueId, "/work-order/acknowledgement"), {
+        method: "POST",
+      }),
+    draftInvoice: (issueId, text) =>
+      call<InvoiceDraft>(issuePath(issueId, "/invoices/draft"), { json: { text } }),
+    submitInvoice: (issueId, input) =>
+      call<MoneyTrail>(issuePath(issueId, "/invoices"), { json: input }),
+    recordGoodsReceipt: (issueId, input) =>
+      call<MoneyTrail>(issuePath(issueId, "/goods-receipt"), { json: input }),
+    explainMismatch: (issueId, matchId) =>
+      call<MismatchExplanation>(
+        issuePath(issueId, `/match/${encodeURIComponent(matchId)}/explanation`),
+        { method: "POST" },
+      ),
+    authoriseRelease: (issueId) =>
+      call<MoneyTrail>(issuePath(issueId, "/release"), { method: "POST" }),
 
     /* Evidence files (private; same-origin session cookie) */
     evidenceFileUrl: (evidenceId) =>

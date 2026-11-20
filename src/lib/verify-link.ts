@@ -1,4 +1,4 @@
-import { AVALANCHE_CHAINS, BlockchainReceiptSchema, type RegistryEvent } from "@/shared";
+import { AVALANCHE_CHAINS, BlockchainReceiptSchema, type LedgerEvent } from "@/shared";
 
 /**
  * Links that open BonaBlock Verify (the separate site in `verifier/`) with one
@@ -43,8 +43,8 @@ export const VERIFY_LINK_MAX_LENGTH = 8000;
 /** Longest label carried in a link. It is a caption, not something that is checked. */
 export const VERIFY_LINK_MAX_LABEL = 80;
 
-/** One letter per registry event. Part of the format: never reuse or change a letter. */
-const EVENT_CODE: Record<RegistryEvent, string> = {
+/** One letter per ledger event. Part of the format: never reuse or change a letter. */
+const EVENT_CODE: Record<LedgerEvent, string> = {
   EvidenceRegistered: "E",
   ReportRegistered: "R",
   ReportAcknowledged: "A",
@@ -52,7 +52,22 @@ const EVENT_CODE: Record<RegistryEvent, string> = {
   RepairClaimed: "C",
   RepairVerified: "V",
   RepairDisputed: "D",
+  WorkOrderApproved: "W",
+  WorkOrderAcknowledged: "K",
+  InvoiceSubmitted: "I",
+  GoodsReceiptRecorded: "G",
+  MatchRecorded: "M",
+  PaymentDisputeOpened: "O",
+  PaymentDisputeClosed: "L",
+  ReleaseAuthorised: "Z",
 };
+
+/** Events that anchor no commitment document: a file digest, or nothing at all. */
+const NO_DOCUMENT: ReadonlySet<LedgerEvent> = new Set([
+  "EvidenceRegistered",
+  "ReportAcknowledged",
+  "WorkOrderAcknowledged",
+]);
 
 const PUBLIC_CHAINS: readonly string[] = Object.values(AVALANCHE_CHAINS);
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -143,11 +158,8 @@ function link(base: string, fields: string[]): string {
 }
 
 /** Only document-backed events carry a document, and only a real one (never a sample). */
-function documentFor(
-  event: RegistryEvent,
-  value: unknown,
-): Record<string, unknown> | null {
-  if (event === "EvidenceRegistered" || event === "ReportAcknowledged") return null;
+function documentFor(event: LedgerEvent, value: unknown): Record<string, unknown> | null {
+  if (NO_DOCUMENT.has(event)) return null;
   if (typeof value !== "object" || value === null || Array.isArray(value)) return null;
   const document = value as Record<string, unknown>;
   if (typeof document.type !== "string" || typeof document.salt !== "string") return null;

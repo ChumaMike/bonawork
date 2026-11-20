@@ -53,6 +53,17 @@ export function instrumentedLedger(): LedgerPort & {
       txId: string,
       event: BlockchainReceipt["event"],
     ) => Promise<BlockchainReceipt>,
+    approveWorkOrder: wrap("approveWorkOrder") as LedgerPort["approveWorkOrder"],
+    acknowledgeWorkOrder: wrap(
+      "acknowledgeWorkOrder",
+    ) as LedgerPort["acknowledgeWorkOrder"],
+    submitInvoice: wrap("submitInvoice") as LedgerPort["submitInvoice"],
+    recordGoodsReceipt: wrap("recordGoodsReceipt") as LedgerPort["recordGoodsReceipt"],
+    recordMatchResult: wrap("recordMatchResult") as LedgerPort["recordMatchResult"],
+    openPaymentDispute: wrap("openPaymentDispute") as LedgerPort["openPaymentDispute"],
+    closePaymentDispute: wrap("closePaymentDispute") as LedgerPort["closePaymentDispute"],
+    authoriseRelease: wrap("authoriseRelease") as LedgerPort["authoriseRelease"],
+    probeRelease: wrap("probeRelease") as LedgerPort["probeRelease"],
   });
 }
 

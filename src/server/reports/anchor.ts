@@ -19,6 +19,7 @@ import {
   type BlockchainReceipt,
   type CaseEventType,
   type EvidenceKind,
+  type FinanceRef,
   type IsoDateTime,
   type LedgerPort,
 } from "@/shared";
@@ -82,7 +83,52 @@ export function callLedger(
         reportId: p.reportId,
         reviewCommitment: p.reviewCommitment,
       });
+    case "approve_work_order":
+      return ledger.approveWorkOrder({
+        ...financeRef(p),
+        reportId: p.reportId,
+        commitment: p.commitment,
+      });
+    case "acknowledge_work_order":
+      return ledger.acknowledgeWorkOrder(financeRef(p));
+    case "submit_invoice":
+      return ledger.submitInvoice({ ...financeRef(p), commitment: p.commitment });
+    case "record_goods_receipt":
+      return ledger.recordGoodsReceipt({ ...financeRef(p), commitment: p.commitment });
+    case "record_match_result":
+      return ledger.recordMatchResult({
+        ...financeRef(p),
+        invoiceCommitment: p.invoiceCommitment,
+        // Payloads are strings: the outcome travels as "true" or "false".
+        passed: p.passed === "true",
+        commitment: p.commitment,
+      });
+    case "open_payment_dispute":
+      return ledger.openPaymentDispute({
+        ...financeRef(p),
+        commitment: p.commitment,
+        as: disputeSigner(p.as),
+      });
+    case "close_payment_dispute":
+      return ledger.closePaymentDispute({
+        ...financeRef(p),
+        commitment: p.commitment,
+        as: disputeSigner(p.as),
+      });
+    case "authorise_release":
+      return ledger.authoriseRelease({ ...financeRef(p), commitment: p.commitment });
   }
+}
+
+const financeRef = (p: Record<string, string>): FinanceRef => ({
+  institutionId: p.institutionId,
+  workOrderId: p.workOrderId,
+});
+
+/** A payment dispute is opened and closed by the buyer or the receiver, nobody else. */
+function disputeSigner(value: string): "buyer" | "receiver" {
+  if (value === "buyer" || value === "receiver") return value;
+  throw new Error(`A payment dispute cannot be signed as "${value}".`);
 }
 
 const TARGET_TABLE = {

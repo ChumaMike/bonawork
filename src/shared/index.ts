@@ -6,6 +6,7 @@
 export * from "./primitives";
 export * from "./roles";
 export * from "./domain";
+export * from "./procurement";
 export * from "./commitment";
 export * from "./ports";
 export * from "./api";

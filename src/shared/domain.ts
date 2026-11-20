@@ -1,5 +1,12 @@
 import { z } from "zod";
 import { Hex32Schema, IdSchema, IsoDateTimeSchema } from "./primitives";
+import {
+  CentsSchema,
+  CurrencySchema,
+  MatchReasonSchema,
+  OrderLineSchema,
+  ReceiptLineSchema,
+} from "./procurement/base";
 import { UserRoleSchema, type Permission, type UserRole } from "./roles";
 
 /* --------------------------- Institutions and schools ------------------------ */
@@ -74,13 +81,32 @@ export const REGISTRY_EVENTS = [
 export const RegistryEventSchema = z.enum(REGISTRY_EVENTS);
 export type RegistryEvent = z.infer<typeof RegistryEventSchema>;
 
+/** Events emitted by InstitutionFinance, exactly as named in the ABI, in trail order. */
+export const FINANCE_EVENTS = [
+  "WorkOrderApproved",
+  "WorkOrderAcknowledged",
+  "InvoiceSubmitted",
+  "GoodsReceiptRecorded",
+  "MatchRecorded",
+  "PaymentDisputeOpened",
+  "PaymentDisputeClosed",
+  "ReleaseAuthorised",
+] as const;
+export const FinanceEventSchema = z.enum(FINANCE_EVENTS);
+export type FinanceEvent = z.infer<typeof FinanceEventSchema>;
+
+/** Every event a ledger receipt can be about: the registry events, then the finance events. */
+export const LEDGER_EVENTS = [...REGISTRY_EVENTS, ...FINANCE_EVENTS] as const;
+export const LedgerEventSchema = z.enum(LEDGER_EVENTS);
+export type LedgerEvent = z.infer<typeof LedgerEventSchema>;
+
 /** CAIP-2 ids of the Avalanche C-Chain networks. */
 export const AVALANCHE_CHAINS = {
   fuji: "eip155:43113",
   mainnet: "eip155:43114",
 } as const;
 
-/** Proof that one BonaRegistry write happened. Contains no personal data. */
+/** Proof that one ledger write happened. Contains no personal data. */
 export const BlockchainReceiptSchema = z.object({
   /** CAIP-2 chain id, e.g. `eip155:43113` (Avalanche Fuji). */
   chainId: z.string().min(1),
@@ -91,7 +117,7 @@ export const BlockchainReceiptSchema = z.object({
   blockNumber: z.number().int().nonnegative().nullable(),
   blockTimestamp: IsoDateTimeSchema.nullable(),
   /** The event this write emits. */
-  event: RegistryEventSchema,
+  event: LedgerEventSchema,
 });
 export type BlockchainReceipt = z.infer<typeof BlockchainReceiptSchema>;
 
@@ -373,21 +399,113 @@ export const ReviewDocumentSchema = z.object({
   createdAt: IsoDateTimeSchema,
   ...salted,
 });
+
+/*
+ * Finance documents. Each names its own id, its work order and its report.
+ * They hold amounts and line detail, so the documents route only returns
+ * their body to a caller with `procurement:read`.
+ */
+export const WorkOrderDocumentSchema = z.object({
+  type: z.literal("work_order"),
+  workOrderId: IdSchema,
+  reportId: IdSchema,
+  institutionId: IdSchema,
+  /** 1-based. A change to the order is a new version with a new commitment. */
+  version: z.number().int().positive(),
+  description: z.string(),
+  lines: z.array(OrderLineSchema),
+  totalCents: CentsSchema,
+  currency: CurrencySchema,
+  createdAt: IsoDateTimeSchema,
+  ...salted,
+});
+export const SupplierInvoiceDocumentSchema = z.object({
+  type: z.literal("supplier_invoice"),
+  invoiceId: IdSchema,
+  workOrderId: IdSchema,
+  reportId: IdSchema,
+  invoiceNumber: z.string(),
+  /** The order version the supplier invoiced against. */
+  orderVersion: z.number().int().positive(),
+  lines: z.array(OrderLineSchema),
+  totalCents: CentsSchema,
+  currency: CurrencySchema,
+  createdAt: IsoDateTimeSchema,
+  ...salted,
+});
+export const GoodsReceiptDocumentSchema = z.object({
+  type: z.literal("goods_receipt"),
+  receiptId: IdSchema,
+  workOrderId: IdSchema,
+  reportId: IdSchema,
+  orderVersion: z.number().int().positive(),
+  lines: z.array(ReceiptLineSchema),
+  evidenceDigests: z.array(Hex32Schema),
+  createdAt: IsoDateTimeSchema,
+  ...salted,
+});
+export const MatchResultDocumentSchema = z.object({
+  type: z.literal("match_result"),
+  matchId: IdSchema,
+  workOrderId: IdSchema,
+  reportId: IdSchema,
+  workOrderCommitment: Hex32Schema,
+  invoiceCommitment: Hex32Schema,
+  receiptCommitments: z.array(Hex32Schema),
+  outcome: z.enum(["pass", "fail"]),
+  reasons: z.array(MatchReasonSchema),
+  /** Version of the rule engine that produced the outcome. */
+  engineVersion: z.string(),
+  createdAt: IsoDateTimeSchema,
+  ...salted,
+});
+export const ReleaseDecisionDocumentSchema = z.object({
+  type: z.literal("release_decision"),
+  releaseId: IdSchema,
+  workOrderId: IdSchema,
+  reportId: IdSchema,
+  matchCommitment: Hex32Schema,
+  reviewCommitment: Hex32Schema,
+  /** A release instruction. No money moves. */
+  decision: z.literal("authorised"),
+  createdAt: IsoDateTimeSchema,
+  ...salted,
+});
+
 export const CommitmentDocumentSchema = z.discriminatedUnion("type", [
   ReportDocumentSchema,
   InterimProtectionDocumentSchema,
   RepairClaimDocumentSchema,
   ReviewDocumentSchema,
+  WorkOrderDocumentSchema,
+  SupplierInvoiceDocumentSchema,
+  GoodsReceiptDocumentSchema,
+  MatchResultDocumentSchema,
+  ReleaseDecisionDocumentSchema,
 ]);
+/** The document types that hold amounts and line detail. */
+export const FINANCE_DOCUMENT_TYPES = [
+  "work_order",
+  "supplier_invoice",
+  "goods_receipt",
+  "match_result",
+  "release_decision",
+] as const;
+export type FinanceDocumentType = (typeof FINANCE_DOCUMENT_TYPES)[number];
 export type ReportDocument = z.infer<typeof ReportDocumentSchema>;
 export type InterimProtectionDocument = z.infer<typeof InterimProtectionDocumentSchema>;
 export type RepairClaimDocument = z.infer<typeof RepairClaimDocumentSchema>;
 export type ReviewDocument = z.infer<typeof ReviewDocumentSchema>;
+export type WorkOrderDocument = z.infer<typeof WorkOrderDocumentSchema>;
+export type SupplierInvoiceDocument = z.infer<typeof SupplierInvoiceDocumentSchema>;
+export type GoodsReceiptDocument = z.infer<typeof GoodsReceiptDocumentSchema>;
+export type MatchResultDocument = z.infer<typeof MatchResultDocumentSchema>;
+export type ReleaseDecisionDocument = z.infer<typeof ReleaseDecisionDocumentSchema>;
 export type CommitmentDocument = z.infer<typeof CommitmentDocumentSchema>;
 
 /* --------------------------------- Case event -------------------------------- */
 
-/** Off-chain event names and the BonaRegistry event each corresponds to (null = no on-chain write). */
+/** Off-chain event names and the ledger event each corresponds to (null = no on-chain write). */
 export const CASE_EVENT_REGISTRY_EVENT = {
   report_registered: "ReportRegistered",
   evidence_registered: "EvidenceRegistered",
@@ -398,13 +516,36 @@ export const CASE_EVENT_REGISTRY_EVENT = {
   repair_disputed: "RepairDisputed",
   /** Off-chain only: a move to `in_progress` or `rejected`. */
   status_changed: null,
-} as const satisfies Record<string, RegistryEvent | null>;
+  /* The finance steps. None of them changes the report status. */
+  work_order_approved: "WorkOrderApproved",
+  work_order_acknowledged: "WorkOrderAcknowledged",
+  invoice_submitted: "InvoiceSubmitted",
+  goods_receipt_recorded: "GoodsReceiptRecorded",
+  match_recorded: "MatchRecorded",
+  payment_dispute_opened: "PaymentDisputeOpened",
+  payment_dispute_closed: "PaymentDisputeClosed",
+  release_authorised: "ReleaseAuthorised",
+} as const satisfies Record<string, LedgerEvent | null>;
 export type CaseEventType = keyof typeof CASE_EVENT_REGISTRY_EVENT;
 export const CASE_EVENT_TYPES = Object.keys(CASE_EVENT_REGISTRY_EVENT) as [
   CaseEventType,
   ...CaseEventType[],
 ];
 export const CaseEventTypeSchema = z.enum(CASE_EVENT_TYPES);
+
+/** The case events of the procurement trail, in trail order. */
+export const FINANCE_CASE_EVENT_TYPES = [
+  "work_order_approved",
+  "work_order_acknowledged",
+  "invoice_submitted",
+  "goods_receipt_recorded",
+  "match_recorded",
+  "payment_dispute_opened",
+  "payment_dispute_closed",
+  "release_authorised",
+] as const satisfies readonly CaseEventType[];
+export const FinanceCaseEventTypeSchema = z.enum(FINANCE_CASE_EVENT_TYPES);
+export type FinanceCaseEventType = z.infer<typeof FinanceCaseEventTypeSchema>;
 
 /** The status a report has immediately after each event. Null = unchanged. */
 export const CASE_EVENT_RESULTING_STATUS: Record<CaseEventType, ReportStatus | null> = {
@@ -417,6 +558,15 @@ export const CASE_EVENT_RESULTING_STATUS: Record<CaseEventType, ReportStatus | n
   repair_disputed: "disputed",
   /** Read the new status from the event's `statusTo`. */
   status_changed: null,
+  /* Finance steps never change the report status. */
+  work_order_approved: null,
+  work_order_acknowledged: null,
+  invoice_submitted: null,
+  goods_receipt_recorded: null,
+  match_recorded: null,
+  payment_dispute_opened: null,
+  payment_dispute_closed: null,
+  release_authorised: null,
 };
 
 /**

@@ -7,7 +7,45 @@
  * endorsements, interim protection, independent review — the shape is defined
  * here and listed in docs/FRONTEND_INTEGRATION.md as a proposed contract.
  */
-import type { BlockchainReceipt, Hex32, IsoDateTime } from "@/shared";
+import type {
+  BlockchainReceipt,
+  FinanceCaseEventType,
+  Hex32,
+  IsoDateTime,
+  PublicTrailStep,
+} from "@/shared";
+
+/*
+ * The procurement view models are shared with the backend as they are: the
+ * routes return exactly these shapes. Screens import them from here.
+ */
+export type {
+  ApproveWorkOrderInput,
+  InvoiceDraft,
+  InvoiceDraftLine,
+  MatchReason,
+  MatchReasonCode,
+  MismatchExplanation,
+  MoneyTrail,
+  MoneyTrailStep,
+  OrderLine,
+  ProcurementStage,
+  PublicTrailStep,
+  ReceiptLine,
+  RecordGoodsReceiptInput,
+  ReleaseBlocker,
+  ReleaseBlockerCode,
+  ReleaseGate,
+  SubmitInvoiceInput,
+  TrailActor,
+  TrailInvoice,
+  TrailLine,
+  TrailMatch,
+  TrailOrder,
+  TrailReceipt,
+  WorkQueueAction,
+  WorkQueueItem,
+} from "@/shared";
 
 /* --------------------------------- Status --------------------------------- */
 
@@ -38,7 +76,17 @@ export const ISSUE_CATEGORIES = [
 ] as const;
 export type IssueCategory = (typeof ISSUE_CATEGORIES)[number];
 
-export type ActorRole = "community" | "school_admin" | "district" | "reviewer" | "system";
+/** Who did something, as the public reads it. `system` is the platform itself, e.g. the rule engine. */
+export type ActorRole =
+  | "community"
+  | "school_admin"
+  | "district"
+  | "reviewer"
+  | "buyer"
+  | "supplier"
+  | "receiving_officer"
+  | "payment_approver"
+  | "system";
 
 /* --------------------------------- Ledger --------------------------------- */
 
@@ -108,7 +156,9 @@ export type TimelineEventType =
   | "verified"
   | "disputed"
   | "declined"
-  | "evidence_added";
+  | "evidence_added"
+  /* The finance steps keep their case-event names. */
+  | FinanceCaseEventType;
 
 export interface TimelineEvent {
   id: string;
@@ -167,6 +217,11 @@ export interface Issue extends IssueSummary {
   review: IndependentReview | null;
   timeline: TimelineEvent[];
   evidence: EvidenceItem[];
+  /**
+   * The procurement steps on this case, oldest first: role, time and proof
+   * only. Absent or empty when the case has no work order.
+   */
+  publicTrail?: PublicTrailStep[];
 }
 
 export interface IssueFilter {
@@ -247,7 +302,14 @@ export interface AssistantMessage {
 
 /** Mirrors `UserRole` in `@/shared`. Import it from there once this branch has the updated shared types. */
 export type SessionRole =
-  "reporter" | "school_admin" | "district_official" | "independent_reviewer";
+  | "reporter"
+  | "school_admin"
+  | "district_official"
+  | "independent_reviewer"
+  | "buyer"
+  | "supplier"
+  | "receiving_officer"
+  | "payment_approver";
 
 /** An account the sign-in screen offers for one-tap sign-in during the demo. */
 export interface DemoAccount {

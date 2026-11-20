@@ -5,21 +5,28 @@ import {
   CASE_EVENT_REGISTRY_EVENT,
   CASE_EVENT_RESULTING_STATUS,
   CASE_EVENT_TYPES,
+  CHAIN_ROLE_CODE,
   CHAIN_ROLE_FOR_USER_ROLE,
   CaseEventSchema,
+  CommitmentDocumentSchema,
   CreateReportInputSchema,
   EVIDENCE_KIND_ROLE,
   EndorsementSchema,
   EvidenceCommitmentSchema,
+  FINANCE_CASE_EVENT_TYPES,
+  FINANCE_DOCUMENT_TYPES,
+  FINANCE_EVENTS,
   Hex32Schema,
   IndependentReviewSchema,
   InterimProtectionSchema,
+  LEDGER_EVENTS,
   PERMISSION_FOR_STATUS,
   REGISTRY_EVENTS,
   REPORT_STATUSES,
   CHAIN_STATUS_FOR_STATUS,
   RepairClaimSchema,
   ReportSchema,
+  SEPARATED_FINANCE_PERMISSIONS,
   SchoolSchema,
   StatusHistoryEntrySchema,
   USER_ROLES,
@@ -261,16 +268,159 @@ describe("roles and status rules", () => {
     }
   });
 
-  it("maps every case event to one registry event and a consistent status", () => {
+  it("keeps the four finance steps with four different roles", () => {
+    for (const role of USER_ROLES) {
+      const held = SEPARATED_FINANCE_PERMISSIONS.filter((permission) =>
+        can(role, permission),
+      );
+      expect(held.length, role).toBeLessThanOrEqual(1);
+    }
+    for (const permission of SEPARATED_FINANCE_PERMISSIONS) {
+      expect(USER_ROLES.filter((role) => can(role, permission))).toHaveLength(1);
+    }
+    expect(can("buyer", "order:approve")).toBe(true);
+    expect(can("supplier", "order:acknowledge")).toBe(true);
+    expect(can("supplier", "invoice:submit")).toBe(true);
+    expect(can("receiving_officer", "receipt:record")).toBe(true);
+    expect(can("payment_approver", "release:authorise")).toBe(true);
+  });
+
+  it("never lets the role that authorises a release claim or verify the repair", () => {
+    for (const role of USER_ROLES) {
+      if (!can(role, "release:authorise")) continue;
+      expect(can(role, "repair:claim"), role).toBe(false);
+      expect(can(role, "repair:verify"), role).toBe(false);
+    }
+    expect(can("payment_approver", "repair:claim")).toBe(false);
+    expect(can("payment_approver", "repair:verify")).toBe(false);
+  });
+
+  it("opens the procurement trail to staff and never to reporters", () => {
+    for (const role of USER_ROLES) {
+      expect(can(role, "procurement:read"), role).toBe(role !== "reporter");
+    }
+  });
+
+  it("gives each finance role its own chain role and keeps the registry codes", () => {
+    expect(CHAIN_ROLE_CODE).toEqual({
+      registrar: 1,
+      school_admin: 2,
+      reviewer: 3,
+      buyer: 4,
+      supplier: 5,
+      receiver: 6,
+      payment_approver: 7,
+    });
+    expect(CHAIN_ROLE_FOR_USER_ROLE.buyer).toBe("buyer");
+    expect(CHAIN_ROLE_FOR_USER_ROLE.supplier).toBe("supplier");
+    expect(CHAIN_ROLE_FOR_USER_ROLE.receiving_officer).toBe("receiver");
+    expect(CHAIN_ROLE_FOR_USER_ROLE.payment_approver).toBe("payment_approver");
+    const signing = Object.values(CHAIN_ROLE_FOR_USER_ROLE).filter(
+      (role) => role !== null,
+    );
+    expect(new Set(signing).size).toBe(signing.length);
+  });
+
+  it("maps every case event to one ledger event and a consistent status", () => {
     expect(
       Object.values(CASE_EVENT_REGISTRY_EVENT)
         .filter((event) => event !== null)
         .sort(),
-    ).toEqual([...REGISTRY_EVENTS].sort());
-    expect(CASE_EVENT_TYPES).toHaveLength(REGISTRY_EVENTS.length + 1);
+    ).toEqual([...LEDGER_EVENTS].sort());
+    expect(CASE_EVENT_TYPES).toHaveLength(LEDGER_EVENTS.length + 1);
+    expect(LEDGER_EVENTS).toEqual([...REGISTRY_EVENTS, ...FINANCE_EVENTS]);
+    expect(
+      FINANCE_CASE_EVENT_TYPES.map((type) => CASE_EVENT_REGISTRY_EVENT[type]),
+    ).toEqual([...FINANCE_EVENTS]);
+    for (const type of FINANCE_CASE_EVENT_TYPES) {
+      // Finance steps never change the report status.
+      expect(CASE_EVENT_RESULTING_STATUS[type]).toBeNull();
+    }
+    for (const event of LEDGER_EVENTS) {
+      expect(BlockchainReceiptSchema.safeParse({ ...receipt, event }).success).toBe(true);
+    }
     expect(CASE_EVENT_RESULTING_STATUS.report_registered).toBe("submitted");
     expect(CASE_EVENT_RESULTING_STATUS.interim_protection_recorded).toBeNull();
     expect(CASE_EVENT_RESULTING_STATUS.repair_verified).toBe("verified");
+  });
+});
+
+describe("finance commitment documents", () => {
+  const base = { workOrderId: id(20), reportId: id(1), createdAt: now, salt: digest };
+  const line = { sku: "TOILET-01", description: "Toilet pan", quantity: 4 };
+  const priced = { ...line, unitPriceCents: 125_000 };
+  const documents = [
+    {
+      ...base,
+      type: "work_order",
+      institutionId: id(2),
+      version: 1,
+      description: "Replace four toilet pans",
+      lines: [priced],
+      totalCents: 500_000,
+      currency: "ZAR",
+    },
+    {
+      ...base,
+      type: "supplier_invoice",
+      invoiceId: id(21),
+      invoiceNumber: "INV-001",
+      orderVersion: 1,
+      lines: [priced],
+      totalCents: 500_000,
+      currency: "ZAR",
+    },
+    {
+      ...base,
+      type: "goods_receipt",
+      receiptId: id(22),
+      orderVersion: 1,
+      lines: [line],
+      evidenceDigests: [digest],
+    },
+    {
+      ...base,
+      type: "match_result",
+      matchId: id(23),
+      workOrderCommitment: digest,
+      invoiceCommitment: digest,
+      receiptCommitments: [digest],
+      outcome: "fail",
+      reasons: [{ code: "quantity_mismatch", sku: "TOILET-01", expected: 4, actual: 5 }],
+      engineVersion: "1",
+    },
+    {
+      ...base,
+      type: "release_decision",
+      releaseId: id(24),
+      matchCommitment: digest,
+      reviewCommitment: digest,
+      decision: "authorised",
+    },
+  ];
+
+  it("accepts one document of each finance type", () => {
+    expect(documents.map((document) => document.type)).toEqual([
+      ...FINANCE_DOCUMENT_TYPES,
+    ]);
+    for (const document of documents) {
+      expect(CommitmentDocumentSchema.safeParse(document).success, document.type).toBe(
+        true,
+      );
+    }
+  });
+
+  it("refuses money that is not whole cents and a release that is not an authorisation", () => {
+    expect(
+      CommitmentDocumentSchema.safeParse({ ...documents[0], totalCents: 5000.5 }).success,
+    ).toBe(false);
+    expect(
+      CommitmentDocumentSchema.safeParse({ ...documents[0], currency: "USD" }).success,
+    ).toBe(false);
+    expect(
+      CommitmentDocumentSchema.safeParse({ ...documents[4], decision: "released" })
+        .success,
+    ).toBe(false);
   });
 });
 

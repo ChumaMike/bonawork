@@ -260,7 +260,16 @@ export type LedgerOperation =
   | "recordInterimProtection"
   | "claimRepair"
   | "verifyRepair"
-  | "disputeRepair";
+  | "disputeRepair"
+  /* Finance writes. Payload: the matching `LedgerPort` input, every value a string. */
+  | "approve_work_order"
+  | "acknowledge_work_order"
+  | "submit_invoice"
+  | "record_goods_receipt"
+  | "record_match_result"
+  | "open_payment_dispute"
+  | "close_payment_dispute"
+  | "authorise_release";
 
 /** Which record receives the receipt besides the case event (`event` = the event only). */
 export type LedgerTargetKind =

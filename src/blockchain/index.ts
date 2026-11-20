@@ -65,6 +65,7 @@ function unconfiguredLedger(): LedgerPort {
       networkName: "No ledger configured",
       explorerTxUrl: () => null,
       live: false,
+      finance: "off",
     }),
     registerReport: refuse,
     registerEvidence: refuse,
@@ -76,5 +77,14 @@ function unconfiguredLedger(): LedgerPort {
     probeVerify: refuse,
     statusOf: async () => "none",
     getReceipt: refuse,
+    approveWorkOrder: refuse,
+    acknowledgeWorkOrder: refuse,
+    submitInvoice: refuse,
+    recordGoodsReceipt: refuse,
+    recordMatchResult: refuse,
+    openPaymentDispute: refuse,
+    closePaymentDispute: refuse,
+    authoriseRelease: refuse,
+    probeRelease: refuse,
   };
 }

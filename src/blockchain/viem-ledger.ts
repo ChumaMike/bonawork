@@ -23,8 +23,10 @@ import {
   type ChainRole,
   type ChainStatus,
   type Hex32,
+  type LedgerEvent,
   type LedgerInfo,
   type LedgerPort,
+  type OperationsChainRole,
   type RegistryEvent,
 } from "@/shared";
 import { bonaRegistryAbi } from "./abi";
@@ -34,7 +36,7 @@ export interface ViemLedgerConfig {
   /** CAIP-2 id. Only Avalanche Fuji (`eip155:43113`) is accepted. */
   chainId: string;
   contractAddress: string;
-  signers: Record<ChainRole, string>;
+  signers: Record<OperationsChainRole, string>;
   /** How long to wait for the transaction to be mined before returning `pending`. */
   confirmTimeoutMs?: number;
 }
@@ -82,6 +84,15 @@ type WriteFunction =
   | "verifyRepair"
   | "disputeRepair";
 
+/** BonaRegistry has no finance functions: every finance write is refused. */
+const financeOff = async (): Promise<never> => {
+  throw new LedgerError(
+    "not_configured",
+    null,
+    "Finance steps are not configured on this ledger.",
+  );
+};
+
 /**
  * `LedgerPort` backed by the real BonaRegistry contract on Avalanche Fuji.
  * Holds one wallet per on-chain role; the role is fixed by the operation, so
@@ -102,7 +113,7 @@ export function createViemLedger(config: ViemLedgerConfig): LedgerPort {
     chain,
     transport,
   });
-  const accounts: Record<ChainRole, Account> = {
+  const accounts: Record<OperationsChainRole, Account> = {
     registrar: privateKeyToAccount(config.signers.registrar as Hex),
     school_admin: privateKeyToAccount(config.signers.school_admin as Hex),
     reviewer: privateKeyToAccount(config.signers.reviewer as Hex),
@@ -114,7 +125,9 @@ export function createViemLedger(config: ViemLedgerConfig): LedgerPort {
       "Registrar, school admin and reviewer must be three different keys.",
     );
   }
-  const wallets: Record<ChainRole, WalletClient<Transport, Chain, Account>> = {
+  const isOperationsRole = (role: ChainRole): role is OperationsChainRole =>
+    Object.hasOwn(accounts, role);
+  const wallets: Record<OperationsChainRole, WalletClient<Transport, Chain, Account>> = {
     registrar: createWalletClient({ chain, transport, account: accounts.registrar }),
     school_admin: createWalletClient({
       chain,
@@ -131,12 +144,13 @@ export function createViemLedger(config: ViemLedgerConfig): LedgerPort {
     networkName: explorer.name,
     explorerTxUrl: (txId) => `${explorer.tx}${txId}`,
     live: true,
+    finance: "off",
   };
 
   const bytes32 = (id: string) => idToBytes32(id) as Hex;
 
   async function write(
-    signer: ChainRole,
+    signer: OperationsChainRole,
     functionName: WriteFunction,
     args: readonly unknown[],
     event: RegistryEvent,
@@ -163,7 +177,7 @@ export function createViemLedger(config: ViemLedgerConfig): LedgerPort {
 
   async function refresh(
     txId: Hex32,
-    event: RegistryEvent,
+    event: LedgerEvent,
     timeoutMs: number,
   ): Promise<BlockchainReceipt> {
     const pending: BlockchainReceipt = {
@@ -264,6 +278,9 @@ export function createViemLedger(config: ViemLedgerConfig): LedgerPort {
       ),
 
     async probeVerify({ reportId, as }) {
+      // A finance role holds no key here and no role on BonaRegistry, which
+      // refuses any caller that is not the reviewer.
+      if (!isOperationsRole(as)) return { allowed: false, revert: "Unauthorized" };
       // A throw-away commitment: the call is simulated, never sent.
       const probe = `0x${"ab".repeat(32)}` as Hex;
       try {
@@ -300,5 +317,15 @@ export function createViemLedger(config: ViemLedgerConfig): LedgerPort {
     },
 
     getReceipt: (txId, event) => refresh(txId, event, 0),
+
+    approveWorkOrder: financeOff,
+    acknowledgeWorkOrder: financeOff,
+    submitInvoice: financeOff,
+    recordGoodsReceipt: financeOff,
+    recordMatchResult: financeOff,
+    openPaymentDispute: financeOff,
+    closePaymentDispute: financeOff,
+    authoriseRelease: financeOff,
+    probeRelease: financeOff,
   };
 }

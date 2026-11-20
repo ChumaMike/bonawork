@@ -87,6 +87,11 @@ const DOCUMENT_TYPE: Partial<Record<TimelineEventType, string>> = {
   disputed: "review",
 };
 
+/** The procurement trail has no sample data yet: every call is refused the same way. */
+const notImplementedYet = async (): Promise<never> => {
+  throw new ApiError("not_found", "not implemented yet");
+};
+
 export function createFixtureApi(options: FixtureOptions = {}): BonaApi {
   const { latency = 150, persist = true } = options;
   let issues: Issue[] | null = null;
@@ -613,6 +618,17 @@ export function createFixtureApi(options: FixtureOptions = {}): BonaApi {
         },
       };
     },
+
+    /* Procurement trail */
+    listWorkQueue: notImplementedYet,
+    getMoneyTrail: notImplementedYet,
+    approveWorkOrder: notImplementedYet,
+    acknowledgeOrder: notImplementedYet,
+    draftInvoice: notImplementedYet,
+    submitInvoice: notImplementedYet,
+    recordGoodsReceipt: notImplementedYet,
+    explainMismatch: notImplementedYet,
+    authoriseRelease: notImplementedYet,
 
     async findEvidenceByDigest(digest) {
       await wait();

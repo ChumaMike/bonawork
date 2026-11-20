@@ -6,7 +6,7 @@ import { Button, ButtonLink } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { cn } from "@/components/ui/cn";
 import { Field, Input } from "@/components/ui/field";
-import { Icon } from "@/components/ui/icon";
+import { Icon, type IconName } from "@/components/ui/icon";
 import { Container, Loading, Notice, PageHeader } from "@/components/ui/page";
 import { getApi } from "@/data/api";
 import { ApiError } from "@/data/errors";
@@ -21,14 +21,22 @@ const HOME: Record<SessionRole, string> = {
   independent_reviewer: "/reviewer",
   district_official: "/issues",
   reporter: "/",
+  buyer: "/buyer",
+  supplier: "/supplier",
+  receiving_officer: "/receiving",
+  payment_approver: "/payments",
 };
 
 /** Icon for each demo role card. Words carry the meaning; the icon is decoration. */
-const ROLE_ICON: Record<SessionRole, "hand" | "school" | "filter" | "shieldCheck"> = {
+const ROLE_ICON: Record<SessionRole, IconName> = {
   reporter: "hand",
   school_admin: "school",
   district_official: "filter",
   independent_reviewer: "shieldCheck",
+  buyer: "file",
+  supplier: "building",
+  receiving_officer: "check",
+  payment_approver: "lock",
 };
 
 /**
