@@ -9,6 +9,7 @@ import {
   formatRand,
   matchThreeWay,
   normaliseInvoiceNumber,
+  reasonSentence,
   redactMoneyTrail,
   redactReasons,
   releaseGate,
@@ -468,31 +469,55 @@ describe("ruleExplanation", () => {
     expect(() => formatRand(10.5)).toThrow(RangeError);
   });
 
+  // The wording of the reason table in docs/design/BONA_CHAIN_SCREENS.md.
   const sentences: [MatchReason, string][] = [
-    [reason("order_version_changed", null, 2, 1), "version 1 of the work order"],
-    [reason("order_not_acknowledged"), "has not yet confirmed"],
-    [reason("wrong_supplier"), "supplier reference"],
-    [reason("duplicate_invoice"), "already been used"],
-    [reason("missing_receipt"), "recorded yet that the goods or work arrived"],
-    [reason("unknown_line", "TAP-09"), "item TAP-09, which is not on the work order"],
-    [reason("missing_line", "CIS-02"), "item CIS-02, but the invoice leaves it out"],
+    [
+      reason("order_version_changed", null, 2, 1),
+      "The invoice is for version 1 of the order. The order is now version 2.",
+    ],
+    [reason("order_not_acknowledged"), "The order has not been acknowledged yet."],
+    [
+      reason("wrong_supplier"),
+      "The supplier reference on the invoice is not the one on the order.",
+    ],
+    [reason("duplicate_invoice"), "This invoice number was already used on this order."],
+    [reason("missing_receipt"), "No delivery has been recorded for this order yet."],
+    [
+      reason("unknown_line", "TAP-09"),
+      "TAP-09: this line is on the invoice but not on the order.",
+    ],
+    [
+      reason("missing_line", "CIS-02"),
+      "CIS-02: this line is on the order but not on the invoice.",
+    ],
     [
       reason("excess_quantity", "PAN-01", 3, 4),
-      "4 units of item PAN-01, but only 3 were",
+      "PAN-01: 4 invoiced, but only 3 arrived.",
     ],
-    [reason("excess_quantity", "PAN-01", 1, 2), "but only 1 was recorded"],
-    [reason("quantity_mismatch", "PAN-01", 4, 3), "asks for 4 units of item PAN-01"],
+    [reason("quantity_mismatch", "PAN-01", 4, 3), "PAN-01: 3 invoiced, 4 ordered."],
     [
       reason("unit_price_mismatch", "PAN-01", 105_000, 125_000),
-      "R1 050,00 each, but the invoice charges R1 250,00 each",
+      "PAN-01: the unit price is R1 250,00. The order says R1 050,00.",
+    ],
+    [
+      reason("unit_price_mismatch", "PAN-01"),
+      "PAN-01: the unit price is not the one on the order.",
     ],
     [
       reason("total_mismatch", null, 420_000, 500_000),
-      "The invoice total is R5 000,00, but it should come to R4 200,00.",
+      "The invoice total is R5 000,00. It should be R4 200,00.",
     ],
+    [reason("total_mismatch"), "The invoice total is not the amount it should be."],
   ];
-  it.each(sentences)("explains %j", (given, fragment) => {
-    expect(ruleExplanation([given])).toContain(fragment);
+  it.each(sentences)("explains %j", (given, sentence) => {
+    expect(reasonSentence(given)).toBe(sentence);
+    expect(ruleExplanation([given])).toBe(sentence);
+  });
+
+  it("formats amounts with the formatter it is given", () => {
+    expect(
+      reasonSentence(reason("total_mismatch", null, 420_000, 500_000), (c) => `<${c}>`),
+    ).toBe("The invoice total is <500000>. It should be <420000>.");
   });
 
   it("covers every reason code with a full sentence, with and without numbers", () => {
@@ -506,13 +531,14 @@ describe("ruleExplanation", () => {
     }
   });
 
-  it("writes one sentence per reason, in the order given", () => {
+  it("writes the reasons in the order given", () => {
     const text = ruleExplanation([
       reason("missing_receipt"),
       reason("total_mismatch", null, 420_000, 500_000),
     ]);
-    expect(text.indexOf("arrived")).toBeLessThan(text.indexOf("R5 000,00"));
-    expect(text.split(". ")).toHaveLength(2);
+    expect(text).toBe(
+      "No delivery has been recorded for this order yet. The invoice total is R5 000,00. It should be R4 200,00.",
+    );
   });
 
   it("never says paid or resolved", () => {
