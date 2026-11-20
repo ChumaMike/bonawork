@@ -22,7 +22,7 @@ Chain id 43113, Avalanche Fuji C-Chain.
 - The factory created an Operations and a Finance contract for five institutions.
   All ten addresses are in
   [`contracts/deployments/bonachain.43113.json`](../contracts/deployments/bonachain.43113.json).
-- The source has not been submitted to the explorer for verification yet. It is in
+- The source of the factory and of the demo school's Operations and Finance contracts is verified on the explorer: [factory](https://testnet.snowtrace.io/address/0x9AA7Cf8a0cd0c015F01DF8fdb400510D1407d6E3#code), [Operations](https://testnet.snowtrace.io/address/0xeCc11b37EDDafD99d03e7049bfa3226901dBE4Fd#code), [Finance](https://testnet.snowtrace.io/address/0xD30762a429FB241D378B11A3f74d3c169c2437A5#code). The source is in
   [`contracts/contracts/chain/`](../contracts/contracts/chain/).
 
 ## 2. GitHub repository with source code, README and basic tests
@@ -89,8 +89,8 @@ chain. Low fees and fast finality on the C-Chain make it practical to prove ever
 step.
 
 **Next milestone.** A pool of independent reviewers, with three drawn at random for
-each repair and two needed to agree. Each institution holds its own keys. Contract
-source verification, then an outside review before any mainnet use.
+each repair and two needed to agree. Each institution holds its own keys. An
+outside review before any mainnet use.
 
 ## 5. No real funds or personal customer information
 

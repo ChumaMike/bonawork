@@ -50,7 +50,7 @@ Chain id 43113 (Avalanche Fuji C-Chain, test network). Addresses are in
   registrar, school administrator, reviewer, buyer, supplier, receiver and
   payment approver.
 - The contract source is in [`contracts/contracts/chain/`](contracts/contracts/chain/).
-  It has not been submitted to the explorer for source verification yet.
+  The source of the factory and of the demo school's Operations and Finance contracts is verified on the explorer: [factory](https://testnet.snowtrace.io/address/0x9AA7Cf8a0cd0c015F01DF8fdb400510D1407d6E3#code), [Operations](https://testnet.snowtrace.io/address/0xeCc11b37EDDafD99d03e7049bfa3226901dBE4Fd#code), [Finance](https://testnet.snowtrace.io/address/0xD30762a429FB241D378B11A3f74d3c169c2437A5#code).
 
 ## Why Avalanche
 
@@ -151,8 +151,7 @@ The full path, including these refusals, is also scripted against Fuji in
   two must agree.
 - Each institution holds its own keys. Today the platform holds all seven
   testnet keys, which is a stated limit of the demo.
-- Contract source verification on the explorer, then an outside review of the
-  contracts before any mainnet use.
+- An outside review of the contracts before any mainnet use.
 
 The contract every builder worked from is
 [`docs/merged/BUILD_BRIEF.md`](docs/merged/BUILD_BRIEF.md).
