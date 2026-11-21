@@ -6,6 +6,7 @@ import { useEffect, useSyncExternalStore } from "react";
 import { USING_FIXTURES } from "@/data/api";
 import { useAudience, WORKSPACE, workspaceFor, type Audience } from "@/data/audience";
 import { signOut, useSession } from "@/data/session";
+import { LandingFooter, LandingHeader } from "@/features/landing/vellure/landing-chrome";
 import { useMessages } from "@/i18n";
 import { BRAND_NAME, BrandLogo } from "./brand/brand-logo";
 import { Avatar } from "./ui/avatar";
@@ -146,17 +147,14 @@ export function SiteHeader() {
   const isHome = pathname === "/";
   const nav = navItemsFor(useAudience(), m);
   const links = nav.header;
+  // The landing page has its own top bar, with the same destinations.
+  if (isHome) return <LandingHeader links={links} showReport={!nav.staff} />;
   return (
     <header className="no-print sticky top-0 z-30 border-b border-line bg-surface/95 backdrop-blur">
       <Pattern variant="band" tone="brand" />
       <div className="mx-auto flex min-h-16 w-full max-w-6xl flex-wrap items-center justify-between gap-x-3 gap-y-1 px-4 sm:px-6">
         <div className="flex min-w-0 items-center gap-3">
           <Logo />
-          {isHome ? (
-            <p className="hidden border-l border-line pl-3 font-display text-base text-muted md:block">
-              {m.brand.tagline}
-            </p>
-          ) : null}
           {school ? (
             // Phones have no room beside the wordmark; the page title names the school there.
             // Between lg and xl the menu needs the room too, so the header stays on one row.
@@ -358,6 +356,7 @@ const PROCUREMENT_ROLES = [
 
 export function SiteFooter() {
   const m = useMessages();
+  const pathname = usePathname();
   const audience = useAudience();
   // Signed out: the way in for staff. A community reporter does not need it.
   // Staff: only their own workspace.
@@ -370,6 +369,8 @@ export function SiteFooter() {
       role,
     })),
   ].filter((link) => (audience.role === null ? true : link.role === audience.role));
+  // The landing page has its own footer, with the same way in for staff.
+  if (pathname === "/") return <LandingFooter staffLinks={staffLinks} />;
   return (
     <footer className="no-print bottom-bar-pad border-t border-line bg-surface lg:pb-0">
       <Pattern variant="divider" tone="earth" />

@@ -14,6 +14,7 @@ import type {
   SessionRole,
   TimelineEventType,
 } from "@/data/types";
+import { landingPage } from "./en-landing";
 import { procurement } from "./en-procurement";
 
 /** The product. Every message that names it uses this constant, so the name lives in one place. */
@@ -27,6 +28,8 @@ const plural = (count: number, one: string, many: string) =>
 export const en = {
   /** The procurement screens. Edit `./en-procurement.ts`, not this entry. */
   procurement,
+  /** The public landing page at `/`. Edit `./en-landing.ts`, not this entry. */
+  landingPage,
   brand: {
     name: PRODUCT,
     forSchools: `${PRODUCT} for Schools`,

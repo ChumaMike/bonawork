@@ -146,10 +146,10 @@ test("steps 1–8: community journey on a phone", async ({ page }) => {
   await page.goto("/");
   await settled(page);
   await expect(page.getByRole("heading", { level: 1 })).toHaveText(
-    "Which school is it about?",
+    "From the report to the release, every step checked.",
   );
   await expect(
-    page.getByTestId("photo-header").getByText("See it. Report it. Prove it."),
+    page.getByRole("searchbox", { name: "Which school is it about?" }),
   ).toBeVisible();
   await page.goto("/schools/thandolwethu-primary");
   await settled(page);

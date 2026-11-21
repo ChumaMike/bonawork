@@ -1,0 +1,1677 @@
+/*
+ * The public landing page, in the layout of the free Framer template "Vellure":
+ * a navy-to-blue hero with a floating dashboard, pill labels over tight
+ * headings, soft grey cards, pill tabs and a rounded closing band.
+ *
+ * Everything is scoped to `.vl`, which the landing page, its header and its
+ * footer carry. Inside that scope the app's colour tokens are re-pointed at
+ * this palette, so shared components (the trail, chips, tiles) follow it and
+ * the page stays light whatever the device theme is.
+ */
+
+.vl {
+  --vl-ink: #040409;
+  --vl-body: #505156;
+  --vl-soft: #696a6e;
+  --vl-blue: #0346ff;
+  --vl-blue-deep: #0235c4;
+  --vl-navy: #030720;
+  --vl-white: #ffffff;
+  --vl-ground: #fbfbfb;
+  --vl-card: #f2f2f2;
+  --vl-hair: #e8e8ea;
+  --vl-good: #17794a;
+  --vl-good-soft: #e1f3e8;
+  --vl-bad: #b3261e;
+  --vl-bad-soft: #fbe6e3;
+  --vl-wait: #8a5a00;
+  --vl-wait-soft: #fbeed2;
+  --vl-radius: 20px;
+  --vl-gutter: clamp(16px, 5.2vw, 80px);
+  --vl-ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+
+  /* The app's tokens, re-pointed for everything rendered inside this page. */
+  --color-canvas: #fbfbfb;
+  --color-surface: #ffffff;
+  --color-sunken: #f2f2f2;
+  --color-ink: #040409;
+  --color-muted: #505156;
+  --color-faint: #696a6e;
+  --color-line: #e8e8ea;
+  --color-line-strong: #8b8c91;
+  --color-brand: #0346ff;
+  --color-brand-strong: #0235c4;
+  --color-brand-soft: #e9eeff;
+  --color-on-brand: #ffffff;
+  --color-earth: #0346ff;
+  --color-earth-strong: #0235c4;
+  --color-earth-soft: #e9eeff;
+  --color-accent: #8a5a00;
+  --color-accent-strong: #6b4500;
+  --color-accent-soft: #fbeed2;
+  --color-sun: #c9d8ff;
+  --color-sun-soft: #eef2ff;
+  --color-danger: #b3261e;
+  --color-danger-strong: #8c1d17;
+  --color-danger-soft: #fbe6e3;
+  --color-st-reported: #4a4640;
+  --color-st-reported-soft: #e8e5df;
+  --color-st-assess: #35566e;
+  --color-st-assess-soft: #dfe8ee;
+  --color-st-address: #7a4e0c;
+  --color-st-address-soft: #f1e4cc;
+  --color-st-claimed: #5a4866;
+  --color-st-claimed-soft: #e9e3ea;
+  --color-st-verified: #17794a;
+  --color-st-verified-soft: #e1f3e8;
+  --color-st-disputed: #b3261e;
+  --color-st-disputed-soft: #fbe6e3;
+  --color-st-declined: #4b4038;
+  --color-st-declined-soft: #ebe5dc;
+
+  color: var(--vl-ink);
+  color-scheme: light;
+}
+
+.vl {
+  font-family:
+    var(--font-landing), "Inter Tight", ui-sans-serif, system-ui, "Segoe UI", Roboto,
+    sans-serif;
+}
+
+/* Headings take the page's grotesk. The logo keeps the brand's own face. */
+.vl h1,
+.vl h2,
+.vl h3 {
+  font-family: inherit;
+  font-weight: 500;
+  letter-spacing: -0.03em;
+  text-wrap: balance;
+}
+
+.vl-page {
+  overflow-x: clip;
+  background: var(--vl-white);
+}
+
+.vl-wrap {
+  width: 100%;
+  max-width: 1440px;
+  margin-inline: auto;
+  padding-inline: var(--vl-gutter);
+}
+
+.vl :focus-visible {
+  outline: 3px solid var(--vl-blue);
+  outline-offset: 3px;
+}
+.vl-on-dark :focus-visible {
+  outline-color: #ffffff;
+}
+
+/* ------------------------------ Scroll reveal ----------------------------- */
+
+.vl [data-reveal] {
+  transition:
+    opacity 0.8s var(--vl-ease),
+    transform 0.8s var(--vl-ease);
+  transition-delay: var(--vl-delay, 0ms);
+}
+/* Hidden only once the script that reveals them is running. */
+.vl-anim [data-reveal]:not([data-in]) {
+  opacity: 0;
+  transform: translateY(28px);
+}
+
+@keyframes vl-rise {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+/* A tab's content, and an answer, rise in when they are swapped or opened. */
+.vl-swap {
+  animation: vl-rise 0.45s var(--vl-ease) both;
+}
+/* The first screen rises in as the page loads, in turn, with no script. */
+.vl [data-rise] {
+  animation: vl-rise 0.9s var(--vl-ease) both;
+  animation-delay: var(--vl-delay, 0ms);
+}
+
+/* --------------------------------- Buttons -------------------------------- */
+
+.vl-btn {
+  display: inline-flex;
+  min-height: 48px;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border-radius: 999px;
+  padding: 10px 24px;
+  font-size: 15px;
+  font-weight: 500;
+  line-height: 1.2;
+  text-align: center;
+  transition:
+    background-color 0.2s ease,
+    color 0.2s ease,
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
+}
+.vl-btn:hover {
+  transform: translateY(-1px);
+}
+.vl-btn-blue {
+  background: var(--vl-blue);
+  color: #ffffff;
+}
+.vl-btn-blue:hover {
+  background: var(--vl-blue-deep);
+  box-shadow: 0 10px 24px -10px rgb(3 70 255 / 0.7);
+}
+.vl-btn-white {
+  background: #ffffff;
+  color: var(--vl-ink);
+}
+.vl-btn-white:hover {
+  background: #eef2ff;
+}
+.vl-btn-glass {
+  background: rgb(255 255 255 / 0.14);
+  color: #ffffff;
+  backdrop-filter: blur(8px);
+}
+.vl-btn-glass:hover {
+  background: rgb(255 255 255 / 0.24);
+}
+.vl-btn-dark {
+  background: var(--vl-ink);
+  color: #ffffff;
+}
+.vl-btn-dark:hover {
+  background: #1d1d26;
+}
+.vl-btn-sm {
+  min-height: 44px;
+  padding: 8px 20px;
+  font-size: 14px;
+}
+
+/* --------------------------------- Header --------------------------------- */
+
+.vl-header {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  /* The hero slides up under the bar. */
+  margin-bottom: -76px;
+  color: #ffffff;
+  transition:
+    background-color 0.3s ease,
+    color 0.3s ease,
+    box-shadow 0.3s ease;
+}
+.vl-header[data-solid] {
+  background: rgb(255 255 255 / 0.92);
+  color: var(--vl-ink);
+  box-shadow: 0 1px 0 var(--vl-hair);
+  backdrop-filter: blur(14px);
+}
+/* The open menu is navy whatever is behind the bar. */
+.vl-header[data-open] {
+  background: var(--vl-navy);
+}
+.vl-header-row {
+  display: flex;
+  min-height: 76px;
+  /* Wraps rather than pushes the page sideways when the text is zoomed on a phone. */
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px 12px;
+}
+.vl-header-logo {
+  display: inline-flex;
+  min-height: 44px;
+  align-items: center;
+}
+.vl-header nav.vl-links {
+  display: none;
+  align-items: center;
+  gap: 4px;
+}
+.vl-link {
+  display: inline-flex;
+  min-height: 44px;
+  align-items: center;
+  border-radius: 999px;
+  padding: 0 14px;
+  font-size: 15px;
+  font-weight: 500;
+  white-space: nowrap;
+  opacity: 0.92;
+  transition:
+    background-color 0.2s ease,
+    opacity 0.2s ease;
+}
+.vl-link:hover {
+  background: rgb(255 255 255 / 0.14);
+  opacity: 1;
+}
+.vl-header[data-solid] .vl-link:hover {
+  background: var(--vl-card);
+}
+.vl-header-side {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+}
+.vl-account-area {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 2px;
+}
+/* Sign in, sign out and the report button move into the menu sheet on a phone. */
+.vl-header .vl-wide {
+  display: none;
+}
+.vl-account {
+  display: inline-flex;
+  min-height: 44px;
+  min-width: 0;
+  max-width: 5.5rem;
+  align-items: center;
+  gap: 8px;
+  border-radius: 999px;
+  padding: 0 10px;
+  font-size: 15px;
+  font-weight: 500;
+}
+.vl-account span {
+  min-width: 0;
+}
+.vl-account small {
+  display: none;
+  border-radius: 999px;
+  background: rgb(255 255 255 / 0.16);
+  padding: 3px 9px;
+  font-size: 12px;
+  white-space: nowrap;
+}
+.vl-header[data-solid] .vl-account small {
+  background: var(--vl-card);
+}
+.vl-menu-button {
+  display: inline-flex;
+  min-height: 44px;
+  align-items: center;
+  gap: 8px;
+  border-radius: 999px;
+  background: rgb(255 255 255 / 0.14);
+  padding: 0 16px;
+  font-size: 15px;
+  font-weight: 500;
+}
+.vl-header[data-solid] .vl-menu-button {
+  background: var(--vl-card);
+}
+.vl-sheet {
+  position: absolute;
+  inset: 100% 0 auto;
+  max-height: calc(100dvh - 76px);
+  overflow-y: auto;
+  border-top: 1px solid rgb(255 255 255 / 0.14);
+  background: var(--vl-navy);
+  color: #ffffff;
+  padding-block: 12px 20px;
+}
+.vl-sheet ul {
+  display: flex;
+  flex-direction: column;
+}
+.vl-sheet a {
+  display: flex;
+  min-height: 52px;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid rgb(255 255 255 / 0.12);
+  font-size: 18px;
+  font-weight: 500;
+}
+.vl-sheet .vl-btn {
+  margin-top: 16px;
+  width: 100%;
+  border-bottom: 0;
+  justify-content: center;
+  font-size: 16px;
+}
+
+/* The full bar needs a little more room than the app's desktop width. */
+@media (min-width: 1100px) {
+  .vl-header-row {
+    flex-wrap: nowrap;
+  }
+  .vl-header nav.vl-links {
+    display: flex;
+  }
+  .vl-header .vl-wide {
+    display: inline-flex;
+  }
+  .vl-header-side {
+    margin-left: 0;
+  }
+  .vl-account {
+    max-width: 9rem;
+    padding: 0 14px;
+  }
+  .vl-menu-button,
+  .vl-sheet {
+    display: none;
+  }
+}
+@media (min-width: 1280px) {
+  .vl-account {
+    max-width: 16rem;
+  }
+  .vl-account small {
+    display: inline;
+  }
+}
+
+/* ---------------------------------- Hero ---------------------------------- */
+
+.vl-hero {
+  position: relative;
+  overflow: hidden;
+  background:
+    radial-gradient(90% 55% at 50% 108%, rgb(60 120 255 / 0.55) 0%, transparent 70%),
+    linear-gradient(180deg, #030720 0%, #041046 34%, #0331c9 76%, #0346ff 100%);
+  color: #ffffff;
+  padding-top: 148px;
+  text-align: center;
+}
+.vl-badge {
+  display: inline-flex;
+  min-height: 34px;
+  align-items: center;
+  gap: 9px;
+  border: 1px solid rgb(255 255 255 / 0.16);
+  border-radius: 999px;
+  background: rgb(255 255 255 / 0.12);
+  padding: 0 14px 0 12px;
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+.vl-badge i {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: #7dffb0;
+  box-shadow: 0 0 0 4px rgb(125 255 176 / 0.22);
+}
+.vl-hero h1 {
+  margin: 26px auto 0;
+  font-size: clamp(2.35rem, 5.2vw, 4.25rem);
+  line-height: 1.05;
+  letter-spacing: -0.04em;
+}
+.vl-hero h1 span {
+  display: block;
+}
+.vl-hero-sub {
+  margin: 22px auto 0;
+  max-width: 44ch;
+  font-size: clamp(1rem, 1.25vw, 1.125rem);
+  line-height: 1.5;
+  color: rgb(255 255 255 / 0.88);
+}
+.vl-hero-actions {
+  margin-top: 34px;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 12px;
+}
+.vl-search {
+  margin: 30px auto 0;
+  width: 100%;
+  max-width: 560px;
+  text-align: left;
+}
+.vl-search label {
+  display: block;
+  padding-left: 18px;
+  font-size: 14px;
+  font-weight: 500;
+  color: rgb(255 255 255 / 0.9);
+}
+.vl-search-row {
+  margin-top: 8px;
+  display: flex;
+  gap: 6px;
+  border: 1px solid rgb(255 255 255 / 0.2);
+  border-radius: 999px;
+  background: rgb(255 255 255 / 0.12);
+  padding: 6px;
+  backdrop-filter: blur(10px);
+}
+.vl-search input {
+  appearance: none;
+  border: 0;
+  min-width: 0;
+  flex: 1;
+  min-height: 44px;
+  border-radius: 999px;
+  background: transparent;
+  padding: 0 14px;
+  font-size: 16px;
+  color: #ffffff;
+}
+.vl-search input::placeholder {
+  color: rgb(255 255 255 / 0.72);
+}
+
+/* The dashboard that rises from the bottom of the hero. */
+.vl-mock-ring {
+  margin: 72px auto -2px;
+  max-width: 1180px;
+  border-radius: 30px 30px 0 0;
+  background: rgb(255 255 255 / 0.2);
+  padding: 8px 8px 0;
+  text-align: left;
+}
+.vl-mock {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  overflow: hidden;
+  border-radius: 22px 22px 0 0;
+  background: #ffffff;
+  color: var(--vl-ink);
+}
+.vl-mock-side {
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  border-right: 1px solid var(--vl-hair);
+  padding: 22px 0;
+}
+.vl-mock-side span {
+  display: flex;
+  width: 34px;
+  height: 34px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  color: var(--vl-soft);
+}
+.vl-mock-side span[data-on] {
+  background: #e9eeff;
+  color: var(--vl-blue);
+}
+.vl-mock-main {
+  min-width: 0;
+  padding: 22px clamp(16px, 2.4vw, 32px) 0;
+}
+.vl-mock-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.vl-mock-head p:first-child {
+  font-size: clamp(1.4rem, 2.2vw, 1.9rem);
+  font-weight: 500;
+  letter-spacing: -0.03em;
+}
+.vl-mock-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 14px;
+  font-size: 13px;
+  color: var(--vl-body);
+}
+.vl-chip {
+  display: inline-flex;
+  min-height: 26px;
+  align-items: center;
+  gap: 6px;
+  border-radius: 999px;
+  background: var(--vl-card);
+  padding: 0 10px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--vl-body);
+  white-space: nowrap;
+}
+.vl-chip[data-tone="blue"] {
+  background: #e9eeff;
+  color: var(--vl-blue-deep);
+}
+.vl-chip[data-tone="good"] {
+  background: var(--vl-good-soft);
+  color: var(--vl-good);
+}
+.vl-chip[data-tone="bad"] {
+  background: var(--vl-bad-soft);
+  color: var(--vl-bad);
+}
+.vl-chip[data-tone="wait"] {
+  background: var(--vl-wait-soft);
+  color: var(--vl-wait);
+}
+.vl-mock-tiles {
+  margin-top: 22px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  border-top: 1px solid var(--vl-hair);
+}
+.vl-mock-tile {
+  min-width: 0;
+  border-bottom: 1px solid var(--vl-hair);
+  padding: 18px 0 18px 16px;
+}
+.vl-mock-tile:nth-child(odd) {
+  border-right: 1px solid var(--vl-hair);
+  padding: 18px 16px 18px 0;
+}
+.vl-mock-tile dt {
+  font-size: 13px;
+  color: var(--vl-body);
+}
+.vl-mock-tile dd b {
+  display: block;
+  margin-top: 6px;
+  font-size: clamp(1.5rem, 2.6vw, 2.25rem);
+  font-weight: 500;
+  letter-spacing: -0.03em;
+  line-height: 1.1;
+}
+.vl-mock-tile dd small {
+  display: block;
+  margin-top: 12px;
+  font-size: 12px;
+  color: var(--vl-soft);
+}
+.vl-bar {
+  margin-top: 8px;
+  display: flex;
+  gap: 3px;
+}
+.vl-bar i {
+  height: 14px;
+  flex: 1;
+  max-width: 5px;
+  border-radius: 2px;
+  background: #e3e9ff;
+}
+.vl-bar i[data-on] {
+  background: var(--vl-blue);
+}
+.vl-mock-lower {
+  display: grid;
+  gap: 14px;
+  padding: 18px 0 0;
+}
+.vl-mock-panel {
+  min-width: 0;
+  border: 1px solid var(--vl-hair);
+  border-bottom: 0;
+  border-radius: 16px 16px 0 0;
+  background: var(--vl-ground);
+  padding: 16px 16px 10px;
+}
+.vl-mock-panel p {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--vl-body);
+}
+.vl-mock-panel li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  border-top: 1px solid var(--vl-hair);
+  padding: 10px 0;
+  font-size: 14px;
+}
+.vl-mock-panel ul {
+  margin-top: 10px;
+}
+.vl-mock-panel li span:first-child {
+  min-width: 0;
+}
+
+@media (min-width: 768px) {
+  .vl-mock {
+    grid-template-columns: 64px minmax(0, 1fr);
+  }
+  .vl-mock-side {
+    display: flex;
+  }
+  .vl-mock-tiles {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+  .vl-mock-tile,
+  .vl-mock-tile:nth-child(odd) {
+    border-right: 1px solid var(--vl-hair);
+    padding: 20px 20px 22px;
+  }
+  .vl-mock-tile:first-child {
+    padding-left: 0;
+  }
+  .vl-mock-tile:last-child {
+    border-right: 0;
+  }
+  .vl-mock-lower {
+    grid-template-columns: 1.4fr 1fr;
+  }
+}
+
+/* -------------------------------- Sections -------------------------------- */
+
+.vl-section {
+  padding-block: clamp(72px, 9vw, 128px);
+}
+.vl-section[data-ground="soft"] {
+  background: var(--vl-ground);
+}
+.vl-label {
+  display: inline-flex;
+  min-height: 28px;
+  align-items: center;
+  border-radius: 999px;
+  background: var(--vl-card);
+  padding: 0 12px;
+  font-size: 11.5px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--vl-body);
+}
+.vl-section[data-ground="soft"] .vl-label {
+  background: #efefef;
+}
+.vl-head {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 18px;
+  text-align: center;
+}
+.vl-head[data-align="left"] {
+  align-items: flex-start;
+  text-align: left;
+}
+.vl-h2 {
+  font-size: clamp(1.9rem, 3.5vw, 3rem);
+  line-height: 1.08;
+}
+.vl-h2 span {
+  display: block;
+}
+.vl-lede {
+  max-width: 46ch;
+  font-size: clamp(1rem, 1.15vw, 1.0625rem);
+  line-height: 1.55;
+  color: var(--vl-body);
+}
+
+/* Built on: a strip of names. */
+.vl-strip {
+  border-bottom: 1px solid var(--vl-hair);
+  background: #ffffff;
+  padding-block: 28px;
+}
+.vl-strip-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 10px 28px;
+}
+.vl-strip-row p {
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--vl-soft);
+}
+.vl-strip-row ul {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px 30px;
+}
+.vl-strip-row li {
+  font-size: clamp(1.05rem, 1.6vw, 1.35rem);
+  font-weight: 500;
+  letter-spacing: -0.02em;
+  color: #2a2b31;
+}
+
+/* Start here: the three things people come to do. */
+.vl-start [data-testid="home-tiles"] {
+  margin-top: 40px;
+  display: grid;
+  gap: 16px;
+}
+.vl-start [data-testid="home-tiles"] a {
+  min-height: 132px;
+  border-radius: var(--vl-radius);
+  box-shadow: none;
+  transition:
+    border-color 0.2s ease,
+    transform 0.25s var(--vl-ease),
+    box-shadow 0.25s ease;
+}
+.vl-start [data-testid="home-tiles"] a:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 18px 40px -24px rgb(4 4 9 / 0.35);
+}
+.vl-start-more {
+  margin-top: 20px;
+  display: inline-flex;
+  min-height: 44px;
+  align-items: center;
+  gap: 6px;
+  font-weight: 500;
+  color: var(--vl-blue-deep);
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+@media (min-width: 900px) {
+  .vl-start [data-testid="home-tiles"] {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+/* Capabilities: heading left, paragraph right, four cards. */
+.vl-split-head {
+  display: grid;
+  gap: 20px;
+}
+.vl-split-head .vl-lede {
+  align-self: end;
+}
+.vl-cards-4 {
+  margin-top: 48px;
+  display: grid;
+  gap: 16px;
+}
+.vl-cap {
+  min-width: 0;
+  border: 1px solid #efefef;
+  border-radius: var(--vl-radius);
+  background: #ffffff;
+  padding: 22px;
+  box-shadow: 0 1px 2px rgb(4 4 9 / 0.03);
+}
+.vl-cap:hover {
+  border-color: #dcdde2;
+  box-shadow: 0 22px 44px -28px rgb(4 4 9 / 0.35);
+}
+.vl-tile {
+  display: flex;
+  width: 44px;
+  height: 44px;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--vl-hair);
+  border-radius: 12px;
+  background: #ffffff;
+  color: var(--vl-ink);
+  box-shadow: 0 1px 2px rgb(4 4 9 / 0.05);
+}
+.vl-cap h3 {
+  margin-top: 44px;
+  font-size: 1.2rem;
+  line-height: 1.2;
+}
+.vl-cap p {
+  margin-top: 10px;
+  font-size: 15px;
+  line-height: 1.5;
+  color: var(--vl-body);
+}
+.vl-center {
+  margin-top: 44px;
+  display: flex;
+  justify-content: center;
+}
+@media (min-width: 700px) {
+  .vl-cards-4 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (min-width: 1024px) {
+  .vl-split-head {
+    grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr);
+    align-items: end;
+    gap: 48px;
+  }
+  .vl-split-head .vl-lede {
+    justify-self: end;
+  }
+}
+@media (min-width: 1180px) {
+  .vl-cards-4 {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+/* People: pill tabs, then text beside a picture panel. */
+.vl-tabs {
+  margin-top: 40px;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+}
+.vl-tab {
+  min-height: 52px;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  background: var(--vl-card);
+  padding: 0 28px;
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--vl-body);
+  transition:
+    background-color 0.2s ease,
+    color 0.2s ease,
+    box-shadow 0.2s ease,
+    border-color 0.2s ease;
+}
+.vl-tab:hover {
+  color: var(--vl-ink);
+}
+.vl-tab[aria-selected="true"] {
+  border-color: var(--vl-blue);
+  background: #ffffff;
+  color: var(--vl-ink);
+  box-shadow: 0 0 0 4px rgb(3 70 255 / 0.1);
+}
+.vl-panel {
+  margin-top: 56px;
+  display: grid;
+  gap: 36px;
+  align-items: center;
+}
+.vl-panel h3 {
+  font-size: clamp(1.6rem, 2.6vw, 2.25rem);
+  line-height: 1.12;
+}
+.vl-panel h3 span {
+  display: block;
+}
+.vl-panel-text > p {
+  margin-top: 16px;
+  max-width: 42ch;
+  font-size: 16px;
+  line-height: 1.55;
+  color: var(--vl-body);
+}
+.vl-ticks {
+  margin-top: 26px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.vl-ticks li {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  font-size: 15px;
+  font-weight: 500;
+  line-height: 1.4;
+}
+.vl-ticks li svg {
+  margin-top: 1px;
+  flex: none;
+  border: 1.5px solid var(--vl-ink);
+  border-radius: 999px;
+  padding: 2px;
+}
+.vl-panel-text .vl-btn {
+  margin-top: 30px;
+}
+.vl-visual {
+  position: relative;
+  display: flex;
+  min-height: 360px;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  border-radius: var(--vl-radius);
+  background:
+    radial-gradient(55% 70% at 18% 12%, rgb(40 96 255 / 0.85) 0%, transparent 62%),
+    radial-gradient(45% 60% at 86% 30%, rgb(120 170 255 / 0.5) 0%, transparent 60%),
+    radial-gradient(60% 60% at 60% 110%, rgb(3 70 255 / 0.9) 0%, transparent 65%),
+    linear-gradient(160deg, #02061a 0%, #041562 55%, #0a36d8 100%);
+  padding: clamp(20px, 4vw, 56px);
+}
+.vl-ui {
+  width: 100%;
+  max-width: 440px;
+  border-radius: 18px;
+  background: #ffffff;
+  padding: 22px;
+  color: var(--vl-ink);
+  box-shadow: 0 30px 60px -30px rgb(2 6 26 / 0.7);
+}
+.vl-ui-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+.vl-ui-title {
+  font-size: 1.15rem;
+  font-weight: 500;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+}
+.vl-ui-sub {
+  margin-top: 6px;
+  font-size: 13px;
+  color: var(--vl-body);
+}
+.vl-ui-list {
+  margin-top: 16px;
+  display: flex;
+  flex-direction: column;
+}
+.vl-ui-list li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border-top: 1px solid var(--vl-hair);
+  padding: 11px 0;
+  font-size: 14px;
+  line-height: 1.35;
+}
+.vl-ui-list li > .vl-chip {
+  margin-left: auto;
+}
+.vl-dot {
+  display: flex;
+  width: 24px;
+  height: 24px;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  background: var(--vl-good-soft);
+  color: var(--vl-good);
+}
+.vl-dot[data-tone="wait"] {
+  background: var(--vl-wait-soft);
+  color: var(--vl-wait);
+}
+.vl-dot[data-tone="bad"] {
+  background: var(--vl-bad-soft);
+  color: var(--vl-bad);
+}
+.vl-ui-foot {
+  margin-top: 14px;
+  border-radius: 12px;
+  background: var(--vl-ground);
+  padding: 12px 14px;
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--vl-body);
+}
+.vl-ui-fake-button {
+  margin-top: 16px;
+  display: flex;
+  min-height: 42px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  background: var(--vl-blue);
+  font-size: 14px;
+  font-weight: 500;
+  color: #ffffff;
+}
+@media (min-width: 1024px) {
+  .vl-panel {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.25fr);
+    gap: 64px;
+  }
+  .vl-visual {
+    min-height: 480px;
+  }
+}
+
+/* About: number, picture, number. */
+.vl-trio {
+  margin-top: 56px;
+  display: grid;
+  gap: 16px;
+}
+.vl-stat {
+  display: flex;
+  min-height: 300px;
+  flex-direction: column;
+  border-radius: var(--vl-radius);
+  background: var(--vl-card);
+  padding: 22px;
+}
+.vl-stat b {
+  margin-top: auto;
+  padding-top: 40px;
+  font-size: clamp(3rem, 6vw, 4.75rem);
+  font-weight: 500;
+  letter-spacing: -0.04em;
+  line-height: 1;
+}
+.vl-stat strong {
+  margin-top: 8px;
+  font-size: 1.2rem;
+  font-weight: 500;
+}
+.vl-stat p {
+  margin-top: 8px;
+  max-width: 32ch;
+  font-size: 15px;
+  line-height: 1.5;
+  color: var(--vl-body);
+}
+.vl-photo {
+  position: relative;
+  min-height: 300px;
+  overflow: hidden;
+  border-radius: var(--vl-radius);
+  background: #0a1a52;
+}
+.vl-photo > [data-photo] {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+.vl-photo figcaption {
+  position: absolute;
+  left: 12px;
+  bottom: 12px;
+  z-index: 1;
+  border-radius: 999px;
+  background: rgb(4 4 9 / 0.72);
+  padding: 4px 10px;
+  font-size: 12px;
+  color: #ffffff;
+}
+@media (min-width: 900px) {
+  .vl-trio {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.35fr) minmax(0, 1fr);
+  }
+  .vl-stat,
+  .vl-photo {
+    min-height: 420px;
+  }
+}
+
+/* Metrics: three large numbers on a hairline. */
+.vl-numbers {
+  margin-top: 56px;
+  display: grid;
+  border-top: 1px solid var(--vl-hair);
+}
+.vl-numbers > li {
+  display: flex;
+  flex-direction: column;
+  border-bottom: 1px solid var(--vl-hair);
+  padding: 28px 0;
+}
+.vl-numbers b {
+  font-size: clamp(3rem, 6.5vw, 5.25rem);
+  font-weight: 500;
+  letter-spacing: -0.05em;
+  line-height: 1;
+  color: var(--vl-blue);
+}
+.vl-numbers strong {
+  margin-top: 14px;
+  font-size: 1.15rem;
+  font-weight: 500;
+}
+.vl-numbers p {
+  margin-top: 6px;
+  max-width: 34ch;
+  font-size: 15px;
+  line-height: 1.5;
+  color: var(--vl-body);
+}
+@media (min-width: 860px) {
+  .vl-numbers {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .vl-numbers > li {
+    border-bottom: 0;
+    padding: 36px 28px 8px;
+  }
+  .vl-numbers > li + li {
+    border-left: 1px solid var(--vl-hair);
+  }
+  .vl-numbers > li:first-child {
+    padding-left: 0;
+  }
+}
+
+/* Bento: three cards, each with a small drawing. */
+.vl-bento {
+  margin-top: 56px;
+  display: grid;
+  gap: 16px;
+}
+.vl-bento-card {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid #efefef;
+  border-radius: var(--vl-radius);
+  background: #ffffff;
+  padding: 26px 26px 0;
+}
+.vl-bento-card h3 {
+  font-size: 1.25rem;
+  line-height: 1.2;
+}
+.vl-bento-card > p {
+  margin-top: 10px;
+  font-size: 15px;
+  line-height: 1.5;
+  color: var(--vl-body);
+}
+.vl-widget {
+  position: relative;
+  margin-top: 28px;
+  display: flex;
+  min-height: 230px;
+  flex: 1;
+  align-items: center;
+  justify-content: center;
+  padding-bottom: 26px;
+}
+.vl-widget::after {
+  content: "";
+  position: absolute;
+  inset: auto -26px 0;
+  height: 70px;
+  background: linear-gradient(180deg, rgb(255 255 255 / 0) 0%, #ffffff 85%);
+  pointer-events: none;
+}
+.vl-mini {
+  width: 100%;
+  max-width: 290px;
+  border: 1px solid var(--vl-hair);
+  border-radius: 16px;
+  background: #ffffff;
+  padding: 14px 16px;
+  box-shadow: 0 18px 40px -26px rgb(4 4 9 / 0.4);
+}
+.vl-mini li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 0;
+  font-size: 14px;
+}
+.vl-mini li + li {
+  border-top: 1px solid var(--vl-hair);
+}
+.vl-mini li .vl-chip {
+  margin-left: auto;
+}
+.vl-floaters {
+  position: relative;
+  width: 100%;
+  max-width: 300px;
+  height: 180px;
+}
+.vl-floaters span {
+  position: absolute;
+  display: inline-flex;
+  min-height: 44px;
+  align-items: center;
+  gap: 10px;
+  border: 1px solid var(--vl-hair);
+  border-radius: 12px;
+  background: #ffffff;
+  padding: 0 14px;
+  font-size: 14px;
+  font-weight: 500;
+  box-shadow: 0 16px 34px -22px rgb(4 4 9 / 0.45);
+  white-space: nowrap;
+}
+.vl-floaters span:nth-child(1) {
+  top: 8px;
+  left: 0;
+}
+.vl-floaters span:nth-child(2) {
+  top: 62px;
+  left: 34px;
+  transform: rotate(4deg);
+  color: var(--vl-bad);
+}
+.vl-floaters span:nth-child(3) {
+  top: 122px;
+  left: 6px;
+  color: var(--vl-body);
+}
+.vl-orbit {
+  position: relative;
+  display: flex;
+  width: 220px;
+  height: 180px;
+  align-items: center;
+  justify-content: center;
+}
+.vl-orbit::before {
+  content: "";
+  position: absolute;
+  inset: 50% 0 auto;
+  border-top: 1px dashed #d6d7dc;
+}
+.vl-orbit::after {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 50%;
+  border-left: 1px dashed #d6d7dc;
+}
+.vl-orbit .vl-tile {
+  position: absolute;
+  z-index: 1;
+}
+.vl-orbit .vl-tile:nth-child(1) {
+  top: 0;
+}
+.vl-orbit .vl-tile:nth-child(2) {
+  left: 0;
+}
+.vl-orbit .vl-tile:nth-child(3) {
+  right: 0;
+}
+.vl-orbit .vl-tile:nth-child(4) {
+  width: 56px;
+  height: 56px;
+  border-color: #c9d8ff;
+  background: #e9eeff;
+  color: var(--vl-blue);
+}
+.vl-orbit em {
+  position: absolute;
+  bottom: -6px;
+  z-index: 1;
+  font-style: normal;
+}
+@media (min-width: 960px) {
+  .vl-bento {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+/* A finished case: the shared trail component, set in this page's type. */
+.vl-showcase [data-testid="public-trail-showcase"] {
+  max-width: 760px;
+  padding-inline: 0;
+  padding-bottom: 0;
+}
+.vl-showcase [data-testid="public-trail-showcase"] > h2 {
+  margin-top: 0;
+  font-size: clamp(1.9rem, 3.5vw, 3rem);
+  line-height: 1.08;
+}
+.vl-showcase [data-testid="public-trail-showcase"] > p {
+  margin-top: 14px;
+  font-size: 1.0625rem;
+  line-height: 1.55;
+}
+.vl-showcase [data-testid="public-trail-showcase"] > div {
+  margin-top: 32px;
+  text-align: left;
+  border-radius: var(--vl-radius);
+  box-shadow: 0 30px 60px -44px rgb(4 4 9 / 0.5);
+}
+
+/* Who funds it: heading, then two plans. */
+.vl-plans {
+  margin-top: 48px;
+  display: grid;
+  gap: 16px;
+}
+.vl-plan {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  border-radius: 24px;
+  background: var(--vl-card);
+  padding: clamp(22px, 3vw, 36px);
+}
+.vl-plan[data-tone="dark"] {
+  background:
+    radial-gradient(80% 60% at 100% 0%, rgb(3 70 255 / 0.55) 0%, transparent 70%), #040409;
+  color: #ffffff;
+}
+.vl-plan h3 {
+  font-size: 1.35rem;
+  line-height: 1.2;
+}
+.vl-plan > p {
+  margin-top: 8px;
+  max-width: 38ch;
+  font-size: 15px;
+  line-height: 1.5;
+  color: var(--vl-body);
+}
+.vl-plan[data-tone="dark"] > p,
+.vl-plan[data-tone="dark"] .vl-plan-unit,
+.vl-plan[data-tone="dark"] .vl-plan-incl {
+  color: rgb(255 255 255 / 0.8);
+}
+.vl-price {
+  margin-top: 28px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 10px;
+}
+.vl-price b {
+  font-size: clamp(2.2rem, 4vw, 3.25rem);
+  font-weight: 500;
+  letter-spacing: -0.04em;
+  line-height: 1;
+}
+.vl-plan-unit {
+  font-size: 15px;
+  color: var(--vl-body);
+}
+.vl-plan-incl {
+  margin-top: 28px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--vl-body);
+}
+.vl-plan ul {
+  margin: 14px 0 30px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.vl-plan li {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  font-size: 15px;
+  line-height: 1.4;
+}
+.vl-plan li svg {
+  margin-top: 2px;
+  flex: none;
+}
+.vl-plan .vl-btn {
+  margin-top: auto;
+  width: 100%;
+}
+@media (min-width: 860px) {
+  .vl-plans {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+/* Our promise: one large card. */
+.vl-story {
+  margin: 56px auto 0;
+  max-width: 1040px;
+  display: grid;
+  gap: 32px;
+  border: 1px solid var(--vl-hair);
+  border-radius: 28px;
+  background: #ffffff;
+  padding: clamp(24px, 4vw, 48px);
+  box-shadow:
+    0 1px 2px rgb(4 4 9 / 0.04),
+    0 40px 80px -60px rgb(4 4 9 / 0.45);
+}
+.vl-story-who {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.vl-story-who .vl-tile {
+  width: 56px;
+  height: 56px;
+  border-radius: 14px;
+  background: linear-gradient(145deg, #e9eef8 0%, #c9d8ff 100%);
+  color: var(--vl-blue-deep);
+}
+.vl-story-who strong {
+  display: block;
+  font-size: 1.05rem;
+  font-weight: 500;
+}
+.vl-story-who span {
+  font-size: 14px;
+  color: var(--vl-body);
+}
+.vl-story-first {
+  margin-top: 28px;
+  border-top: 1px solid var(--vl-hair);
+  padding-top: 20px;
+}
+.vl-story-first strong {
+  display: block;
+  font-size: 1.5rem;
+  font-weight: 500;
+  letter-spacing: -0.02em;
+}
+.vl-story-first p {
+  margin-top: 6px;
+  max-width: 30ch;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--vl-body);
+}
+.vl-story blockquote {
+  font-size: clamp(1.25rem, 2.1vw, 1.75rem);
+  font-weight: 500;
+  letter-spacing: -0.02em;
+  line-height: 1.35;
+}
+.vl-story blockquote::before {
+  content: "“";
+  display: block;
+  height: 0.55em;
+  font-size: 3.2em;
+  line-height: 1;
+  color: var(--vl-blue);
+}
+.vl-bars {
+  margin-top: 28px;
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+}
+.vl-bars i {
+  width: 72px;
+  height: 4px;
+  border-radius: 999px;
+  background: #ececec;
+}
+.vl-bars i:first-child {
+  background: var(--vl-ink);
+}
+@media (min-width: 900px) {
+  .vl-story {
+    grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.6fr);
+    gap: 56px;
+  }
+}
+
+/* Questions. */
+.vl-faq {
+  margin: 48px auto 0;
+  max-width: 1000px;
+}
+.vl-faq-item {
+  border-bottom: 1px solid var(--vl-hair);
+}
+.vl-faq-item h3 {
+  letter-spacing: -0.01em;
+}
+.vl-faq-item button {
+  display: flex;
+  width: 100%;
+  min-height: 68px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 12px 0;
+  text-align: left;
+  font-size: clamp(1rem, 1.3vw, 1.125rem);
+  font-weight: 500;
+}
+.vl-faq-item button svg {
+  flex: none;
+  transition: transform 0.3s var(--vl-ease);
+}
+.vl-faq-item button[aria-expanded="true"] svg {
+  transform: rotate(180deg);
+}
+.vl-faq-answer {
+  animation: vl-rise 0.35s var(--vl-ease) both;
+}
+.vl-faq-answer p {
+  max-width: 70ch;
+  padding-bottom: 22px;
+  font-size: 16px;
+  line-height: 1.6;
+  color: var(--vl-body);
+}
+
+/* The closing band. */
+.vl-cta-wrap {
+  padding: 0 clamp(8px, 1.2vw, 16px);
+}
+.vl-cta {
+  border-radius: 28px;
+  background:
+    radial-gradient(80% 60% at 50% 115%, rgb(70 130 255 / 0.6) 0%, transparent 70%),
+    linear-gradient(180deg, #030720 0%, #041046 30%, #0331c9 78%, #0346ff 100%);
+  padding: clamp(72px, 10vw, 136px) var(--vl-gutter);
+  text-align: center;
+  color: #ffffff;
+}
+.vl-cta h2 {
+  font-size: clamp(2.1rem, 5vw, 4rem);
+  line-height: 1.05;
+  letter-spacing: -0.04em;
+}
+.vl-cta h2 span {
+  display: block;
+}
+.vl-cta p {
+  margin: 20px auto 0;
+  max-width: 44ch;
+  font-size: 1.0625rem;
+  line-height: 1.5;
+  color: rgb(255 255 255 / 0.88);
+}
+
+/* --------------------------------- Footer --------------------------------- */
+
+.vl-footer {
+  background: #ffffff;
+  color: var(--vl-ink);
+}
+.vl-footer-grid {
+  display: grid;
+  gap: 40px;
+  padding-block: 64px 44px;
+}
+.vl-footer-about p {
+  margin-top: 16px;
+  max-width: 34ch;
+  font-size: 15px;
+  line-height: 1.55;
+  color: var(--vl-body);
+}
+.vl-footer-cols {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 32px 24px;
+}
+.vl-footer h2 {
+  font-size: 14px;
+  font-weight: 500;
+  letter-spacing: 0;
+  color: var(--vl-soft);
+}
+.vl-footer ul {
+  margin-top: 8px;
+  display: flex;
+  flex-direction: column;
+}
+.vl-footer li a {
+  display: inline-flex;
+  min-height: 40px;
+  align-items: center;
+  gap: 6px;
+  font-size: 15px;
+  font-weight: 500;
+  transition: color 0.2s ease;
+}
+.vl-footer li a:hover {
+  color: var(--vl-blue);
+}
+.vl-footer-base {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  border-top: 1px solid var(--vl-hair);
+  padding-block: 22px 28px;
+  font-size: 13.5px;
+  line-height: 1.5;
+  color: var(--vl-body);
+}
+@media (min-width: 700px) {
+  .vl-footer-cols {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+@media (min-width: 1100px) {
+  .vl-footer-grid {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.6fr);
+    gap: 64px;
+  }
+  .vl-footer-base {
+    flex-direction: row;
+    justify-content: space-between;
+    gap: 32px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .vl-anim [data-reveal]:not([data-in]) {
+    opacity: 1;
+    transform: none;
+  }
+  .vl-btn:hover,
+  .vl-start [data-testid="home-tiles"] a:hover {
+    transform: none;
+  }
+}

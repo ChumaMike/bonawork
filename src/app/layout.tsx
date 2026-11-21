@@ -1,5 +1,10 @@
 import type { Metadata, Viewport } from "next";
-import { Bricolage_Grotesque, Geist_Mono, Hanken_Grotesk } from "next/font/google";
+import {
+  Bricolage_Grotesque,
+  Geist_Mono,
+  Hanken_Grotesk,
+  Inter_Tight,
+} from "next/font/google";
 import { Suspense } from "react";
 import { BonaBuddy } from "@/components/buddy/bona-buddy";
 import { BottomNav, PreviewBanner, SiteFooter, SiteHeader } from "@/components/chrome";
@@ -33,6 +38,17 @@ const mono = Geist_Mono({
   display: "swap",
 });
 
+/*
+ * The landing page's grotesk. Only `/` uses it (see vellure.css), so it is not
+ * preloaded: other pages never download it.
+ */
+const landing = Inter_Tight({
+  variable: "--font-landing",
+  subsets: ["latin", "latin-ext"],
+  display: "swap",
+  preload: false,
+});
+
 const m = getMessages();
 
 export const metadata: Metadata = {
@@ -60,7 +76,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html
       lang={DEFAULT_LOCALE}
-      className={`${body.variable} ${display.variable} ${mono.variable} h-full antialiased`}
+      className={`${body.variable} ${display.variable} ${mono.variable} ${landing.variable} h-full antialiased`}
     >
       <body className="flex min-h-full flex-col font-sans">
         <a
