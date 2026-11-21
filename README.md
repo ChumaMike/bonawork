@@ -119,7 +119,9 @@ anything, and no real school uses it yet.
 
 ## State-changing transactions in the live demo
 
-The 90-second demo makes six writes on Fuji. Each one changes contract state.
+The demo case makes six writes on Fuji. Each one changes contract state. In the
+90-second version the first two are sent while setting up, and the other four are
+sent live.
 
 | #   | Demo moment                                | Contract and function                  |
 | --- | ------------------------------------------ | -------------------------------------- |
@@ -133,6 +135,17 @@ The 90-second demo makes six writes on Fuji. Each one changes contract state.
 To see each transaction, open the case, choose the **Trail** tab and press
 **Show proof** on a step. The panel links to the transaction on the block
 explorer and to Bona Chain Verify.
+
+While a release is locked, the payment approver can press **Ask the Avalanche
+contract**. This is a simulated call to the institution's Finance contract. It
+shows the contract's own refusal, for example `RepairNotVerified`, and writes
+nothing.
+
+Two buttons are labelled **Demo shortcut**. One sends the corrected sample invoice
+in a single press (Bona AI reads it, the rules check it). The other fills the
+reviewer's three answers and a sample note. They only save clicks on stage: the
+rules, the contracts and the reviewer's own **Verify completion** press are
+unchanged.
 
 What the contracts refuse:
 
@@ -269,7 +282,7 @@ pnpm e2e                                      # browser tests on fixtures
 
 | Suite                   | Count | What it covers                                                                                       |
 | ----------------------- | ----- | ---------------------------------------------------------------------------------------------------- |
-| App (`pnpm test`)       | 589   | Match rules, release gate, routes, permissions, public redaction, ledger adapter, Bona AI guardrails |
+| App (`pnpm test`)       | 596   | Match rules, release gate, routes, permissions, public redaction, ledger adapter, Bona AI guardrails |
 | Verifier                | 184   | Receipt checks, genuine and fake contracts, document fingerprints                                    |
 | Contracts               | 180   | Every rule and revert, plus a seeded stress test checked against a reference model                   |
 | Live smoke test on Fuji | 17    | `scripts/chain-smoke.ts`: one whole case through the app's adapter. 17 of 17 checks passed           |

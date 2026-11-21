@@ -33,7 +33,7 @@ Chain id 43113, Avalanche Fuji C-Chain.
 
 ```bash
 pnpm install
-pnpm check                                    # 589 app tests and 184 verifier tests
+pnpm check                                    # 596 app tests and 184 verifier tests
 pnpm --filter @bona/contracts test            # 180 contract tests, including a stress test
 pnpm --filter @bona/contracts chain:dry-run   # deploy, set up and run one case locally
 ```
