@@ -1153,6 +1153,31 @@ export const en = {
         ],
       },
     },
+    /**
+     * The side note in the bubble. It only remembers which language a person
+     * prefers. `lang` is the BCP-47 tag a screen reader uses to say the name.
+     */
+    language: {
+      question: "Which language do you prefer?",
+      chosen: "Preferred language:",
+      change: "Change",
+      choose: "Choose a language",
+      /** South Africa's twelve official languages, each in its own name. */
+      options: [
+        { code: "en", name: "English", lang: "en" },
+        { code: "af", name: "Afrikaans", lang: "af" },
+        { code: "nr", name: "isiNdebele", lang: "nr" },
+        { code: "xh", name: "isiXhosa", lang: "xh" },
+        { code: "zu", name: "isiZulu", lang: "zu" },
+        { code: "nso", name: "Sepedi", lang: "nso" },
+        { code: "st", name: "Sesotho", lang: "st" },
+        { code: "tn", name: "Setswana", lang: "tn" },
+        { code: "ss", name: "siSwati", lang: "ss" },
+        { code: "ve", name: "Tshivenda", lang: "ve" },
+        { code: "ts", name: "Xitsonga", lang: "ts" },
+        { code: "sasl", name: "South African Sign Language", lang: "en" },
+      ],
+    },
     ask: {
       title: "Ask Bona AI",
       label: "Your question for Bona AI",

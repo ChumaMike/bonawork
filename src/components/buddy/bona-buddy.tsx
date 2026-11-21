@@ -10,6 +10,7 @@ import {
   type ComponentType,
 } from "react";
 import { cn } from "@/components/ui/cn";
+import { LanguagePreference } from "@/components/language/language-preference";
 import { Icon } from "@/components/ui/icon";
 import { useMessages } from "@/i18n";
 import { BuddyChat, useBuddyAsk } from "./buddy-ask";
@@ -373,6 +374,7 @@ export function BonaBuddy() {
               <Icon name="x" />
             </button>
           </header>
+          <LanguagePreference />
 
           {optionsOpen ? (
             <div className="shrink-0 border-b border-line bg-canvas px-3 py-3">
