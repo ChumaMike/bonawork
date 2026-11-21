@@ -1,70 +1,77 @@
 @import "tailwindcss";
 
 /*
- * BonaBlock design tokens. Documented in docs/design/DESIGN_LANGUAGE.md.
+ * Bona Chain design tokens. Documented in docs/design/DESIGN_LANGUAGE.md.
  * Components use these names only, never raw colour values.
  * Every text/background pair below passes 4.5:1 (scripts/design/contrast.mts).
  */
 @theme {
   /*
-   * Stone and umber. The colours are measured from the photographs, which are
-   * brick, khaki, dust and shade: pale stone paper, very dark brown for ink and
-   * buttons, sand and saddle brown for accents. The pictures carry the colour.
+   * White paper, near-black ink and one electric blue, the palette of the
+   * landing page (src/features/landing/vellure/vellure.css). Greys are
+   * neutral. Status colours stay semantic: green verified, amber waiting, red
+   * danger, purple claimed.
    */
-  --color-canvas: #f3f1ec;
+  --color-canvas: #fbfbfb;
   --color-surface: #ffffff;
-  --color-sunken: #eae4d8;
-  --color-ink: #231a13;
-  --color-muted: #62584e;
-  --color-faint: #766b5f;
-  --color-line: #e0dad0;
-  --color-line-strong: #8d8375;
+  --color-sunken: #f2f2f2;
+  --color-ink: #040409;
+  --color-muted: #505156;
+  --color-faint: #696a6e;
+  --color-line: #e6e6e8;
+  --color-line-strong: #8b8c91;
 
-  /* Brand: dark umber, the darkest tone in the pictures. Buttons and links. */
-  --color-brand: #2f231a;
-  --color-brand-strong: #1c140e;
-  --color-brand-soft: #eae4d8;
-  --color-on-brand: #f6efe4;
+  /* Brand: electric blue. Buttons, links, the logo. */
+  --color-brand: #0346ff;
+  --color-brand-strong: #0235c4;
+  --color-brand-soft: #e9eeff;
+  --color-on-brand: #ffffff;
 
-  /* Earth: saddle brown, the commonest colour in the photographs */
-  --color-earth: #7a4b24;
-  --color-earth-strong: #5c3717;
-  --color-earth-soft: #f0e4d2;
+  /* Earth: the old second brand colour. It now follows the blue. */
+  --color-earth: #0346ff;
+  --color-earth-strong: #0235c4;
+  --color-earth-soft: #e9eeff;
 
-  /* Accent: ochre for attention */
-  --color-accent: #7a4e0c;
-  --color-accent-strong: #5d3b07;
-  --color-accent-soft: #f1e4cc;
+  /* Accent: amber for attention and waiting */
+  --color-accent: #8a5a00;
+  --color-accent-strong: #6b4500;
+  --color-accent-soft: #fbeed2;
 
-  /* Sand: a highlight for empty states and gentle emphasis, never for text */
-  --color-sun: #d4af78;
-  --color-sun-soft: #f5ecd9;
+  /* Sun: a pale blue highlight for empty states and gentle emphasis, never for text */
+  --color-sun: #c9d8ff;
+  --color-sun-soft: #eef2ff;
 
-  /* Danger: face-brick red */
-  --color-danger: #9b2f1f;
-  --color-danger-strong: #782316;
-  --color-danger-soft: #f6e1dc;
+  /* Danger */
+  --color-danger: #b3261e;
+  --color-danger-strong: #8c1d17;
+  --color-danger-soft: #fbe6e3;
 
   /* One colour pair per public status. Always shown with an icon and a label. */
-  --color-st-reported: #4a4640;
-  --color-st-reported-soft: #e8e5df;
-  --color-st-assess: #35566e;
-  --color-st-assess-soft: #dfe8ee;
-  --color-st-address: #7a4e0c;
-  --color-st-address-soft: #f1e4cc;
-  --color-st-claimed: #5a4866;
-  --color-st-claimed-soft: #e9e3ea;
-  --color-st-verified: #45502e;
-  --color-st-verified-soft: #e1e5d2;
-  --color-st-disputed: #9b2f1f;
-  --color-st-disputed-soft: #f6e1dc;
-  --color-st-declined: #4b4038;
-  --color-st-declined-soft: #ebe5dc;
+  --color-st-reported: #45464b;
+  --color-st-reported-soft: #ececee;
+  --color-st-assess: #1f4e79;
+  --color-st-assess-soft: #e0ecf7;
+  --color-st-address: #8a5a00;
+  --color-st-address-soft: #fbeed2;
+  --color-st-claimed: #5b3f8c;
+  --color-st-claimed-soft: #ece6f6;
+  --color-st-verified: #17794a;
+  --color-st-verified-soft: #e1f3e8;
+  --color-st-disputed: #b3261e;
+  --color-st-disputed-soft: #fbe6e3;
+  --color-st-declined: #4b4c52;
+  --color-st-declined-soft: #ebebee;
 
-  /* Type: Hanken Grotesk for reading, Bricolage Grotesque for headings */
+  /*
+   * Type: Inter Tight for reading and for headings. Bricolage Grotesque is
+   * kept for the logo's wordmark only (`font-brand`).
+   */
   --font-sans: var(--font-body), ui-sans-serif, system-ui, "Segoe UI", Roboto, sans-serif;
   --font-display:
     var(--font-display), var(--font-body), ui-sans-serif, system-ui, "Segoe UI",
+    sans-serif;
+  --font-brand:
+    var(--font-wordmark), var(--font-body), ui-sans-serif, system-ui, "Segoe UI",
     sans-serif;
   --font-mono: var(--font-mono), ui-monospace, "Cascadia Mono", Consolas, monospace;
 
@@ -89,9 +96,9 @@
   --radius-3xl: 1.75rem;
 
   /* Cards are flat: a hairline, no shadow. Only things that float keep one. */
-  --shadow-card: 0 0 0 0 rgb(35 26 19 / 0);
-  --shadow-raised: 0 2px 4px rgb(35 26 19 / 0.08), 0 12px 32px rgb(35 26 19 / 0.12);
-  --shadow-sheet: 0 -8px 32px rgb(35 26 19 / 0.2);
+  --shadow-card: 0 0 0 0 rgb(4 4 9 / 0);
+  --shadow-raised: 0 2px 4px rgb(4 4 9 / 0.06), 0 12px 32px rgb(4 4 9 / 0.1);
+  --shadow-sheet: 0 -8px 32px rgb(4 4 9 / 0.12);
 
   --ring-focus: 3px;
 
@@ -99,56 +106,62 @@
   --spacing-bottom-bar: 4rem;
 }
 
-/* Dark mode: the same names, tuned so every pair still passes 4.5:1. */
+/*
+ * The app is light on every device, like the landing page: a device in dark
+ * mode gets the same values. The block stays so a dark palette can come back
+ * by changing values here and nothing else.
+ */
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --color-canvas: #17120e;
-    --color-surface: #211a14;
-    --color-sunken: #100c09;
-    --color-ink: #f3ece0;
-    --color-muted: #c4b9a9;
-    --color-faint: #a69b8b;
-    --color-line: #3a3027;
-    --color-line-strong: #7d7162;
+    --color-canvas: #fbfbfb;
+    --color-surface: #ffffff;
+    --color-sunken: #f2f2f2;
+    --color-ink: #040409;
+    --color-muted: #505156;
+    --color-faint: #696a6e;
+    --color-line: #e6e6e8;
+    --color-line-strong: #8b8c91;
 
-    --color-brand: #e9dcc6;
-    --color-brand-strong: #f6eedf;
-    --color-brand-soft: #2e251c;
-    --color-on-brand: #231a13;
+    /* Brand: electric blue. Buttons, links, the logo. */
+    --color-brand: #0346ff;
+    --color-brand-strong: #0235c4;
+    --color-brand-soft: #e9eeff;
+    --color-on-brand: #ffffff;
 
-    --color-earth: #e0a877;
-    --color-earth-strong: #efc49d;
-    --color-earth-soft: #35261a;
+    /* Earth: the old second brand colour. It now follows the blue. */
+    --color-earth: #0346ff;
+    --color-earth-strong: #0235c4;
+    --color-earth-soft: #e9eeff;
 
-    --color-accent: #e6b566;
-    --color-accent-strong: #f1cd8f;
-    --color-accent-soft: #33270f;
+    /* Accent: amber for attention and waiting */
+    --color-accent: #8a5a00;
+    --color-accent-strong: #6b4500;
+    --color-accent-soft: #fbeed2;
 
-    --color-sun: #c9a064;
-    --color-sun-soft: #2d2413;
+    /* Sun: a pale blue highlight for empty states and gentle emphasis, never for text */
+    --color-sun: #c9d8ff;
+    --color-sun-soft: #eef2ff;
 
-    --color-danger: #ff9d8f;
-    --color-danger-strong: #ffb9ae;
-    --color-danger-soft: #3b1b16;
+    /* Danger */
+    --color-danger: #b3261e;
+    --color-danger-strong: #8c1d17;
+    --color-danger-soft: #fbe6e3;
 
-    --color-st-reported: #c9c3b9;
-    --color-st-reported-soft: #2c2823;
-    --color-st-assess: #a3c4dc;
-    --color-st-assess-soft: #1c2a35;
-    --color-st-address: #e6b566;
-    --color-st-address-soft: #33270f;
-    --color-st-claimed: #cdb9dc;
-    --color-st-claimed-soft: #2c2334;
-    --color-st-verified: #b9c79a;
-    --color-st-verified-soft: #232b17;
-    --color-st-disputed: #ff9d8f;
-    --color-st-disputed-soft: #3b1b16;
-    --color-st-declined: #cfc6ba;
-    --color-st-declined-soft: #2e2924;
-
-    --shadow-card: 0 0 0 0 rgb(0 0 0 / 0);
-    --shadow-raised: 0 2px 4px rgb(0 0 0 / 0.35), 0 12px 32px rgb(0 0 0 / 0.4);
-    --shadow-sheet: 0 -8px 32px rgb(0 0 0 / 0.5);
+    /* One colour pair per public status. Always shown with an icon and a label. */
+    --color-st-reported: #45464b;
+    --color-st-reported-soft: #ececee;
+    --color-st-assess: #1f4e79;
+    --color-st-assess-soft: #e0ecf7;
+    --color-st-address: #8a5a00;
+    --color-st-address-soft: #fbeed2;
+    --color-st-claimed: #5b3f8c;
+    --color-st-claimed-soft: #ece6f6;
+    --color-st-verified: #17794a;
+    --color-st-verified-soft: #e1f3e8;
+    --color-st-disputed: #b3261e;
+    --color-st-disputed-soft: #fbe6e3;
+    --color-st-declined: #4b4c52;
+    --color-st-declined-soft: #ebebee;
   }
 }
 
@@ -156,7 +169,7 @@ html {
   /* 17 px at the default zoom: body text never drops under 16 px on a phone. */
   font-size: 106.25%;
   scroll-padding-top: 5rem;
-  color-scheme: light dark;
+  color-scheme: light;
   -webkit-text-size-adjust: 100%;
 }
 
@@ -171,9 +184,9 @@ h1,
 h2,
 h3 {
   font-family: var(--font-display);
-  font-weight: 700;
+  font-weight: 600;
   line-height: 1.1;
-  letter-spacing: -0.02em;
+  letter-spacing: -0.03em;
   text-wrap: balance;
 }
 
@@ -209,7 +222,7 @@ li {
 }
 
 dialog::backdrop {
-  background: rgb(35 26 19 / 0.55);
+  background: rgb(3 7 32 / 0.55);
 }
 
 /* Touch targets never shrink below 44 px even when a page forgets. */

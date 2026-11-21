@@ -18,7 +18,7 @@ type Tone = "colour" | "mono";
  * The mark: two chain links, and an eye where they join. "Bona" means "see",
  * so the chain is what watches each step. Three shapes on a 40 x 40 grid.
  *
- * - `colour`: umber links, saddle-brown eye.
+ * - `colour`: links and eye in the brand blue.
  * - `mono`: everything in the current text colour.
  *
  * Decorative by default. Pass `title` when the mark stands alone and must be
@@ -83,7 +83,7 @@ export function BrandLogo({
       <BrandMark tone={tone} className={SIZES[size].mark} />
       <span
         className={cn(
-          "font-display leading-none font-bold tracking-tight whitespace-nowrap",
+          "font-brand leading-none font-bold tracking-tight whitespace-nowrap",
           SIZES[size].text,
           tone === "colour" && "text-ink",
         )}

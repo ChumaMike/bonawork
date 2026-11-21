@@ -15,6 +15,15 @@ function tokensIn(block: string): Set<string> {
   return new Set(Array.from(block.matchAll(/--color-([a-z0-9-]+):/g), (m) => m[1]));
 }
 
+function valuesIn(block: string): Record<string, string> {
+  return Object.fromEntries(
+    Array.from(block.matchAll(/--color-([a-z0-9-]+):\s*(#[0-9a-f]{6});/g), (m) => [
+      m[1],
+      m[2],
+    ]),
+  );
+}
+
 function blockAfter(marker: string): string {
   const start = css.indexOf(marker);
   if (start < 0) throw new Error(`globals.css has no ${marker}`);
@@ -23,6 +32,8 @@ function blockAfter(marker: string): string {
 
 const light = tokensIn(blockAfter("@theme {"));
 const dark = tokensIn(blockAfter(':root:not([data-theme="light"])'));
+const lightValues = valuesIn(blockAfter("@theme {"));
+const darkValues = valuesIn(blockAfter(':root:not([data-theme="light"])'));
 
 /** Our token families. Anything in these families that is not a token is a typo. */
 const FAMILIES =
@@ -42,7 +53,19 @@ function sourceFiles(dir: string, out: string[] = []): string[] {
 }
 
 describe("design tokens", () => {
-  it("defines the tokens added for the warm palette in both modes", () => {
+  it("uses the landing page's blue, white and near-black", () => {
+    expect(lightValues.brand).toBe("#0346ff");
+    expect(lightValues["on-brand"]).toBe("#ffffff");
+    expect(lightValues.surface).toBe("#ffffff");
+    expect(lightValues.ink).toBe("#040409");
+  });
+
+  it("is light on every device: a dark-mode device gets the same values", () => {
+    expect(Object.keys(lightValues).length).toBeGreaterThan(30);
+    expect(darkValues).toEqual(lightValues);
+  });
+
+  it("defines the brand, earth, sun and danger families in both modes", () => {
     for (const token of [
       "on-brand",
       "earth",

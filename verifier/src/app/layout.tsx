@@ -1,18 +1,17 @@
 import type { Metadata, Viewport } from "next";
-import { Bricolage_Grotesque, Hanken_Grotesk } from "next/font/google";
+import { Inter_Tight } from "next/font/google";
 import "./globals.css";
 
-/* The same two faces as the BonaBlock app, so the verifier reads as one product. */
-const body = Hanken_Grotesk({
+/* The same face as the Bona Chain app, so the verifier reads as one product. */
+const body = Inter_Tight({
   variable: "--font-body",
   subsets: ["latin", "latin-ext"],
   display: "swap",
 });
-const display = Bricolage_Grotesque({
+const display = Inter_Tight({
   variable: "--font-display",
   subsets: ["latin", "latin-ext"],
   display: "swap",
-  axes: ["opsz"],
 });
 
 export const metadata: Metadata = {
@@ -24,7 +23,7 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
-  themeColor: "#2f231a",
+  themeColor: "#ffffff",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

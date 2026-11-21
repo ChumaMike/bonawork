@@ -1,10 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import {
-  Bricolage_Grotesque,
-  Geist_Mono,
-  Hanken_Grotesk,
-  Inter_Tight,
-} from "next/font/google";
+import { Bricolage_Grotesque, Geist_Mono, Inter_Tight } from "next/font/google";
 import { Suspense } from "react";
 import { BonaBuddy } from "@/components/buddy/bona-buddy";
 import { BottomNav, PreviewBanner, SiteFooter, SiteHeader } from "@/components/chrome";
@@ -13,23 +8,29 @@ import { DEFAULT_LOCALE, getMessages } from "@/i18n";
 import "./globals.css";
 
 /*
- * Body: Hanken Grotesk — plain, round and open, with the latin-ext range for
- * isiZulu, Sesotho and Afrikaans, and easy to read at 16–17 px in sunlight.
- * Display: Bricolage Grotesque — a grotesque with some character and an
- * optical-size axis, so headings feel made by hand rather than generated.
- * Both swap in after the system face, so text is never invisible on slow data.
+ * Reading and headings: Inter Tight, the landing page's grotesk, with the
+ * latin-ext range for isiZulu, Sesotho and Afrikaans. It swaps in after the
+ * system face, so text is never invisible on slow data.
+ * Wordmark: Bricolage Grotesque, for the logo only (`font-brand`).
  */
-const body = Hanken_Grotesk({
+const body = Inter_Tight({
   variable: "--font-body",
   subsets: ["latin", "latin-ext"],
   display: "swap",
 });
 
-const display = Bricolage_Grotesque({
+const display = Inter_Tight({
   variable: "--font-display",
   subsets: ["latin", "latin-ext"],
   display: "swap",
+});
+
+const wordmark = Bricolage_Grotesque({
+  variable: "--font-wordmark",
+  subsets: ["latin"],
+  display: "swap",
   axes: ["opsz"],
+  preload: false,
 });
 
 const mono = Geist_Mono({
@@ -38,15 +39,11 @@ const mono = Geist_Mono({
   display: "swap",
 });
 
-/*
- * The landing page's grotesk. Only `/` uses it (see vellure.css), so it is not
- * preloaded: other pages never download it.
- */
+/* The landing page names the same face through its own variable (vellure.css). */
 const landing = Inter_Tight({
   variable: "--font-landing",
   subsets: ["latin", "latin-ext"],
   display: "swap",
-  preload: false,
 });
 
 const m = getMessages();
@@ -67,8 +64,8 @@ export const viewport: Viewport = {
   initialScale: 1,
   viewportFit: "cover",
   themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#2f231a" },
-    { media: "(prefers-color-scheme: dark)", color: "#17120e" },
+    { media: "(prefers-color-scheme: light)", color: "#ffffff" },
+    { media: "(prefers-color-scheme: dark)", color: "#ffffff" },
   ],
 };
 
@@ -76,7 +73,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html
       lang={DEFAULT_LOCALE}
-      className={`${body.variable} ${display.variable} ${mono.variable} ${landing.variable} h-full antialiased`}
+      className={`${body.variable} ${display.variable} ${wordmark.variable} ${mono.variable} ${landing.variable} h-full antialiased`}
     >
       <body className="flex min-h-full flex-col font-sans">
         <a

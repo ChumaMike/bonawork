@@ -4,8 +4,8 @@
   "description": "Report a problem at a school, see what is being done about it, and check that the record was never changed.",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#f3f1ec",
-  "theme_color": "#2f231a",
+  "background_color": "#fbfbfb",
+  "theme_color": "#ffffff",
   "lang": "en-ZA",
   "icons": [
     { "src": "/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" },
