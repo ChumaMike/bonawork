@@ -232,6 +232,13 @@ export const procurement = {
     aiNote: "Bona AI explains what the rules found. It decides nothing.",
     plainNote: "This explains what the rules found.",
     correct: "Send a corrected invoice",
+    quick: {
+      action: "Demo shortcut: send the corrected sample invoice",
+      reading: "Bona AI is reading the corrected invoice…",
+      sending: "The rules are checking it against the order and the delivery…",
+      note: "For the demo. Bona AI reads the sample invoice and it is sent in one step. Normally the supplier checks every field first.",
+      failed: "That did not work. Use “Send a corrected invoice” instead.",
+    },
     waitingForSupplier: "Waiting for the supplier to send a corrected invoice.",
     matchedTitle: "Invoice matched",
     matchedBody: "It agrees with the order and the delivery.",
@@ -258,6 +265,12 @@ export const procurement = {
     recorded: "The delivery for this order is recorded.",
   },
 
+  reviewShortcut: {
+    action: "Demo shortcut: use sample answers",
+    note: "For the demo. Fills the three answers with Yes and adds a sample note. Nothing is recorded until you press Verify completion.",
+    sampleNote:
+      "I checked the repair at the school. It matches what the school says and it is safe to use.",
+  },
   gate: {
     lockedTitle: "Release locked",
     lockedCount: (n: number) => `${count(n, "thing", "things")} must happen first.`,

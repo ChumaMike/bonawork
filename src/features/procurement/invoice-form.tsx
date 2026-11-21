@@ -7,7 +7,7 @@ import { cn } from "@/components/ui/cn";
 import { describedBy, Field, Input, Textarea } from "@/components/ui/field";
 import { Icon } from "@/components/ui/icon";
 import { Notice } from "@/components/ui/page";
-import { ApiError, getApi } from "@/data/api";
+import { ApiError, getApi, type BonaApi } from "@/data/api";
 import type {
   InvoiceDraft,
   MoneyTrail,
@@ -47,6 +47,53 @@ export function sampleInvoiceText(order: TrailOrder, mistake: boolean): string {
     ),
     `Total: ${formatRand(linesTotal(lines))}`,
   ].join("\n");
+}
+
+/**
+ * The demo shortcut: Bona AI reads the corrected sample invoice and, when it
+ * read every field, the invoice is sent as read. Returns null when anything
+ * could not be read, so the caller opens the normal form instead: a field is
+ * never guessed. The rules still check the invoice against the order and the
+ * delivery; this only skips the supplier's own look at the fields.
+ */
+export async function sendCorrectedSample(
+  api: Pick<BonaApi, "draftInvoice" | "submitInvoice">,
+  issueId: string,
+  order: TrailOrder,
+  onRead?: () => void,
+): Promise<MoneyTrail | null> {
+  const text = sampleInvoiceText(order, false);
+  const draft = await api.draftInvoice(issueId, text);
+  const lines = draft.lines.flatMap((line) =>
+    line.sku && line.description && line.quantity !== null && line.unitPriceCents !== null
+      ? [
+          {
+            sku: line.sku,
+            description: line.description,
+            quantity: line.quantity,
+            unitPriceCents: line.unitPriceCents,
+          },
+        ]
+      : [],
+  );
+  if (
+    !draft.invoiceNumber ||
+    draft.orderVersion === null ||
+    draft.totalCents === null ||
+    lines.length === 0 ||
+    lines.length !== draft.lines.length
+  ) {
+    return null;
+  }
+  onRead?.();
+  return api.submitInvoice(issueId, {
+    invoiceNumber: draft.invoiceNumber,
+    orderVersion: draft.orderVersion,
+    lines,
+    totalCents: draft.totalCents,
+    aiDrafted: true,
+    sourceText: text,
+  });
 }
 
 type FieldErrors = {

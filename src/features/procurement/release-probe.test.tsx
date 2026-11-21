@@ -88,3 +88,54 @@ describe("asking the contract from the locked release gate", () => {
     expect(screen.queryByRole("button", { name: g.probe.action })).toBeNull();
   });
 });
+
+describe("the demo shortcut for a corrected invoice", () => {
+  it("reads the corrected sample with Bona AI and sends it, and the rules match it", async () => {
+    const { sendCorrectedSample, sampleInvoiceText } = await import("./invoice-form");
+    const api = createFixtureApi({ latency: 0, persist: false });
+    await api.signIn("supplier@emseni-supplies.demo", SAMPLE_PASSWORD);
+    const start = (await api.getMoneyTrail(CASE_A))!;
+    // A wrong invoice first, as in the demo.
+    const wrong = await api.draftInvoice(CASE_A, sampleInvoiceText(start.order, true));
+    const blocked = await api.submitInvoice(CASE_A, {
+      invoiceNumber: wrong.invoiceNumber!,
+      orderVersion: wrong.orderVersion!,
+      lines: wrong.lines.map((line) => ({
+        sku: line.sku!,
+        description: line.description!,
+        quantity: line.quantity!,
+        unitPriceCents: line.unitPriceCents!,
+      })),
+      totalCents: wrong.totalCents!,
+      aiDrafted: true,
+    });
+    expect(blocked.invoices.at(-1)?.match?.outcome).toBe("blocked");
+
+    const onRead = vi.fn();
+    const next = await sendCorrectedSample(api, CASE_A, blocked.order, onRead);
+    expect(onRead).toHaveBeenCalledOnce();
+    expect(next?.invoices).toHaveLength(2);
+    expect(next?.invoices.at(-1)?.invoiceNumber).toBe("INV-2042");
+    expect(next?.invoices.at(-1)?.match?.outcome).toBe("matched");
+  });
+
+  it("sends nothing when a field could not be read", async () => {
+    const { sendCorrectedSample } = await import("./invoice-form");
+    const submitInvoice = vi.fn();
+    const draftInvoice = vi.fn().mockResolvedValue({
+      invoiceNumber: null,
+      orderVersion: 1,
+      lines: [],
+      totalCents: null,
+      missing: ["invoiceNumber", "totalCents", "lines"],
+    });
+    const trail = await matchedTrail();
+    const result = await sendCorrectedSample(
+      { draftInvoice, submitInvoice },
+      CASE_A,
+      trail.order,
+    );
+    expect(result).toBeNull();
+    expect(submitInvoice).not.toHaveBeenCalled();
+  });
+});

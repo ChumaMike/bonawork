@@ -333,6 +333,22 @@ function ReviewFlow({
     </p>
   );
 
+  /**
+   * The demo shortcut: the three answers as Yes and a sample note, then the
+   * "check before you record" box. Nothing is recorded until the reviewer
+   * presses the verify button there.
+   */
+  function useSampleAnswers() {
+    setAnswers(r.checks.map(() => true));
+    setNote(m.procurement.reviewShortcut.sampleNote);
+    setChecksMissing(false);
+    setNoteError(null);
+    setFailed(false);
+    setChecksDone(true);
+    onStep("decide");
+    setPending("verified");
+  }
+
   function toDecide() {
     if (!yesNo) return setChecksMissing(true);
     setChecksDone(true);
@@ -381,6 +397,21 @@ function ReviewFlow({
 
           {/* Who ordered, delivered and invoiced, by name. A reviewer is given no prices. */}
           <StaffCaseTrail issue={issue} />
+
+          <div
+            data-testid="review-shortcut"
+            className="flex flex-col gap-2 rounded-2xl border border-dashed border-accent bg-accent-soft px-4 py-3"
+          >
+            <Button
+              variant="secondary"
+              onClick={useSampleAnswers}
+              className="w-full sm:w-auto sm:self-start"
+            >
+              <Icon name="sparkle" />
+              {m.procurement.reviewShortcut.action}
+            </Button>
+            <p className="text-sm">{m.procurement.reviewShortcut.note}</p>
+          </div>
 
           <section aria-labelledby="checks-title">
             <h2 id="checks-title" className="text-xl">

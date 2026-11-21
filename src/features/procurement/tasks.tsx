@@ -14,7 +14,7 @@ import { useSession } from "@/data/session";
 import type { Issue, MoneyTrail } from "@/data/types";
 import { useQuery } from "@/data/use-query";
 import { useMessages } from "@/i18n";
-import { InvoiceForm } from "./invoice-form";
+import { InvoiceForm, sendCorrectedSample } from "./invoice-form";
 import { MatchResult } from "./match-result";
 import { StaffTrail } from "./money-trail";
 import { OrderDetails } from "./order-details";
@@ -191,8 +191,30 @@ function SupplierBody({ issue, trail, update }: BodyProps) {
   const [correcting, setCorrecting] = useState(false);
   const [busy, setBusy] = useState(false);
   const [failed, setFailed] = useState(false);
+  const [quick, setQuick] = useState<"reading" | "sending" | null>(null);
+  const [quickFailed, setQuickFailed] = useState(false);
 
   if (!trail) return <NotYours />;
+  const shown = trail;
+
+  /** The demo shortcut: read the corrected sample with Bona AI and send it, in one press. */
+  async function sendSample() {
+    setQuick("reading");
+    setQuickFailed(false);
+    try {
+      const next = await sendCorrectedSample(getApi(), issue.id, shown.order, () =>
+        setQuick("sending"),
+      );
+      // Something could not be read: the normal steps, where every field is checked.
+      if (!next) return setCorrecting(true);
+      setAcknowledged(false);
+      update(next);
+    } catch {
+      setQuickFailed(true);
+    } finally {
+      setQuick(null);
+    }
+  }
 
   if (!trail.order.acknowledged) {
     const acknowledge = async () => {
@@ -260,6 +282,34 @@ function SupplierBody({ issue, trail, update }: BodyProps) {
             match={match}
             onCorrect={() => setCorrecting(true)}
           />
+          {trail.order.totalCents !== undefined ? (
+            <div
+              data-testid="quick-resubmit"
+              className="mt-4 flex flex-col gap-2 rounded-2xl border border-dashed border-accent bg-accent-soft px-4 py-3"
+            >
+              <Button
+                variant="secondary"
+                loading={quick !== null}
+                onClick={() => void sendSample()}
+                className="w-full sm:w-auto sm:self-start"
+              >
+                <Icon name="sparkle" />
+                {m.procurement.match.quick.action}
+              </Button>
+              <p aria-live="polite" className="text-sm">
+                {quick === "reading"
+                  ? m.procurement.match.quick.reading
+                  : quick === "sending"
+                    ? m.procurement.match.quick.sending
+                    : m.procurement.match.quick.note}
+              </p>
+              {quickFailed ? (
+                <p role="alert" className="text-sm font-semibold text-danger">
+                  {m.procurement.match.quick.failed}
+                </p>
+              ) : null}
+            </div>
+          ) : null}
         </div>
       ) : null}
       {/* Hidden, not removed, while the result shows: the typed fields are kept. */}
