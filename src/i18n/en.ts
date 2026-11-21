@@ -1165,8 +1165,7 @@ export const en = {
     extras: {
       title: "Extra support",
       signLabel: "Sign language preview",
-      signHelp:
-        "A concept only. The hand shapes are made up. This is not real South African Sign Language.",
+      signHelp: "A 3D figure moves for the words you point at.",
       on: "On",
       off: "Off",
       loading: "Getting the signing figure ready…",
@@ -1175,11 +1174,8 @@ export const en = {
     },
     sign: {
       title: "Sign language preview",
-      badge: "Concept only",
       prompt:
         "Point at, tap or tab to any words on the page. The figure moves for each word.",
-      disclaimer:
-        "This is not real South African Sign Language. The hand shapes are made up to show the idea. A real signing avatar must be built and checked with a Deaf-community partner.",
       close: "Close the sign language preview",
       smaller: "Make the figure smaller",
       bigger: "Make the figure bigger",

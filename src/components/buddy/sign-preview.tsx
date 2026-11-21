@@ -427,9 +427,6 @@ export function SignPreview({ onClose }: { onClose: () => void }) {
         ) : null}
         <div className="min-w-0 flex-1">
           <p className="font-semibold">{s.title}</p>
-          <p className="mt-0.5 inline-flex rounded-full bg-accent-soft px-2 py-0.5 text-xs font-semibold text-accent-strong">
-            {s.badge}
-          </p>
         </div>
         <button
           type="button"
@@ -543,10 +540,9 @@ export function SignPreview({ onClose }: { onClose: () => void }) {
           {s.noVoice}
         </p>
       ) : null}
-      <p className="mt-3 border-t border-line pt-2 text-sm text-muted">
-        <span className="font-semibold text-ink">{s.disclaimer}</span>
-        {speaks && voiceOn ? ` ${s.voiceNote}` : null}
-      </p>
+      {speaks && voiceOn ? (
+        <p className="mt-3 border-t border-line pt-2 text-sm text-muted">{s.voiceNote}</p>
+      ) : null}
     </section>
   );
 }

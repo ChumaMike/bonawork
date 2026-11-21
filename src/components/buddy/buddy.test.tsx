@@ -307,7 +307,7 @@ describe("<BonaBuddy>", () => {
     expect(screen.getByRole("button", { name: "Try again" })).toBeInTheDocument();
   });
 
-  it("keeps the signer off until its switch is used, and says it is not real SASL", async () => {
+  it("keeps the signer off until its switch is used, and says what the switch does", async () => {
     render(<BonaBuddy />);
     open();
     // Extras stay out of the chat until asked for.
@@ -315,7 +315,9 @@ describe("<BonaBuddy>", () => {
     fireEvent.click(screen.getByRole("button", { name: "More options" }));
     const toggle = screen.getByRole("switch", { name: "Sign language preview" });
     expect(toggle).toHaveAttribute("aria-checked", "false");
-    expect(toggle).toHaveAccessibleDescription(/not real South African Sign Language/);
+    expect(toggle).toHaveAccessibleDescription(
+      "A 3D figure moves for the words you point at.",
+    );
     expect(screen.queryByTestId("fake-signer")).toBeNull();
 
     await act(async () => {
