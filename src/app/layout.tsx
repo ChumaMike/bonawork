@@ -93,7 +93,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <main id="main" className="flex-1">
           {children}
         </main>
-        <SiteFooter />
+        {/* The footer reads the current path too (the landing page has its own). */}
+        <Suspense fallback={null}>
+          <SiteFooter />
+        </Suspense>
         <Suspense fallback={null}>
           <BottomNav />
         </Suspense>
