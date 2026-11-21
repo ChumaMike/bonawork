@@ -151,7 +151,7 @@ export function SiteHeader() {
   if (isHome) return <LandingHeader links={links} showReport={!nav.staff} />;
   return (
     <header className="no-print sticky top-0 z-30 border-b border-line bg-surface/95 backdrop-blur">
-      <Pattern variant="band" tone="brand" />
+      <Pattern variant="band" tone="sun" />
       <div className="mx-auto flex min-h-16 w-full max-w-6xl flex-wrap items-center justify-between gap-x-3 gap-y-1 px-4 sm:px-6">
         <div className="flex min-w-0 items-center gap-3">
           <Logo />
@@ -174,7 +174,7 @@ export function SiteHeader() {
               key={link.href}
               href={link.href}
               aria-current={isActive(pathname, link.href) ? "page" : undefined}
-              className="inline-flex min-h-11 items-center rounded-lg px-3 font-semibold whitespace-nowrap text-muted hover:text-ink aria-[current=page]:bg-brand-soft aria-[current=page]:text-brand-strong"
+              className="inline-flex min-h-11 items-center rounded-full px-3 font-semibold whitespace-nowrap text-muted hover:text-ink aria-[current=page]:bg-brand-soft aria-[current=page]:text-brand-strong"
             >
               {link.label}
             </Link>
@@ -190,7 +190,7 @@ export function SiteHeader() {
         <div className="flex min-w-0 items-center gap-1 lg:hidden">
           <Link
             href="/verify"
-            className="inline-flex min-h-11 shrink-0 items-center gap-1.5 rounded-lg px-2 font-semibold text-brand-strong"
+            className="inline-flex min-h-11 shrink-0 items-center gap-1.5 rounded-full px-2 font-semibold text-brand-strong"
           >
             <Icon name="shieldCheck" className="size-5" />
             <span className="hidden sm:inline">{m.nav.verify}</span>
@@ -217,7 +217,7 @@ function AccountArea({ compact = false }: { compact?: boolean }) {
     return (
       <Link
         href="/sign-in"
-        className="ml-1 inline-flex min-h-11 items-center gap-1.5 rounded-lg px-2 font-semibold whitespace-nowrap text-brand-strong hover:bg-brand-soft"
+        className="ml-1 inline-flex min-h-11 items-center gap-1.5 rounded-full px-2 font-semibold whitespace-nowrap text-brand-strong hover:bg-brand-soft"
       >
         <Icon name="user" className="size-5" />
         {m.nav.signIn}
@@ -230,7 +230,7 @@ function AccountArea({ compact = false }: { compact?: boolean }) {
       <Link
         href="/sign-in"
         aria-label={`${m.nav.account}: ${session.user.displayName}, ${role}`}
-        className="inline-flex min-h-11 min-w-0 items-center gap-2 rounded-lg px-1.5 hover:bg-brand-soft"
+        className="inline-flex min-h-11 min-w-0 items-center gap-2 rounded-full px-1.5 hover:bg-brand-soft"
       >
         <Avatar name={session.user.displayName} size="sm" />
         <span
@@ -257,7 +257,7 @@ function AccountArea({ compact = false }: { compact?: boolean }) {
         <button
           type="button"
           onClick={() => void signOut()}
-          className="inline-flex min-h-11 items-center rounded-lg px-2 text-sm font-semibold whitespace-nowrap text-muted hover:text-ink"
+          className="inline-flex min-h-11 items-center rounded-full px-2 text-sm font-semibold whitespace-nowrap text-muted hover:text-ink"
         >
           {m.auth.signOut}
         </button>
@@ -373,7 +373,7 @@ export function SiteFooter() {
   if (pathname === "/") return <LandingFooter staffLinks={staffLinks} />;
   return (
     <footer className="no-print bottom-bar-pad border-t border-line bg-surface lg:pb-0">
-      <Pattern variant="divider" tone="earth" />
+      <Pattern variant="divider" tone="sun" />
       <div className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-4 py-8 text-sm text-muted sm:px-6 md:flex-row md:items-start md:justify-between">
         <div className="max-w-md">
           <p className="font-display text-lg text-ink">
@@ -392,7 +392,7 @@ export function SiteFooter() {
                 <li key={link.href}>
                   <Link
                     href={link.href}
-                    className="inline-flex min-h-11 items-center underline underline-offset-4"
+                    className="inline-flex min-h-11 items-center underline underline-offset-4 hover:text-brand-strong"
                   >
                     {link.label}
                   </Link>

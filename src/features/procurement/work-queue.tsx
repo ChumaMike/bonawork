@@ -52,7 +52,7 @@ export function NextCard({
       // the queue's older "waiting" line would contradict it, so it steps aside.
       className="flex flex-col gap-3 [&:has([data-gate=authorised])_[data-waiting-line]]:hidden"
     >
-      <p className="text-sm font-semibold tracking-wide text-muted uppercase">
+      <p className="flex w-fit items-center rounded-full bg-sunken px-2.5 text-sm font-semibold tracking-wide text-muted uppercase">
         {h.nextForYou}
       </p>
       <div>

@@ -59,15 +59,15 @@ export function createSignFigure(
   camera.position.set(0, 0.5, 3.75);
   camera.lookAt(0, 0.4, 0);
 
-  // Studio lighting: warm key, soft fill, a green rim so the hands stand out.
-  scene.add(new THREE.HemisphereLight(0xfff6ec, 0x1d3b30, 1.15));
+  // Studio lighting: warm key, soft fill, a pale blue rim so the hands stand out.
+  scene.add(new THREE.HemisphereLight(0xfff6ec, 0x101a3d, 1.15));
   const key = new THREE.DirectionalLight(0xffffff, 1.7);
   key.position.set(2.2, 3, 4);
   scene.add(key);
   const fill = new THREE.DirectionalLight(0xffe2cc, 0.55);
   fill.position.set(-3, 1, 2);
   scene.add(fill);
-  const rim = new THREE.DirectionalLight(0x8adcb8, 1.5);
+  const rim = new THREE.DirectionalLight(0x9bb8ff, 1.5);
   rim.position.set(-1.5, 2.5, -3);
   scene.add(rim);
 
@@ -78,8 +78,8 @@ export function createSignFigure(
     sheenColor: new THREE.Color(0xffc9a8),
     sheenRoughness: 0.6,
   });
-  // BonaBlock green shirt with a cream collar.
-  const shirt = new THREE.MeshStandardMaterial({ color: 0x0f5c45, roughness: 0.72 });
+  // Bona Chain blue shirt with a white collar.
+  const shirt = new THREE.MeshStandardMaterial({ color: 0x0346ff, roughness: 0.72 });
   const collar = new THREE.MeshStandardMaterial({ color: 0xfffdf8, roughness: 0.6 });
   const hairMat = new THREE.MeshStandardMaterial({ color: 0x17171b, roughness: 0.92 });
   const white = new THREE.MeshStandardMaterial({ color: 0xf6f4ee, roughness: 0.35 });

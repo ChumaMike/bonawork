@@ -92,7 +92,7 @@ export function MatchResult({
 
       {/* The result: what the rules found, in the order the rules gave it. */}
       <div className="rounded-2xl border-2 border-line-strong bg-surface p-4">
-        <h4 className="text-sm font-semibold tracking-wide text-muted uppercase">
+        <h4 className="flex w-fit items-center rounded-full bg-sunken px-2.5 text-sm font-semibold tracking-wide text-muted uppercase">
           {t.found}
         </h4>
         <ol data-testid="match-reasons" className="mt-2 list-decimal space-y-1.5 pl-5">

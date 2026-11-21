@@ -186,7 +186,7 @@ export function SignInScreen() {
             if (accounts.length === 0) return null;
             return (
               <div key={group.id} data-testid="card-group" data-group={group.id}>
-                <h3 className="mt-4 text-sm font-semibold tracking-wide text-muted uppercase">
+                <h3 className="mt-4 flex w-fit items-center rounded-full bg-sunken px-2.5 text-sm font-semibold tracking-wide text-muted uppercase">
                   {s.groups[group.id]}
                 </h3>
                 <ul className="mt-2 grid gap-2 md:grid-cols-2 xl:grid-cols-3">
