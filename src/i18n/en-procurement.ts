@@ -69,7 +69,7 @@ export const procurement = {
 
   home: {
     intro: {
-      buyer: "Reported problems that need a work order approved.",
+      buyer: "Reported problems you can fund by approving a work order.",
       supplier: "Orders to acknowledge and invoices to send.",
       receiving_officer: "Orders waiting for you to record what arrived.",
       payment_approver:
