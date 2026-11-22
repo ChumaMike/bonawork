@@ -252,7 +252,7 @@ test("the demo path: blocked invoice, matched invoice, locked gate, verification
   await expect(rows).toHaveCount(8);
   await expect(trail.locator("[data-testid=trail-row][data-state=done]")).toHaveCount(8);
   await expect(rows.nth(1)).toContainText("Work order approved");
-  await expect(rows.nth(1)).toContainText("Programme buyer");
+  await expect(rows.nth(1)).toContainText("Funder");
   await expect(rows.nth(5)).toContainText("Bona Chain rules");
   await expect(rows.nth(5)).toContainText(
     "The invoice matches the order and the delivery.",
@@ -302,7 +302,7 @@ test("each role home shows only that role's work, and the receiving officer neve
   // Whatever other accounts exist, the two remaining trail roles follow, in step order.
   const moreCards = page.locator("[data-testid=card-group][data-group=more]");
   await expect(moreCards.getByRole("button").filter({ hasText: /Step \d/ })).toHaveText([
-    /Programme buyer.*Step 1/,
+    /Funder.*Step 1/,
     /Receiving officer.*Step 4/,
   ]);
   await expect(

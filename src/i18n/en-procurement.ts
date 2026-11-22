@@ -265,6 +265,28 @@ export const procurement = {
     recorded: "The delivery for this order is recorded.",
   },
 
+  orderShortcut: {
+    action: "Demo shortcut: use a sample order",
+    note: "For the demo. Fills in the demo supplier, a scope and two sample lines. Nothing is recorded until you press Approve work order.",
+    /** The demo supplier's registration reference, the same in the sample data and the live demo. */
+    supplierRef: "SUP-2026-0417",
+    scope: (title: string, location: string) =>
+      `Repair the reported problem: ${title} (${location}). Make the area safe and leave it clean.`,
+    lines: [
+      {
+        sku: "MATERIALS-01",
+        description: "Materials for the repair",
+        quantity: "1",
+        unitPrice: "2400.00",
+      },
+      {
+        sku: "LABOUR-01",
+        description: "Labour to carry out the repair",
+        quantity: "1",
+        unitPrice: "1800.00",
+      },
+    ],
+  },
   reviewShortcut: {
     action: "Demo shortcut: use sample answers",
     note: "For the demo. Fills the three answers with Yes and adds a sample note. Nothing is recorded until you press Verify completion.",
@@ -368,7 +390,7 @@ export const procurement = {
     } satisfies Record<TrailRowKey, string>,
     waiting: {
       reported: "",
-      order: "Waiting for the programme buyer to approve a work order.",
+      order: "Waiting for a funder to approve a work order.",
       acknowledged: "Waiting for the supplier to acknowledge the order.",
       invoice: "Waiting for the supplier's invoice.",
       delivery: "Waiting for the receiving officer to record the delivery.",

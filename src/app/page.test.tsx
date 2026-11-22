@@ -61,7 +61,7 @@ describe("home page", () => {
     ]);
     expect(read).toEqual([
       ["Problem reported", "Community member"],
-      ["Work order approved", "Programme buyer"],
+      ["Work order approved", "Funder"],
       ["Supplier acknowledged the order", "Supplier"],
       ["Invoice submitted", "Supplier"],
       ["Delivery recorded", "Receiving officer"],
