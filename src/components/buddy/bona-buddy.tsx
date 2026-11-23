@@ -40,7 +40,9 @@ const HAPPY_HINTS: ReadonlySet<BuddyHintId> = new Set<BuddyHintId>(["receipt"]);
 /** The bubble's size in px. Small by default; the corner grip makes it bigger. */
 type Size = { w: number; h: number };
 const SIZE_KEY = "bona:buddy:size";
-const DEFAULT_SIZE: Size = { w: 340, h: 440 };
+const DEFAULT_SIZE: Size = { w: 380, h: 520 };
+/** Below this width the bubble becomes a sheet across the bottom of the screen. */
+const SHEET_BELOW_PX = 640;
 const MIN_SIZE: Size = { w: 280, h: 280 };
 const MAX_SIZE: Size = { w: 640, h: 900 };
 
@@ -218,6 +220,9 @@ export function BonaBuddy() {
       }
     : { right: "0.75rem", bottom: ABOVE_BUDDY, transformOrigin: "bottom right" };
   const room = place ? `${place.room}px` : `calc(100dvh - ${ABOVE_BUDDY} - 0.75rem)`;
+  // On a phone the chat is a sheet across the bottom, above the bottom menu,
+  // instead of a bubble floating over the middle of the page.
+  const sheet = pet.view ? pet.view.w < SHEET_BELOW_PX : false;
   // The speech-bubble tail points at the robot's middle.
   const tailX = Math.round(PET_PX / 2 - 8);
 
@@ -326,68 +331,91 @@ export function BonaBuddy() {
           aria-labelledby={titleId}
           data-testid="bona-buddy-panel"
           data-bona-sign-ignore
-          style={{
-            ...beside,
-            width: `min(${size.w}px, calc(100vw - 1.5rem))`,
-            height: `min(${size.h}px, ${room})`,
-          }}
-          className="bona-pop fixed z-50 flex flex-col rounded-3xl border border-line bg-surface text-ink shadow-raised"
+          style={
+            sheet
+              ? {
+                  left: "0.5rem",
+                  right: "0.5rem",
+                  bottom:
+                    "calc(var(--spacing-bottom-bar) + env(safe-area-inset-bottom, 0px) + 0.5rem)",
+                  height: "min(560px, 75dvh)",
+                  transformOrigin: "bottom center",
+                }
+              : {
+                  ...beside,
+                  width: `min(${size.w}px, calc(100vw - 1.5rem))`,
+                  height: `min(${size.h}px, ${room})`,
+                }
+          }
+          className="bona-pop fixed z-50 flex flex-col overflow-hidden rounded-3xl border border-line bg-surface text-ink shadow-raised"
         >
-          <header
-            className={cn(
-              "flex shrink-0 items-center gap-1 border-b border-line py-1.5 pr-1.5 pl-3",
-              pinnedLeft && "flex-row-reverse pr-3 pl-1.5",
+          <header className="flex shrink-0 items-center gap-2.5 border-b border-line py-2.5 pr-2 pl-3">
+            {sheet ? null : (
+              <ResizeGrip
+                label={b.resize}
+                invertX={pinnedLeft}
+                invertY={pinnedTop}
+                className={cn("-ml-1 size-7", pinnedLeft && "order-last -mr-1 ml-0")}
+                onStart={() => {
+                  resized.current = true;
+                  dragFrom.current = size;
+                }}
+                onDrag={(x, y) =>
+                  setSize(fit({ w: dragFrom.current.w + x, h: dragFrom.current.h + y }))
+                }
+                onStep={(x, y) => {
+                  resized.current = true;
+                  setSize((now) => fit({ w: now.w + x, h: now.h + y }));
+                }}
+              />
             )}
-          >
-            <h2
-              ref={heading}
-              id={titleId}
-              tabIndex={-1}
-              className={cn(
-                "min-w-0 flex-1 text-base leading-tight outline-none",
-                pinnedLeft && "text-right",
-              )}
+            <span
+              aria-hidden="true"
+              className="inline-flex size-10 shrink-0 items-center justify-center rounded-full bg-sunken"
             >
-              {b.sheetTitle}
-            </h2>
-            <ResizeGrip
-              label={b.resize}
-              invertX={pinnedLeft}
-              invertY={pinnedTop}
-              onStart={() => {
-                resized.current = true;
-                dragFrom.current = size;
-              }}
-              onDrag={(x, y) =>
-                setSize(fit({ w: dragFrom.current.w + x, h: dragFrom.current.h + y }))
-              }
-              onStep={(x, y) => {
-                resized.current = true;
-                setSize((now) => fit({ w: now.w + x, h: now.h + y }));
-              }}
-            />
+              <RobotPet mood={mood} className="size-8" />
+            </span>
+            <div className="min-w-0 flex-1">
+              <p className="text-xs font-semibold tracking-wide text-brand-strong uppercase">
+                {b.panelName}
+              </p>
+              <h2
+                ref={heading}
+                id={titleId}
+                tabIndex={-1}
+                className="text-base leading-tight font-semibold outline-none"
+              >
+                {b.sheetTitle}
+              </h2>
+            </div>
             <button
               type="button"
               aria-expanded={optionsOpen}
               aria-label={b.moreOptions}
+              title={b.moreOptions}
               onClick={() => setOptionsOpen((on) => !on)}
-              className="inline-flex size-9 shrink-0 items-center justify-center rounded-full text-muted hover:bg-sunken hover:text-ink"
+              className={cn(
+                "inline-flex size-10 shrink-0 items-center justify-center rounded-full text-muted hover:bg-sunken hover:text-ink focus-visible:outline-2 focus-visible:outline-brand",
+                optionsOpen && "bg-sunken text-ink",
+              )}
             >
-              <Icon name="menu" className="size-5" />
+              <Icon name="more" className="size-5" />
             </button>
             <button
               type="button"
               onClick={closeAndReturn}
               aria-label={m.common.close}
-              className="inline-flex size-9 shrink-0 items-center justify-center rounded-full text-muted hover:bg-sunken hover:text-ink"
+              title={m.common.close}
+              className="inline-flex size-10 shrink-0 items-center justify-center rounded-full text-muted hover:bg-sunken hover:text-ink focus-visible:outline-2 focus-visible:outline-brand"
             >
               <Icon name="x" />
             </button>
           </header>
+
           <LanguagePreference />
 
           {optionsOpen ? (
-            <div className="shrink-0 border-b border-line bg-canvas px-3 py-3">
+            <div className="max-h-[45%] shrink-0 overflow-y-auto border-b border-line bg-canvas px-4 py-3">
               {options}
             </div>
           ) : null}
@@ -412,7 +440,7 @@ export function BonaBuddy() {
               onNavigate={closeSheet}
             />
           </div>
-          {tail}
+          {sheet ? null : tail}
         </section>
       ) : null}
     </aside>

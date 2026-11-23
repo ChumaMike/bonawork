@@ -63,7 +63,7 @@ export function LanguagePreference() {
   return (
     <div
       data-testid="buddy-language"
-      className="flex shrink-0 flex-wrap items-center gap-x-2 gap-y-1 border-b border-line px-3 py-1 text-xs text-muted"
+      className="flex shrink-0 flex-wrap items-center gap-x-2 gap-y-1 border-b border-line bg-canvas px-4 py-0.5 text-xs text-muted"
     >
       {chosen ? (
         <span id={noteId}>
@@ -81,7 +81,7 @@ export function LanguagePreference() {
         aria-expanded={picking}
         aria-controls={picking ? listId : undefined}
         onClick={() => setPicking((on) => !on)}
-        className="inline-flex min-h-8 items-center gap-1 rounded-full text-left font-semibold text-ink underline decoration-line-strong underline-offset-2 hover:decoration-current focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
+        className="inline-flex min-h-8 items-center gap-1 rounded-full text-left font-medium text-muted hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
       >
         {chosen ? t.change : t.question}
         <Icon

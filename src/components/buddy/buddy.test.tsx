@@ -199,7 +199,9 @@ describe("<BonaBuddy>", () => {
     open();
     const panel = screen.getByRole("dialog", { name: "How can I help?" });
     expect(panel).toHaveAttribute("aria-modal", "false");
-    expect(panel.style.width).toContain("340px");
+    expect(panel.style.width).toContain("380px");
+    // The header says who is answering.
+    expect(screen.getByText("Bona AI")).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "How can I help?" })).toHaveFocus();
 
     fireEvent.keyDown(panel, { key: "Escape" });
@@ -215,8 +217,8 @@ describe("<BonaBuddy>", () => {
     fireEvent.keyDown(grip, { key: "ArrowLeft" });
     fireEvent.keyDown(grip, { key: "ArrowUp" });
     const panel = screen.getByRole("dialog");
-    expect(panel.style.width).toContain("364px");
-    expect(panel.style.height).toContain("464px");
+    expect(panel.style.width).toContain("404px");
+    expect(panel.style.height).toContain("544px");
     // Never smaller than its minimum.
     for (let i = 0; i < 20; i++) fireEvent.keyDown(grip, { key: "ArrowRight" });
     expect(panel.style.width).toContain("280px");

@@ -1089,6 +1089,8 @@ export const en = {
     name: "Bona buddy",
     open: "Bona buddy: help",
     sheetTitle: "How can I help?",
+    /** The small line above the panel's title, so people know who is answering. */
+    panelName: "Bona AI",
     sheetIntro: "Tips for this screen, a place to ask, and extra support.",
     resize: "Resize this panel. Drag the corner, or use the arrow keys.",
     moreOptions: "More options",

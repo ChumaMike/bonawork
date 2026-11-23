@@ -106,11 +106,18 @@ export function BuddyChat({
   const [draft, setDraft] = useState("");
   const { turns, status } = state;
   const thinking = status === "thinking";
-  const end = useRef<HTMLDivElement>(null);
+  const log = useRef<HTMLDivElement>(null);
+  const latest = useRef<HTMLDivElement>(null);
 
-  // Keep the newest message in view.
+  // Bring the newest question to the top, so it is read with the start of its
+  // answer. Before the first question, stay at the top of the greeting. Only
+  // the message list scrolls: scrollIntoView would also nudge the panel itself.
   useEffect(() => {
-    end.current?.scrollIntoView?.({ block: "end" });
+    const list = log.current;
+    const turn = latest.current;
+    if (turns.length === 0 || !list || !turn) return;
+    const top = turn.getBoundingClientRect().top - list.getBoundingClientRect().top;
+    list.scrollTo?.({ top: list.scrollTop + top - 12, behavior: "smooth" });
   }, [turns]);
 
   function send(text: string) {
@@ -125,30 +132,45 @@ export function BuddyChat({
   }
 
   const bona =
-    "max-w-[90%] self-start rounded-2xl rounded-tl-md border border-line bg-surface px-3 py-2 leading-relaxed";
+    "max-w-[92%] self-start rounded-2xl rounded-tl-md border border-line bg-surface px-3.5 py-2.5 leading-relaxed text-ink";
   const you =
-    "max-w-[85%] self-end rounded-2xl rounded-br-md bg-brand px-3 py-2 text-on-brand";
+    "max-w-[85%] self-end rounded-2xl rounded-br-md bg-brand px-3.5 py-2.5 leading-relaxed text-on-brand";
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       <div
-        className="flex min-h-0 flex-1 flex-col gap-2.5 overflow-y-auto bg-canvas px-3 py-3 text-[0.9375rem]"
+        ref={log}
+        className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto overscroll-contain bg-canvas px-4 py-4 text-[0.9375rem]"
         aria-live="polite"
         data-testid="buddy-ask-result"
         data-status={status}
       >
         <div className={bona}>{greeting}</div>
-        <p className="px-1 text-xs text-muted">
-          {a.sources}
-          {USING_FIXTURES ? (
-            <span data-testid="buddy-ask-notice" className="mt-1 block">
-              {a.notice}
-            </span>
-          ) : null}
-        </p>
+
+        {/* Questions to tap, under the greeting until the first question is asked. */}
+        {turns.length === 0 ? (
+          <ul aria-label={b.suggestionsLabel} className="flex flex-col items-start gap-2">
+            {suggestions.map((text) => (
+              <li key={text}>
+                <button
+                  type="button"
+                  onClick={() => send(text)}
+                  className="inline-flex min-h-10 items-center gap-2 rounded-xl border border-line bg-surface px-3 py-2 text-left text-sm font-medium text-ink transition-colors hover:border-brand hover:text-brand-strong focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
+                >
+                  <Icon name="arrowRight" className="size-4 shrink-0 text-brand" />
+                  {text}
+                </button>
+              </li>
+            ))}
+          </ul>
+        ) : null}
 
         {turns.map((turn) => (
-          <div key={turn.id} className="flex flex-col gap-2">
+          <div
+            key={turn.id}
+            ref={turn.id === turns.at(-1)?.id ? latest : undefined}
+            className="flex scroll-mt-3 flex-col gap-2"
+          >
             <p className={you}>
               <span className="sr-only">{a.you}: </span>
               {turn.question}
@@ -217,28 +239,9 @@ export function BuddyChat({
             ) : null}
           </div>
         ))}
-        <div ref={end} />
       </div>
 
-      <div className="shrink-0 border-t border-line px-3 pt-2 pb-3">
-        {thinking ? null : (
-          <ul
-            aria-label={b.suggestionsLabel}
-            className="-mx-3 mb-2 flex gap-1.5 overflow-x-auto px-3 pb-1 [scrollbar-width:none]"
-          >
-            {suggestions.map((text) => (
-              <li key={text}>
-                <button
-                  type="button"
-                  onClick={() => send(text)}
-                  className="min-h-9 rounded-full border border-line bg-surface px-3 py-1.5 text-sm font-medium whitespace-nowrap text-ink hover:border-brand hover:text-brand-strong focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-brand"
-                >
-                  {text}
-                </button>
-              </li>
-            ))}
-          </ul>
-        )}
+      <div className="shrink-0 border-t border-line bg-surface px-4 pt-3 pb-3">
         <form onSubmit={submit} className="flex items-center gap-2">
           <label htmlFor="buddy-question" className="min-w-0 flex-1">
             <span className="sr-only">{b.label}</span>
@@ -250,24 +253,37 @@ export function BuddyChat({
               autoComplete="off"
               enterKeyHint="send"
               maxLength={MAX_QUESTION}
-              className="h-10 w-full rounded-full border border-line-strong bg-surface px-4 text-[0.9375rem] text-ink placeholder:text-muted focus-visible:outline-2 focus-visible:outline-brand"
+              className="h-11 w-full rounded-full border border-line-strong bg-surface px-4 text-[0.9375rem] text-ink placeholder:text-muted focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-brand"
             />
           </label>
           <button
             type="submit"
             disabled={thinking || !draft.trim()}
             aria-label={a.send}
-            className="inline-flex size-10 shrink-0 items-center justify-center rounded-full bg-brand text-on-brand focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand disabled:bg-sunken disabled:text-faint"
+            className="inline-flex size-11 shrink-0 items-center justify-center rounded-full bg-brand text-on-brand transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand disabled:bg-sunken disabled:text-faint"
           >
             <Icon name="send" className="size-5" />
           </button>
         </form>
-        {showFullPageLink ? (
-          <Link href="/assistant" onClick={onNavigate} className={`${link} mt-1 text-xs`}>
-            {b.fullPage}
-            <Icon name="arrowRight" className="size-3.5" />
-          </Link>
-        ) : null}
+        {/* A quiet note on what the answers are based on, with the way to the full page. */}
+        <p className="mt-2 text-xs leading-snug text-muted">
+          {a.sources}
+          {USING_FIXTURES ? (
+            <span data-testid="buddy-ask-notice"> {a.notice}</span>
+          ) : null}
+          {showFullPageLink ? (
+            <>
+              {" "}
+              <Link
+                href="/assistant"
+                onClick={onNavigate}
+                className="font-semibold whitespace-nowrap text-brand-strong underline underline-offset-2"
+              >
+                {b.fullPage}
+              </Link>
+            </>
+          ) : null}
+        </p>
       </div>
     </div>
   );

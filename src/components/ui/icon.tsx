@@ -200,6 +200,13 @@ const paths = {
   chevronRight: <path d="m9.5 6 6 6-6 6" />,
   chevronUp: <path d="m6 14.5 6-6 6 6" />,
   menu: <path d="M4 7h16M4 12h16M4 17h16" />,
+  more: (
+    <>
+      <circle cx="6" cy="12" r="1.4" fill="currentColor" stroke="none" />
+      <circle cx="12" cy="12" r="1.4" fill="currentColor" stroke="none" />
+      <circle cx="18" cy="12" r="1.4" fill="currentColor" stroke="none" />
+    </>
+  ),
   bell: (
     <>
       <path d="M6 16.5V11a6 6 0 0 1 12 0v5.5l1.5 2h-15z" />
