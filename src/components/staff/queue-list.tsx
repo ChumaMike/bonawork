@@ -47,15 +47,13 @@ export function QueueGroup({
         {title} <span className="text-muted">· {rows.length}</span>
       </h2>
       {rows.length === 0 ? (
-        <p className="mt-2 rounded-2xl border border-dashed border-line-strong px-4 py-3 text-muted">
-          {empty}
-        </p>
+        <p className="mt-3 rounded-2xl bg-sunken px-5 py-4 text-muted">{empty}</p>
       ) : (
         /* Tailwind resets list-style, and Safari then drops the list role; say it explicitly. */
         /* eslint-disable-next-line jsx-a11y/no-redundant-roles */
         <ul
           role="list"
-          className="mt-2 divide-y divide-line rounded-2xl border border-line bg-surface shadow-card"
+          className="mt-3 divide-y divide-line rounded-2xl border border-line bg-surface shadow-card"
         >
           {rows.map(({ issue, line, late }, index) => (
             <li key={issue.id} data-testid={itemTestId} data-status={issue.status}>
@@ -63,18 +61,18 @@ export function QueueGroup({
                 type="button"
                 onClick={() => onOpen(issue.id)}
                 className={cn(
-                  "flex min-h-16 w-full items-center gap-3 px-4 py-3 text-left hover:bg-sunken",
+                  "flex min-h-16 w-full items-center gap-3 px-5 py-3.5 text-left hover:bg-sunken",
                   index === 0 && "rounded-t-2xl",
                   index === rows.length - 1 && "rounded-b-2xl",
                 )}
               >
                 <span className="min-w-0 flex-1">
-                  <span className="block leading-snug font-semibold">{issue.title}</span>
+                  <span className="block leading-snug font-medium">{issue.title}</span>
                   <span
                     data-late={late || undefined}
                     className={cn(
                       "mt-0.5 flex items-center gap-1.5 text-sm",
-                      late ? "font-semibold text-danger" : "text-muted",
+                      late ? "font-medium text-danger" : "text-muted",
                     )}
                   >
                     {late ? <Icon name="clock" className="size-4" /> : null}

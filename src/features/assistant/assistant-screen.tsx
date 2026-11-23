@@ -6,7 +6,7 @@ import { Button, ButtonLink } from "@/components/ui/button";
 import { cn } from "@/components/ui/cn";
 import { Input } from "@/components/ui/field";
 import { Icon } from "@/components/ui/icon";
-import { Container, Notice } from "@/components/ui/page";
+import { Notice, PageShell } from "@/components/ui/page";
 import { getApi, USING_FIXTURES } from "@/data/api";
 import type { AssistantMessage } from "@/data/types";
 import { useMessages } from "@/i18n";
@@ -52,28 +52,29 @@ export function AssistantScreen() {
     void ask(draft);
   }
 
-  const sectionLabel = "text-xs font-semibold tracking-wide text-muted uppercase";
+  const sectionLabel = "text-xs font-medium tracking-wider text-muted uppercase";
 
   return (
-    <Container size="narrow" className="flex flex-col gap-4 pb-0 sm:pb-0">
-      <header>
-        <h1 className="flex items-center gap-2.5 text-3xl font-bold tracking-tight">
-          <span className="flex size-10 items-center justify-center rounded-xl bg-brand text-on-brand">
-            <Icon name="chat" />
-          </span>
-          {a.title}
-        </h1>
-        <p className="mt-2 text-muted">
-          <span className="font-semibold text-ink">{a.careful}</span> {a.intro}
-        </p>
-        <p className="mt-2 inline-flex items-start gap-1.5 rounded-lg bg-brand-soft px-3 py-2 text-sm font-semibold text-brand-strong">
-          <Icon name="shieldCheck" className="mt-0.5 size-4 shrink-0" />
+    <PageShell
+      eyebrow={m.shell.eyebrow.assistant}
+      title={a.title}
+      intro={
+        <>
+          {a.careful} {a.intro}
+        </>
+      }
+      meta={
+        <span>
+          <Icon name="shieldCheck" className="size-4 shrink-0" />
           {a.sources}
-        </p>
-      </header>
-
+        </span>
+      }
+      size="compact"
+      width="narrow"
+      className="flex flex-col gap-5"
+    >
       {USING_FIXTURES ? (
-        <Notice tone="warning">
+        <Notice tone="info">
           <p data-testid="assistant-notice">{a.notice}</p>
         </Notice>
       ) : null}
@@ -94,7 +95,7 @@ export function AssistantScreen() {
                   "max-w-[90%] rounded-2xl px-4 py-3 whitespace-pre-line",
                   message.role === "user"
                     ? "rounded-br-md bg-brand text-on-brand"
-                    : "rounded-bl-md border border-line bg-surface",
+                    : "rounded-bl-md border border-line bg-surface shadow-card",
                 )}
               >
                 <span className="sr-only">
@@ -165,7 +166,7 @@ export function AssistantScreen() {
                 <button
                   type="button"
                   onClick={() => ask(suggestion)}
-                  className="flex min-h-12 w-full items-center justify-between gap-3 rounded-xl border border-line-strong bg-surface px-4 py-2 text-left font-semibold hover:border-brand"
+                  className="flex min-h-12 w-full items-center justify-between gap-3 rounded-2xl border border-line bg-surface px-5 py-3 text-left font-medium shadow-card transition-colors hover:border-brand"
                 >
                   {suggestion}
                   <Icon name="arrowRight" className="size-4 shrink-0 text-brand" />
@@ -179,7 +180,7 @@ export function AssistantScreen() {
       {/* Stays above the phone navigation bar. */}
       <form
         onSubmit={submit}
-        className="sticky bottom-16 z-20 -mx-4 flex gap-2 border-t border-line bg-canvas px-4 py-3 sm:-mx-6 sm:px-6 lg:bottom-0"
+        className="sticky bottom-16 z-20 flex gap-2 bg-canvas py-3 lg:bottom-0"
       >
         <label htmlFor="assistant-input" className="flex-1">
           <span className="sr-only">{a.inputLabel}</span>
@@ -202,6 +203,6 @@ export function AssistantScreen() {
           <span className="hidden sm:inline">{a.send}</span>
         </Button>
       </form>
-    </Container>
+    </PageShell>
   );
 }

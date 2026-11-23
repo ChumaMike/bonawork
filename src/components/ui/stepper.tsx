@@ -39,18 +39,18 @@ export function Stepper({
                 <span
                   aria-hidden="true"
                   className={cn(
-                    "h-1 flex-1 rounded-full",
+                    "h-0.5 flex-1 rounded-full",
                     index === 0 ? "invisible" : state === "todo" ? "bg-line" : "bg-brand",
                   )}
                 />
                 <span
                   aria-hidden="true"
                   className={cn(
-                    "flex size-8 shrink-0 items-center justify-center rounded-full text-sm font-bold",
-                    state === "done" && "bg-brand text-on-brand",
+                    "mx-1.5 flex size-8 shrink-0 items-center justify-center rounded-full text-sm font-medium",
+                    state === "done" && "bg-brand-soft text-brand-strong",
                     state === "current" &&
-                      "bg-surface text-brand-strong ring-[3px] ring-brand ring-inset",
-                    state === "todo" && "bg-sunken text-muted",
+                      "bg-brand text-on-brand shadow-[0_0_0_4px_rgb(3_70_255/0.14)]",
+                    state === "todo" && "border border-line-strong bg-surface text-muted",
                   )}
                 >
                   {state === "done" ? (
@@ -62,7 +62,7 @@ export function Stepper({
                 <span
                   aria-hidden="true"
                   className={cn(
-                    "h-1 flex-1 rounded-full",
+                    "h-0.5 flex-1 rounded-full",
                     index === steps.length - 1
                       ? "invisible"
                       : state === "done"
@@ -73,7 +73,7 @@ export function Stepper({
               </span>
               <span
                 className={cn(
-                  "text-xs leading-tight font-semibold sm:text-sm",
+                  "text-xs leading-tight font-medium sm:text-sm",
                   state === "current" ? "text-ink" : "text-muted",
                 )}
               >

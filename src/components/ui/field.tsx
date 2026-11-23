@@ -4,12 +4,13 @@ import { cn } from "./cn";
 import { Icon } from "./icon";
 
 /*
- * Form controls. Every control is at least 48 px tall, has a 2 px border so
- * it is visible in sunlight, and shows an inset error border when invalid.
+ * Form controls. Every control is at least 48 px tall, has a border that
+ * passes 3:1 on white, a soft blue glow when it has focus (as the landing
+ * page's chosen tab has), and a red border when invalid.
  * Pair them with <Field>, which wires the label, hint and error for you.
  */
 const control =
-  "w-full rounded-2xl border-2 border-line-strong bg-surface px-4 text-base text-ink placeholder:text-faint focus:border-brand aria-invalid:border-danger disabled:cursor-not-allowed disabled:bg-sunken disabled:text-muted";
+  "w-full rounded-xl border border-line-strong bg-surface px-4 text-base text-ink transition-shadow placeholder:text-faint focus:border-brand focus:shadow-[0_0_0_4px_rgb(3_70_255/0.12)] aria-invalid:border-danger disabled:cursor-not-allowed disabled:bg-sunken disabled:text-muted";
 
 export function Input({ className, ...props }: ComponentProps<"input">) {
   return <input className={cn(control, "min-h-12", className)} {...props} />;
@@ -74,7 +75,7 @@ export function Field({
   const m = useMessages();
   return (
     <div className={cn("flex flex-col gap-1.5", className)}>
-      <label htmlFor={id} className="font-semibold">
+      <label htmlFor={id} className="font-medium">
         {label}
         {required ? (
           <span className="text-danger" aria-hidden="true">
@@ -96,7 +97,7 @@ export function Field({
         id={`${id}-error`}
         role="alert"
         className={cn(
-          "flex items-start gap-1.5 text-sm font-semibold text-danger",
+          "flex items-start gap-1.5 text-sm font-medium text-danger",
           !error && "hidden",
         )}
       >
@@ -142,7 +143,7 @@ export function Checkbox({
         {...props}
       />
       <label htmlFor={id} className="flex min-h-11 flex-col justify-center py-2">
-        <span className="font-semibold">{label}</span>
+        <span className="font-medium">{label}</span>
         {hint ? (
           <span id={`${id}-hint`} className="text-sm text-muted">
             {hint}

@@ -13,7 +13,7 @@ afterEach(() => {
   path.current = "/";
 });
 
-/** The menu every other page shows to the community, in the same order. */
+/** The menu every page shows to the community, in the same order. */
 const MENU: [string, string][] = [
   ["Issues", "/issues"],
   ["Schools", "/schools"],
@@ -39,8 +39,8 @@ const hrefs = (root: HTMLElement) =>
     .getAllByRole("link")
     .map((link) => link.getAttribute("href"));
 
-describe("the landing page's top bar", () => {
-  it("replaces the site header on the landing page only, with the same destinations", () => {
+describe("the site's top bar", () => {
+  it("is the same bar on every page, with the same destinations", () => {
     render(<SiteHeader />);
     const bar = screen.getByRole("banner");
     expect(bar).toHaveAttribute("data-testid", "landing-header");
@@ -64,13 +64,48 @@ describe("the landing page's top bar", () => {
     path.current = "/issues";
     render(<SiteHeader />);
     const other = screen.getByRole("banner");
-    expect(other).not.toHaveAttribute("data-testid", "landing-header");
+    expect(other).toHaveAttribute("data-testid", "landing-header");
+    const otherMenu = within(other).getByRole("navigation", { name: "Main" });
     expect(
-      within(within(other).getByRole("navigation", { name: "Main" }))
+      within(otherMenu)
         .getAllByRole("link")
-        .slice(0, MENU.length)
         .map((link) => [link.textContent, link.getAttribute("href")]),
     ).toEqual(MENU);
+    // The page someone is on is marked, and only that one.
+    expect(
+      within(otherMenu)
+        .getAllByRole("link")
+        .filter((link) => link.getAttribute("aria-current") === "page")
+        .map((link) => link.textContent),
+    ).toEqual(["Issues"]);
+  });
+
+  it("lies over a page's navy band, and is solid where a page has none", () => {
+    path.current = "/issues";
+    render(<SiteHeader />);
+    const over = screen.getByRole("banner");
+    expect(over).not.toHaveAttribute("data-solid");
+    expect(over).not.toHaveAttribute("data-flow");
+
+    cleanup();
+    path.current = "/sign-in";
+    render(<SiteHeader />);
+    const plain = screen.getByRole("banner");
+    expect(plain).toHaveAttribute("data-solid");
+    expect(plain).toHaveAttribute("data-flow");
+  });
+
+  it("names the school a page is about, beside the logo", () => {
+    render(
+      <LandingHeader
+        links={MENU.map(([label, href]) => ({ label, href }))}
+        showReport
+        school={{ id: "thuto-lesedi-primary", name: "Thuto-Lesedi Primary School" }}
+      />,
+    );
+    const chip = screen.getByTestId("school-context");
+    expect(chip).toHaveTextContent("At Thuto-Lesedi Primary School");
+    expect(chip).toHaveAttribute("href", "/schools/thuto-lesedi-primary");
   });
 
   it("folds the menu into a sheet that opens, closes and leaves with Escape", () => {
@@ -112,8 +147,8 @@ describe("the landing page's top bar", () => {
   });
 });
 
-describe("the landing page's footer", () => {
-  it("replaces the site footer on the landing page only, and keeps the way in for staff", () => {
+describe("the site's footer", () => {
+  it("is the same footer on every page, and keeps the way in for staff", () => {
     render(<SiteFooter />);
     const footer = screen.getByRole("contentinfo");
     expect(footer).toHaveClass("vl-footer");
@@ -127,7 +162,11 @@ describe("the landing page's footer", () => {
     cleanup();
     path.current = "/issues";
     render(<SiteFooter />);
-    expect(screen.getByRole("contentinfo")).not.toHaveClass("vl-footer");
+    const other = screen.getByRole("contentinfo");
+    expect(other).toHaveClass("vl-footer");
+    expect(
+      hrefs(within(other).getByRole("navigation", { name: "For schools and reviewers" })),
+    ).toEqual(expect.arrayContaining(["/admin", "/reviewer", "/supplier", "/payments"]));
   });
 
   it("links only to pages that exist, the public code and the contract", () => {
@@ -160,8 +199,11 @@ describe("the landing page's footer", () => {
       "A report is not protection. A repair claim is not verification.",
     );
     expect(text).toContain("Test network only. No real money moves.");
-    expect(text).toContain("Built for the UJ BACISS hackathon.");
-    expect(text).toContain("AI-generated illustration");
+    expect(text).toContain(
+      "Bona Chain for Schools. Sample schools and people while we run on the Avalanche Fuji test network.",
+    );
     expect(text).not.toMatch(/\bpaid\b|\bresolved\b|BonaBlock/i);
+    // It does not say where it was built, and does not label its pictures.
+    expect(text).not.toMatch(/hackathon|BACISS|AI-generated/i);
   });
 });

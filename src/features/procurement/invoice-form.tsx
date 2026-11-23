@@ -226,12 +226,12 @@ export function InvoiceForm({
   const notFound = (name: string, value: string) => value === "" && missing.has(name);
   const hintFor = (name: string, value: string, hint?: string) =>
     notFound(name, value) ? (
-      <span className="font-semibold text-accent">{f.notFound}</span>
+      <span className="font-medium text-accent">{f.notFound}</span>
     ) : (
       hint
     );
   const missingClass = (name: string, value: string) =>
-    cn(notFound(name, value) && "border-accent bg-accent-soft");
+    cn(notFound(name, value) && "border-accent");
 
   return (
     <form
@@ -266,7 +266,7 @@ export function InvoiceForm({
           />
         </Field>
         {priced ? (
-          <div className="flex flex-col gap-1 rounded-2xl border border-dashed border-accent bg-accent-soft px-4 py-2">
+          <div className="flex flex-col gap-1 rounded-2xl bg-sunken px-4 py-2">
             <p className="text-sm">{f.sampleNote}</p>
             <div className="-mx-2 flex flex-wrap gap-x-1">
               {[false, true].map((mistake) => (

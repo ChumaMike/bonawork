@@ -107,7 +107,7 @@ export function OrderForm({
       {sample ? (
         <div
           data-testid="order-shortcut"
-          className="flex flex-col gap-2 rounded-2xl border border-dashed border-accent bg-accent-soft px-4 py-3"
+          className="flex flex-col gap-2 rounded-2xl bg-sunken px-4 py-3"
         >
           <Button
             type="button"

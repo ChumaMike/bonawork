@@ -562,7 +562,8 @@
 }
 .vl-chip[data-tone="good"] {
   background: var(--vl-good-soft);
-  color: var(--vl-good);
+  /* Darker than --vl-good: 7:1 on the soft green, with room to spare at 12 px. */
+  color: #0f5c36;
 }
 .vl-chip[data-tone="bad"] {
   background: var(--vl-bad-soft);
@@ -603,7 +604,8 @@
   display: block;
   margin-top: 12px;
   font-size: 12px;
-  color: var(--vl-soft);
+  /* The body grey, not the soft one: small text needs the stronger contrast. */
+  color: var(--vl-body);
 }
 .vl-bar {
   margin-top: 8px;
@@ -1602,6 +1604,26 @@
   display: grid;
   gap: 40px;
   padding-block: 64px 44px;
+}
+/*
+ * The logo cannot wrap, so where the column is too narrow for it (a phone at
+ * 200% zoom) the smaller one stands in. A container query, because zoom
+ * narrows the column without changing the viewport a media query reads.
+ */
+.vl-footer-about {
+  min-width: 0;
+  container-type: inline-size;
+}
+.vl-footer-logo-full {
+  display: none;
+}
+@container (min-width: 200px) {
+  .vl-footer-logo-small {
+    display: none;
+  }
+  .vl-footer-logo-full {
+    display: inline;
+  }
 }
 .vl-footer-about p {
   margin-top: 16px;

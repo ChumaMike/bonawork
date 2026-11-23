@@ -146,7 +146,7 @@ export function FilePicker({
           disabled={full || busy}
           className={cn(
             choice,
-            "border-2 border-dashed border-line-strong bg-surface text-ink hover:border-brand",
+            "border border-line-strong bg-surface text-ink hover:border-ink",
           )}
         >
           <Icon name="upload" className="size-6 shrink-0 text-brand" />

@@ -5,15 +5,12 @@ import { usePathname } from "next/navigation";
 import { useEffect, useSyncExternalStore } from "react";
 import { USING_FIXTURES } from "@/data/api";
 import { useAudience, WORKSPACE, workspaceFor, type Audience } from "@/data/audience";
-import { signOut, useSession } from "@/data/session";
 import { LandingFooter, LandingHeader } from "@/features/landing/vellure/landing-chrome";
 import { useMessages } from "@/i18n";
-import { BRAND_NAME, BrandLogo } from "./brand/brand-logo";
-import { Avatar } from "./ui/avatar";
-import { ButtonLink } from "./ui/button";
 import { cn } from "./ui/cn";
 import { Icon, type IconName } from "./ui/icon";
-import { Pattern } from "./ui/pattern";
+/* What the top bar needs on the pages under the landing page. After the landing styles. */
+import "./ui/page-shell.css";
 
 /* ------------------------------------------------------------------------ */
 /* School context: a school page tells the header which school it is in.    */
@@ -54,33 +51,6 @@ export function SchoolContext({ id, name }: { id: string; name: string }) {
     return () => setSchoolContext(null);
   }, [id, name]);
   return null;
-}
-
-/* ------------------------------------------------------------------------ */
-/* Wordmark                                                                  */
-/* ------------------------------------------------------------------------ */
-
-export function Logo({ className }: { className?: string }) {
-  const m = useMessages();
-  return (
-    <Link
-      href="/"
-      aria-label={`${BRAND_NAME} — ${m.nav.home}`}
-      className={cn("inline-flex min-h-11 shrink-0 items-center", className)}
-    >
-      {/*
-        The Bona Chain logo (docs/design/BRAND.md): the phone size, then the
-        header size. Each sits in its own wrapper, because the logo sets its
-        own display and would otherwise override `hidden`.
-      */}
-      <span className="sm:hidden">
-        <BrandLogo size="sm" />
-      </span>
-      <span className="hidden sm:inline">
-        <BrandLogo />
-      </span>
-    </Link>
-  );
 }
 
 function isActive(pathname: string, href: string): boolean {
@@ -140,129 +110,27 @@ function navItemsFor(audience: Audience, m: ReturnType<typeof useMessages>) {
   };
 }
 
+/** Pages that draw no navy band under the bar, so the bar is solid on them. */
+const PLAIN_PAGES = new Set(["/sign-in"]);
+
+/**
+ * The one top bar of the site, the landing page's: the logo, the menu for the
+ * person signed in, the account and one blue button. It lies over the navy
+ * band at the top of each page and turns solid once the page is scrolled.
+ */
 export function SiteHeader() {
   const m = useMessages();
   const pathname = usePathname();
   const school = useSchoolContext();
-  const isHome = pathname === "/";
   const nav = navItemsFor(useAudience(), m);
-  const links = nav.header;
-  // The landing page has its own top bar, with the same destinations.
-  if (isHome) return <LandingHeader links={links} showReport={!nav.staff} />;
   return (
-    <header className="no-print sticky top-0 z-30 border-b border-line bg-surface/95 backdrop-blur">
-      <Pattern variant="band" tone="sun" />
-      <div className="mx-auto flex min-h-16 w-full max-w-6xl flex-wrap items-center justify-between gap-x-3 gap-y-1 px-4 sm:px-6">
-        <div className="flex min-w-0 items-center gap-3">
-          <Logo />
-          {school ? (
-            // Phones have no room beside the wordmark; the page title names the school there.
-            // Between lg and xl the menu needs the room too, so the header stays on one row.
-            <Link
-              href={`/schools/${school.id}`}
-              data-testid="school-context"
-              className="hidden min-h-11 max-w-56 items-center gap-1.5 rounded-full bg-brand-soft px-3 text-sm font-semibold text-brand-strong sm:inline-flex lg:hidden xl:inline-flex"
-            >
-              <Icon name="mapPin" className="size-4 shrink-0" />
-              <span className="truncate">{m.nav.atSchool(school.name)}</span>
-            </Link>
-          ) : null}
-        </div>
-        <nav aria-label={m.nav.main} className="hidden items-center gap-1 lg:flex">
-          {links.map((link) => (
-            <Link
-              key={link.href}
-              href={link.href}
-              aria-current={isActive(pathname, link.href) ? "page" : undefined}
-              className="inline-flex min-h-11 items-center rounded-full px-3 font-semibold whitespace-nowrap text-muted hover:text-ink aria-[current=page]:bg-brand-soft aria-[current=page]:text-brand-strong"
-            >
-              {link.label}
-            </Link>
-          ))}
-          {nav.staff ? null : (
-            <ButtonLink href="/report" size="sm" className="ml-2">
-              <Icon name="plus" className="size-4" />
-              {m.nav.report}
-            </ButtonLink>
-          )}
-          <AccountArea />
-        </nav>
-        <div className="flex min-w-0 items-center gap-1 lg:hidden">
-          <Link
-            href="/verify"
-            className="inline-flex min-h-11 shrink-0 items-center gap-1.5 rounded-full px-2 font-semibold text-brand-strong"
-          >
-            <Icon name="shieldCheck" className="size-5" />
-            <span className="hidden sm:inline">{m.nav.verify}</span>
-            <span className="sr-only sm:hidden">{m.nav.verify}</span>
-          </Link>
-          <AccountArea compact />
-        </div>
-      </div>
-    </header>
-  );
-}
-
-/**
- * Who is signed in. Signed out: a "Sign in" link. Signed in: avatar, public
- * display name and a role badge, linking to the account page; plus "Sign out"
- * on wide screens.
- */
-function AccountArea({ compact = false }: { compact?: boolean }) {
-  const m = useMessages();
-  const { status, session } = useSession();
-  if (status === "loading") return <span className="w-20" aria-hidden="true" />;
-
-  if (!session) {
-    return (
-      <Link
-        href="/sign-in"
-        className="ml-1 inline-flex min-h-11 items-center gap-1.5 rounded-full px-2 font-semibold whitespace-nowrap text-brand-strong hover:bg-brand-soft"
-      >
-        <Icon name="user" className="size-5" />
-        {m.nav.signIn}
-      </Link>
-    );
-  }
-  const role = m.auth.role[session.user.role];
-  return (
-    <div data-testid="account-area" className="ml-1 flex min-w-0 items-center gap-1">
-      <Link
-        href="/sign-in"
-        aria-label={`${m.nav.account}: ${session.user.displayName}, ${role}`}
-        className="inline-flex min-h-11 min-w-0 items-center gap-2 rounded-full px-1.5 hover:bg-brand-soft"
-      >
-        <Avatar name={session.user.displayName} size="sm" />
-        <span
-          className={cn(
-            "flex min-w-0 text-left leading-tight",
-            // On a phone the account sits on its own row: name and role side by side.
-            compact ? "items-center gap-2" : "flex-col",
-          )}
-        >
-          <span
-            className={cn(
-              "truncate text-sm font-semibold",
-              compact ? "max-w-40" : "whitespace-nowrap",
-            )}
-          >
-            {session.user.displayName}
-          </span>
-          <span className="inline-flex w-fit shrink-0 items-center rounded-full bg-earth-soft px-2 text-xs font-semibold whitespace-nowrap text-earth-strong">
-            {role}
-          </span>
-        </span>
-      </Link>
-      {compact ? null : (
-        <button
-          type="button"
-          onClick={() => void signOut()}
-          className="inline-flex min-h-11 items-center rounded-full px-2 text-sm font-semibold whitespace-nowrap text-muted hover:text-ink"
-        >
-          {m.auth.signOut}
-        </button>
-      )}
-    </div>
+    <LandingHeader
+      links={nav.header}
+      showReport={!nav.staff}
+      current={pathname}
+      school={school}
+      plain={PLAIN_PAGES.has(pathname)}
+    />
   );
 }
 
@@ -356,7 +224,6 @@ const PROCUREMENT_ROLES = [
 
 export function SiteFooter() {
   const m = useMessages();
-  const pathname = usePathname();
   const audience = useAudience();
   // Signed out: the way in for staff. A community reporter does not need it.
   // Staff: only their own workspace.
@@ -369,39 +236,6 @@ export function SiteFooter() {
       role,
     })),
   ].filter((link) => (audience.role === null ? true : link.role === audience.role));
-  // The landing page has its own footer, with the same way in for staff.
-  if (pathname === "/") return <LandingFooter staffLinks={staffLinks} />;
-  return (
-    <footer className="no-print bottom-bar-pad border-t border-line bg-surface lg:pb-0">
-      <Pattern variant="divider" tone="sun" />
-      <div className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-4 py-8 text-sm text-muted sm:px-6 md:flex-row md:items-start md:justify-between">
-        <div className="max-w-md">
-          <p className="font-display text-lg text-ink">
-            {m.brand.principleReport} {m.brand.principleClaim}
-          </p>
-          <p className="mt-2">
-            {m.brand.forSchools}. {m.nav.footerNote}
-          </p>
-          <p className="mt-1">{m.nav.languageNote}</p>
-        </div>
-        {staffLinks.length > 0 ? (
-          <nav aria-label={m.nav.forStaff}>
-            <p className="font-semibold text-ink">{m.nav.forStaff}</p>
-            <ul className="mt-1 flex flex-col">
-              {staffLinks.map((link) => (
-                <li key={link.href}>
-                  <Link
-                    href={link.href}
-                    className="inline-flex min-h-11 items-center underline underline-offset-4 hover:text-brand-strong"
-                  >
-                    {link.label}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </nav>
-        ) : null}
-      </div>
-    </footer>
-  );
+  // One footer on every page, with the same way in for staff.
+  return <LandingFooter staffLinks={staffLinks} />;
 }

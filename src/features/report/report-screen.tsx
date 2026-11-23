@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/components/ui/cn";
 import { Checkbox, Field, Input, Textarea } from "@/components/ui/field";
 import { Icon } from "@/components/ui/icon";
-import { Container, EmptyState, Loading, Notice } from "@/components/ui/page";
+import { EmptyState, Loading, Notice, PageShell } from "@/components/ui/page";
 import { Stepper } from "@/components/ui/stepper";
 import { ApiError, getApi } from "@/data/api";
 import { useSession } from "@/data/session";
@@ -234,10 +234,10 @@ export function ReportScreen() {
                 key={category}
                 htmlFor={`category-${category}`}
                 className={cn(
-                  "relative flex min-h-28 cursor-pointer flex-col items-center justify-center gap-2 rounded-2xl border-2 px-2 py-3 text-center text-lg leading-tight font-semibold has-focus-visible:outline-3 has-focus-visible:outline-brand",
+                  "relative flex min-h-28 cursor-pointer flex-col items-center justify-center gap-2 rounded-2xl border px-2 py-4 text-center text-lg leading-tight font-medium shadow-card transition-colors has-focus-visible:outline-3 has-focus-visible:outline-brand",
                   chosen
                     ? "border-brand bg-brand-soft text-brand-strong"
-                    : "border-line-strong bg-surface",
+                    : "border-line bg-surface hover:border-brand",
                 )}
               >
                 <input
@@ -254,7 +254,7 @@ export function ReportScreen() {
                 />
                 <span
                   className={cn(
-                    "flex size-12 items-center justify-center rounded-full",
+                    "flex size-12 items-center justify-center rounded-xl",
                     chosen ? "bg-brand text-on-brand" : "bg-brand-soft text-brand-strong",
                   )}
                 >
@@ -269,7 +269,7 @@ export function ReportScreen() {
           })}
         </div>
         {errors.category ? (
-          <p role="alert" className="mt-2 font-semibold text-danger">
+          <p role="alert" className="mt-2 font-medium text-danger">
             {errors.category}
           </p>
         ) : null}
@@ -296,9 +296,9 @@ export function ReportScreen() {
         </Field>
         <details
           open={Boolean(draft.location || draft.description) || undefined}
-          className="rounded-2xl border border-line bg-surface px-4 py-1"
+          className="rounded-2xl border border-line bg-surface px-5 py-1 shadow-card"
         >
-          <summary className="flex min-h-12 cursor-pointer items-center font-semibold">
+          <summary className="flex min-h-12 cursor-pointer items-center font-medium">
             {r.describe.more}
           </summary>
           <div className="flex flex-col gap-4 pb-4">
@@ -458,36 +458,37 @@ export function ReportScreen() {
   }
 
   return (
-    <Container size="narrow" className="pb-32 lg:pb-10">
-      <BuddyHint id={HINT_OF_SCREEN[screen]} />
-      <div className="flex min-h-11 items-center justify-between gap-3">
-        {screen > 0 ? (
+    <PageShell
+      size="compact"
+      width="narrow"
+      className="pb-24 lg:pb-0"
+      eyebrow={r.title}
+      title={titles[screen]}
+      titleRef={heading}
+      back={
+        screen > 0 ? (
           <button
             type="button"
             onClick={() => setScreen((s) => s - 1)}
             disabled={submitting}
-            className="-ml-2 inline-flex min-h-11 items-center gap-1.5 rounded-lg px-2 font-semibold text-brand-strong hover:bg-brand-soft disabled:opacity-50"
+            className="vl-pagehero-back no-print disabled:opacity-50"
           >
             <Icon name="arrowLeft" className="size-4" />
             {m.common.back}
           </button>
-        ) : (
-          <p className="font-semibold text-brand">{r.title}</p>
-        )}
-        <p className="inline-flex items-center gap-1 text-sm text-muted">
+        ) : undefined
+      }
+      meta={
+        <span>
           <Icon name="check" className="size-4" />
           {r.noAccount}
-        </p>
+        </span>
+      }
+    >
+      <BuddyHint id={HINT_OF_SCREEN[screen]} />
+      <div className="rounded-2xl border border-line bg-surface px-3 py-4 shadow-card sm:px-5">
+        <Stepper steps={r.stepper} current={stop} label={r.stepperLabel} />
       </div>
-
-      <Stepper steps={r.stepper} current={stop} label={r.stepperLabel} className="mt-2" />
-      <h1
-        ref={heading}
-        tabIndex={-1}
-        className="mt-4 text-3xl font-bold tracking-tight outline-none"
-      >
-        {titles[screen]}
-      </h1>
 
       {restoring && screen <= SCREEN.category ? (
         <Notice tone="info" icon="info" className="mt-4">
@@ -498,7 +499,7 @@ export function ReportScreen() {
         </Notice>
       ) : null}
 
-      <div className="mt-5">
+      <div className="mt-6">
         {screen === 0 && presetSchool && preset.loading ? <Loading lines={1} /> : body}
       </div>
 
@@ -511,7 +512,7 @@ export function ReportScreen() {
           <div className="mx-auto flex max-w-2xl justify-end">{primary}</div>
         </div>
       ) : null}
-    </Container>
+    </PageShell>
   );
 }
 
@@ -529,9 +530,11 @@ function SchoolStep({
 
   if (school) {
     return (
-      <div className="rounded-2xl border-2 border-brand bg-brand-soft p-5">
-        <p className="text-sm font-semibold text-brand-strong">{r.chosen}</p>
-        <p className="mt-1 text-xl font-bold">{school.name}</p>
+      <div className="rounded-2xl border border-brand bg-surface p-5 shadow-[0_0_0_4px_rgb(3_70_255/0.1)]">
+        <p className="text-sm font-medium text-brand-strong">{r.chosen}</p>
+        <p className="mt-1 font-display text-2xl font-medium tracking-tight">
+          {school.name}
+        </p>
         <p className="text-muted">
           {school.town}, {school.province}
         </p>
@@ -575,10 +578,12 @@ function SchoolStep({
               <button
                 type="button"
                 onClick={() => onChoose(option)}
-                className="flex min-h-14 w-full items-center justify-between gap-3 rounded-2xl border border-line bg-surface p-4 text-left hover:border-brand"
+                className="flex min-h-14 w-full items-center justify-between gap-3 rounded-2xl border border-line bg-surface px-5 py-4 text-left shadow-card transition-colors hover:border-brand"
               >
                 <span>
-                  <span className="block text-lg font-semibold">{option.name}</span>
+                  <span className="block text-lg font-medium tracking-tight">
+                    {option.name}
+                  </span>
                   <span className="text-muted">
                     {option.town}, {option.province}
                   </span>

@@ -76,10 +76,10 @@ export function useToasts(): Toast[] {
 }
 
 const tones: Record<ToastTone, { icon: IconName; className: string }> = {
-  info: { icon: "info", className: "border-st-assess text-ink" },
-  success: { icon: "check", className: "border-st-verified text-ink" },
-  warning: { icon: "alert", className: "border-accent text-ink" },
-  danger: { icon: "alert", className: "border-danger text-ink" },
+  info: { icon: "info", className: "bg-brand-soft text-brand-strong" },
+  success: { icon: "check", className: "bg-st-verified-soft text-st-verified" },
+  warning: { icon: "alert", className: "bg-accent-soft text-accent" },
+  danger: { icon: "alert", className: "bg-danger-soft text-danger" },
 };
 
 /** Rendered once, in the root layout. Sits above the phone bottom bar. */
@@ -112,13 +112,16 @@ function ToastCard({ toast: item }: { toast: Toast }) {
   }, [item.id, item.duration]);
 
   return (
-    <div
-      className={cn(
-        "pointer-events-auto flex w-full max-w-md items-start gap-3 rounded-xl border-l-4 bg-surface p-3 pl-4 shadow-raised motion-safe:animate-[bona-rise_200ms_ease-out]",
-        tone.className,
-      )}
-    >
-      <Icon name={tone.icon} className="mt-0.5 size-5 shrink-0" />
+    <div className="pointer-events-auto flex w-full max-w-md items-start gap-3 rounded-2xl border border-line bg-surface p-3 text-ink shadow-raised motion-safe:animate-[bona-rise_200ms_ease-out]">
+      <span
+        aria-hidden="true"
+        className={cn(
+          "flex size-9 shrink-0 items-center justify-center rounded-xl",
+          tone.className,
+        )}
+      >
+        <Icon name={tone.icon} className="size-5" />
+      </span>
       <div className="min-w-0 flex-1 py-0.5">
         <p className="font-semibold">{item.title}</p>
         {item.body ? <p className="text-sm text-muted">{item.body}</p> : null}

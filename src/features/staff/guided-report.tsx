@@ -5,14 +5,14 @@ import { useState } from "react";
 import { BuddyHint } from "@/components/buddy/buddy-hint";
 import { FilePicker } from "@/components/file-picker";
 import { EvidenceThumb, photoUrl } from "@/components/staff/evidence-thumb";
-import { BackButton, FlowTitle, Quote, StepHeading } from "@/components/staff/flow";
+import { BackButton, Quote, StepHeading } from "@/components/staff/flow";
 import { VerifyAttempt } from "@/components/staff/verify-attempt";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { cn } from "@/components/ui/cn";
 import { describedBy, Field, Textarea } from "@/components/ui/field";
 import { Icon } from "@/components/ui/icon";
-import { Container, Notice } from "@/components/ui/page";
+import { Container, Notice, PageHero } from "@/components/ui/page";
 import { StatusPill } from "@/components/ui/status-pill";
 import { ApiError, getApi } from "@/data/api";
 import type { EvidenceUpload, Issue } from "@/data/types";
@@ -30,7 +30,7 @@ import {
 } from "./queue";
 
 const quietLink =
-  "inline-flex min-h-11 items-center gap-1.5 font-semibold text-brand-strong underline-offset-4 hover:underline";
+  "inline-flex min-h-11 items-center gap-1.5 font-medium text-brand-strong underline-offset-4 hover:underline";
 
 /**
  * One report at a time: the report, how long it has waited and how many
@@ -64,18 +64,21 @@ export function GuidedReport({
   const answers = ANSWERS[issue.status];
 
   return (
-    <Container size="narrow">
+    <div data-testid="guided-report">
       <BuddyHint id="admin" />
-      <div data-testid="guided-report">
-        <BackButton onClick={onBack}>{a.backToList}</BackButton>
-        <header className="mt-1 mb-5 flex flex-col gap-2">
-          <div className="flex flex-wrap items-center gap-2">
+      <PageHero
+        size="compact"
+        focusTitle
+        back={<BackButton onClick={onBack}>{a.backToList}</BackButton>}
+        title={issue.title}
+        meta={
+          <>
             <StatusPill status={issue.status} />
             {wait ? (
               <span
                 data-testid="waited"
                 className={cn(
-                  "inline-flex min-h-8 items-center gap-1.5 rounded-full px-3 text-sm font-semibold",
+                  "inline-flex min-h-8 items-center gap-1.5 rounded-full px-3 text-sm font-medium",
                   wait.late ? "bg-danger-soft text-danger" : "bg-sunken text-muted",
                 )}
               >
@@ -83,17 +86,15 @@ export function GuidedReport({
                 {wait.label}
               </span>
             ) : null}
-          </div>
-          <FlowTitle>{issue.title}</FlowTitle>
-          <p className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-sm text-muted">
-            <span className="inline-flex items-center gap-1">
+            <span>
               <Icon name="mapPin" className="size-4" />
               {issue.location}
             </span>
             <span className="font-mono">{issue.reference}</span>
-          </p>
-        </header>
-
+          </>
+        }
+      />
+      <Container size="narrow">
         {recorded ? (
           <Recorded
             action={recorded}
@@ -148,8 +149,8 @@ export function GuidedReport({
             </div>
           </div>
         )}
-      </div>
-    </Container>
+      </Container>
+    </div>
   );
 }
 
@@ -455,7 +456,7 @@ function Recorded({
       data-testid="answer-recorded"
       className="flex flex-col gap-4"
     >
-      <div className="flex gap-3 rounded-xl border border-st-verified bg-st-verified-soft p-4">
+      <div className="flex gap-3 rounded-2xl border border-line bg-surface p-4 shadow-card">
         <Icon name="check" className="mt-0.5 size-6" />
         <div className="min-w-0">
           <StepHeading id="recorded-title" className="text-xl">

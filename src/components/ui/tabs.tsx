@@ -11,9 +11,10 @@ export interface TabItem<T extends string> {
 }
 
 /**
- * A row of tabs that splits one long page into a few named parts. Large
- * targets, the chosen tab underlined in the brand colour, arrow keys move
- * between tabs. Pair each tab with a <TabPanel> that has the same `id`.
+ * A row of tabs that splits one long page into a few named parts: pills on a
+ * soft track, as on the landing page, the chosen one white. Large targets,
+ * arrow keys move between tabs. Pair each tab with a <TabPanel> that has the
+ * same `id`.
  */
 export function Tabs<T extends string>({
   label,
@@ -57,7 +58,7 @@ export function Tabs<T extends string>({
       ref={list}
       role="tablist"
       aria-label={label}
-      className={cn("flex border-b border-line", className)}
+      className={cn("flex gap-1 rounded-full bg-sunken p-1", className)}
     >
       {tabs.map((tab) => {
         const selected = tab.id === value;
@@ -73,15 +74,20 @@ export function Tabs<T extends string>({
             onClick={() => onChange(tab.id)}
             onKeyDown={onKeyDown}
             className={cn(
-              "-mb-px flex min-h-12 flex-1 items-center justify-center gap-1.5 border-b-[3px] px-1 text-base font-semibold whitespace-nowrap",
+              "flex min-h-11 flex-1 items-center justify-center gap-1.5 rounded-full px-1.5 text-[0.95rem] font-medium whitespace-nowrap transition-colors",
               selected
-                ? "border-brand text-brand-strong"
-                : "border-transparent text-muted hover:text-ink",
+                ? "bg-surface text-ink shadow-[0_1px_2px_rgb(4_4_9/0.1),0_0_0_1px_var(--color-line)]"
+                : "text-muted hover:text-ink",
             )}
           >
             {tab.label}
             {tab.count !== undefined ? (
-              <span className="rounded-full bg-sunken px-2 py-0.5 text-sm text-muted">
+              <span
+                className={cn(
+                  "rounded-full px-2 py-0.5 text-xs text-muted",
+                  selected ? "bg-sunken" : "bg-surface",
+                )}
+              >
                 {tab.count}
               </span>
             ) : null}
@@ -113,7 +119,7 @@ export function TabPanel({
       aria-labelledby={`${idPrefix}-tab-${id}`}
       hidden={!active}
       tabIndex={0}
-      className={cn("pt-5 focus-visible:outline-offset-4", className)}
+      className={cn("pt-6 focus-visible:outline-offset-4", className)}
     >
       {children}
     </div>

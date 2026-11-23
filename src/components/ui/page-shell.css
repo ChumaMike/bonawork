@@ -1,0 +1,358 @@
+/*
+ * The shell of every page under the landing page, in the landing page's own
+ * language (src/features/landing/vellure/vellure.css): a shorter navy band
+ * that holds the page's label, title and main control, under the same top
+ * bar. It adds only what the landing page does not already have; the badge,
+ * the buttons, the search pill and the colours come from `.vl`.
+ */
+
+/* The band. Carries `.vl .vl-on-dark`, so its type and focus ring follow. */
+.vl-pagehero {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  background:
+    radial-gradient(80% 120% at 50% 138%, rgb(60 120 255 / 0.5) 0%, transparent 70%),
+    linear-gradient(180deg, #030720 0%, #041046 46%, #0329b0 100%);
+  color: #ffffff;
+  /* 76 px of it lies under the top bar. */
+  padding-block: calc(76px + clamp(28px, 4.5vw, 56px)) clamp(40px, 5.5vw, 68px);
+  text-align: center;
+}
+.vl-pagehero[data-size="compact"] {
+  padding-block: calc(76px + clamp(20px, 3vw, 36px)) clamp(28px, 4vw, 44px);
+}
+.vl-pagehero .vl-badge {
+  padding-inline: 14px;
+}
+.vl-pagehero h1 {
+  margin: 18px auto 0;
+  max-width: 24ch;
+  font-size: clamp(2rem, 3.8vw, 3.1rem);
+  line-height: 1.06;
+  letter-spacing: -0.04em;
+  /* A long reference or a long word must wrap, not push the page sideways. */
+  overflow-wrap: anywhere;
+}
+.vl-pagehero[data-size="compact"] h1 {
+  max-width: 28ch;
+  font-size: clamp(1.75rem, 3vw, 2.5rem);
+}
+.vl-pagehero h1:focus {
+  outline: none;
+}
+.vl-pagehero .vl-hero-sub {
+  margin-top: 16px;
+  max-width: 56ch;
+}
+.vl-pagehero-back {
+  margin-bottom: 14px;
+  display: inline-flex;
+  min-height: 44px;
+  align-items: center;
+  gap: 6px;
+  border-radius: 999px;
+  padding: 0 14px;
+  font-size: 15px;
+  font-weight: 500;
+  color: rgb(255 255 255 / 0.9);
+  transition: background-color 0.2s ease;
+}
+.vl-pagehero-back:hover {
+  background: rgb(255 255 255 / 0.14);
+  color: #ffffff;
+}
+.vl-pagehero-top {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.vl-pagehero-meta {
+  margin-top: 18px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 8px 14px;
+  font-size: 15px;
+  line-height: 1.4;
+  color: rgb(255 255 255 / 0.9);
+}
+.vl-pagehero-meta > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+/* One sentence that matters most, as a glass pill: "2 reports need your reply." */
+.vl-pagehero-meta > .vl-pagehero-note {
+  min-height: 36px;
+  border: 1px solid rgb(255 255 255 / 0.16);
+  border-radius: 999px;
+  background: rgb(255 255 255 / 0.12);
+  padding: 4px 16px;
+  font-weight: 500;
+  color: #ffffff;
+}
+.vl-pagehero-control {
+  margin: 28px auto 0;
+  width: 100%;
+  max-width: 620px;
+}
+.vl-pagehero-control .vl-search {
+  margin-top: 0;
+  max-width: none;
+}
+.vl-pagehero-control .vl-search input[data-mono] {
+  font-family: var(--font-mono), ui-monospace, monospace;
+  letter-spacing: 0.04em;
+}
+/* A message under the control, such as a reference that was not found. */
+.vl-pagehero-error {
+  margin-top: 12px;
+  display: inline-flex;
+  align-items: flex-start;
+  gap: 8px;
+  border-radius: 14px;
+  background: rgb(255 255 255 / 0.96);
+  padding: 10px 14px;
+  text-align: left;
+  font-size: 15px;
+  font-weight: 500;
+  line-height: 1.4;
+  color: #8c1d17;
+}
+.vl-pagehero-actions {
+  margin-top: 28px;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 12px;
+}
+
+/* A photograph behind the band, under a navy wash so the words stay readable. */
+.vl-pagehero-photo {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+}
+.vl-pagehero-photo > [data-photo] {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+.vl-pagehero-photo::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(80% 120% at 50% 138%, rgb(60 120 255 / 0.35) 0%, transparent 70%),
+    linear-gradient(
+      180deg,
+      rgb(3 7 32 / 0.94) 0%,
+      rgb(4 16 70 / 0.84) 46%,
+      rgb(3 41 176 / 0.78) 100%
+    );
+}
+
+/* While the page loads: the band keeps its height, so nothing jumps. */
+.vl-pagehero-skeleton {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+}
+.vl-pagehero-skeleton i {
+  display: block;
+  border-radius: 999px;
+  background: rgb(255 255 255 / 0.14);
+}
+.vl-pagehero-skeleton i:nth-child(1) {
+  width: 120px;
+  height: 34px;
+}
+.vl-pagehero-skeleton i:nth-child(2) {
+  width: min(460px, 86%);
+  height: clamp(2rem, 3.8vw, 3.1rem);
+}
+.vl-pagehero-skeleton i:nth-child(3) {
+  width: min(340px, 70%);
+  height: 18px;
+}
+
+/* ------------------------------ The top bar ------------------------------ */
+
+/* The page someone is on, in the landing page's top bar. */
+.vl-header .vl-link[aria-current="page"] {
+  background: rgb(255 255 255 / 0.16);
+  opacity: 1;
+}
+.vl-header[data-solid] .vl-link[aria-current="page"] {
+  background: #e9eeff;
+  color: var(--vl-blue-deep);
+}
+/* A page with no band under the bar: the bar is solid and takes its own room. */
+.vl-header[data-flow] {
+  margin-bottom: 0;
+}
+/* "At <school>", beside the logo, where there is room for it. */
+.vl-school {
+  display: none;
+  min-height: 36px;
+  max-width: 14rem;
+  align-items: center;
+  gap: 6px;
+  border-radius: 999px;
+  background: rgb(255 255 255 / 0.14);
+  padding: 0 12px;
+  font-size: 13.5px;
+  font-weight: 500;
+}
+.vl-header[data-solid] .vl-school {
+  background: #e9eeff;
+  color: var(--vl-blue-deep);
+}
+.vl-header-start {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 12px;
+}
+@media (min-width: 1360px) {
+  .vl-school {
+    display: inline-flex;
+  }
+}
+/* Before the bar has loaded: its room, with nothing in it. */
+.vl-header-holder {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  height: 76px;
+  margin-bottom: -76px;
+}
+
+/*
+ * A page that draws no band (an error page) still gets navy behind the bar,
+ * so the bar's white words are never left on a white page.
+ */
+.vl-header:not([data-flow]) ~ main,
+.vl-header-holder ~ main {
+  background: linear-gradient(#030720, #030720) top / 100% 76px no-repeat;
+}
+@media print {
+  .vl-header ~ main,
+  .vl-header-holder ~ main {
+    background: none;
+  }
+  .vl-pagehero {
+    background: none;
+    color: #000000;
+    padding-block: 0 12px;
+    text-align: left;
+  }
+  .vl-pagehero h1 {
+    margin-inline: 0;
+  }
+  .vl-pagehero-photo,
+  .vl-pagehero .vl-badge {
+    display: none;
+  }
+}
+
+/* -------------------------------- Sign in -------------------------------- */
+
+/* Two panels: the brand on navy, and the form beside it. */
+.vl-split {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+}
+.vl-split-brand {
+  position: relative;
+  isolation: isolate;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  overflow: hidden;
+  background:
+    radial-gradient(90% 60% at 20% 110%, rgb(60 120 255 / 0.55) 0%, transparent 70%),
+    linear-gradient(170deg, #030720 0%, #041046 48%, #0329b0 100%);
+  color: #ffffff;
+  padding: clamp(28px, 5vw, 56px) clamp(16px, 5vw, 56px);
+}
+/* On a phone the words cover the whole band, so the picture stays faint. */
+.vl-split-brand .vl-pagehero-photo::after {
+  background: linear-gradient(170deg, rgb(3 7 32 / 0.94) 0%, rgb(4 16 70 / 0.88) 100%);
+}
+.vl-split-brand > .vl-split-statement {
+  max-width: 18ch;
+  font-size: clamp(1.75rem, 3.2vw, 2.75rem);
+  font-weight: 500;
+  letter-spacing: -0.035em;
+  line-height: 1.08;
+  text-wrap: balance;
+}
+.vl-split-brand > .vl-split-body {
+  max-width: 40ch;
+  font-size: 16px;
+  line-height: 1.55;
+  color: rgb(255 255 255 / 0.9);
+}
+.vl-split-brand .vl-ticks {
+  margin-top: 4px;
+}
+.vl-split-brand .vl-ticks li svg {
+  border-color: rgb(255 255 255 / 0.7);
+}
+/* On a phone the brand panel is a short band; the list of points waits for room. */
+.vl-split-brand .vl-ticks,
+.vl-split-brand .vl-split-foot {
+  display: none;
+}
+.vl-split-foot {
+  margin-top: auto;
+  font-size: 13.5px;
+  line-height: 1.5;
+  color: rgb(255 255 255 / 0.8);
+}
+.vl-split-main {
+  min-width: 0;
+  padding: clamp(28px, 5vw, 64px) clamp(16px, 5vw, 64px) clamp(40px, 6vw, 80px);
+}
+.vl-split-main > div {
+  margin-inline: auto;
+  width: 100%;
+  max-width: 680px;
+}
+@media (min-width: 1024px) {
+  .vl-split {
+    grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
+    min-height: calc(100dvh - 76px);
+  }
+  .vl-split-brand {
+    position: sticky;
+    top: 76px;
+    align-self: start;
+    height: calc(100dvh - 76px);
+    gap: 24px;
+  }
+  .vl-split-brand .vl-ticks {
+    display: flex;
+  }
+  .vl-split-brand .vl-split-foot {
+    display: block;
+  }
+  /* Beside the form the picture shows through below the words. */
+  .vl-split-brand .vl-pagehero-photo::after {
+    background: linear-gradient(
+      180deg,
+      rgb(3 7 32 / 0.96) 0%,
+      rgb(4 16 70 / 0.9) 46%,
+      rgb(4 16 70 / 0.38) 74%,
+      rgb(3 7 32 / 0.82) 100%
+    );
+  }
+  .vl-split-brand .vl-pagehero-photo > [data-photo] img {
+    object-position: 50% 100%;
+  }
+}

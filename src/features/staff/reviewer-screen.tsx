@@ -7,13 +7,7 @@ import { BuddyHint } from "@/components/buddy/buddy-hint";
 import { EvidenceList } from "@/components/evidence-list";
 import { FilePicker } from "@/components/file-picker";
 import { EvidenceThumb } from "@/components/staff/evidence-thumb";
-import {
-  BackButton,
-  FlowTitle,
-  focusHere,
-  Quote,
-  showInUrl,
-} from "@/components/staff/flow";
+import { BackButton, focusHere, Quote, showInUrl } from "@/components/staff/flow";
 import { QueueGroup } from "@/components/staff/queue-list";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -21,7 +15,14 @@ import { cn } from "@/components/ui/cn";
 import { Dialog } from "@/components/ui/dialog";
 import { describedBy, Field, Textarea } from "@/components/ui/field";
 import { Icon } from "@/components/ui/icon";
-import { Container, LoadError, Loading, Notice, PageHeader } from "@/components/ui/page";
+import {
+  Container,
+  LoadError,
+  Loading,
+  Notice,
+  PageHero,
+  PageShell,
+} from "@/components/ui/page";
 import { StatusPill } from "@/components/ui/status-pill";
 import { getApi } from "@/data/api";
 import type { EvidencePurpose, EvidenceUpload, Issue, LedgerRecord } from "@/data/types";
@@ -47,7 +48,10 @@ type Step = "checks" | "decide";
 type Decision = "verified" | "disputed";
 
 const quietLink =
-  "inline-flex min-h-11 items-center gap-1.5 font-semibold text-brand-strong underline-offset-4 hover:underline";
+  "inline-flex min-h-11 items-center gap-1.5 font-medium text-brand-strong underline-offset-4 hover:underline";
+
+/** A demo shortcut and its note: set apart on a soft panel. */
+const shortcutBox = "flex flex-col gap-2 rounded-2xl bg-sunken px-4 py-3";
 
 export function ReviewerScreen() {
   return (
@@ -88,43 +92,41 @@ function ReviewerDashboard() {
 
   if (all && open) {
     return (
-      <Container size="narrow">
-        <ReviewFlow
-          key={open.id}
-          issue={open}
-          position={openIndex + 1}
-          total={waiting.length}
-          step={step}
-          onStep={(to) =>
-            showInUrl(
-              to === "decide" ? { review: open.id, step: "decide" } : { review: open.id },
-            )
-          }
-          onBack={() => showInUrl(null)}
-          onDecided={(updated, decision) => {
-            query.setData(
-              all.map((issue) => (issue.id === updated.id ? updated : issue)),
-            );
-            setDecided(decision);
-            showInUrl(null);
-          }}
-        />
-      </Container>
+      <ReviewFlow
+        key={open.id}
+        issue={open}
+        position={openIndex + 1}
+        total={waiting.length}
+        step={step}
+        onStep={(to) =>
+          showInUrl(
+            to === "decide" ? { review: open.id, step: "decide" } : { review: open.id },
+          )
+        }
+        onBack={() => showInUrl(null)}
+        onDecided={(updated, decision) => {
+          query.setData(all.map((issue) => (issue.id === updated.id ? updated : issue)));
+          setDecided(decision);
+          showInUrl(null);
+        }}
+      />
     );
   }
 
   return (
-    <Container>
-      <BuddyHint id="reviewer" />
-      <PageHeader title={r.title}>
-        {all ? (
-          <p data-testid="review-headline" className="mt-2 text-xl font-semibold">
+    <PageShell
+      eyebrow={m.auth.role.independent_reviewer}
+      title={r.title}
+      intro={r.intro}
+      meta={
+        all ? (
+          <span data-testid="review-headline" className="vl-pagehero-note">
             {r.headline(waiting.length)}
-          </p>
-        ) : null}
-        <p className="mt-1 text-muted">{r.intro}</p>
-      </PageHeader>
-
+          </span>
+        ) : undefined
+      }
+    >
+      <BuddyHint id="reviewer" />
       {query.error ? (
         <LoadError onRetry={query.reload} />
       ) : !all ? (
@@ -134,7 +136,7 @@ function ReviewerDashboard() {
           {decided ? (
             <div data-testid="review-decided" className="mb-6 max-w-2xl">
               <Notice tone="success" icon="check">
-                <p ref={focusHere} tabIndex={-1} role="status" className="font-semibold">
+                <p ref={focusHere} tabIndex={-1} role="status" className="font-medium">
                   {r.decided[decided]}
                 </p>
               </Notice>
@@ -162,11 +164,11 @@ function ReviewerDashboard() {
                 {r.completed} <span className="text-muted">· {done.length}</span>
               </h2>
               {done.length === 0 ? (
-                <p className="mt-2 rounded-2xl border border-dashed border-line-strong px-4 py-3 text-muted">
+                <p className="mt-3 rounded-2xl bg-sunken px-5 py-4 text-muted">
                   {r.emptyCompleted}
                 </p>
               ) : (
-                <ul className="mt-2 flex flex-col gap-3">
+                <ul className="mt-3 flex flex-col gap-3">
                   {done.map((issue) => (
                     <li key={issue.id} data-testid="review-done">
                       <Card className="flex flex-col gap-2">
@@ -183,7 +185,7 @@ function ReviewerDashboard() {
                           {issue.schoolName}, {issue.schoolTown}
                         </p>
                         {issue.review?.note ? (
-                          <p className="border-l-4 border-line pl-3 whitespace-pre-line text-muted">
+                          <p className="rounded-xl bg-sunken px-4 py-3 whitespace-pre-line text-muted">
                             {issue.review.note}
                           </p>
                         ) : null}
@@ -196,7 +198,7 @@ function ReviewerDashboard() {
           </div>
         </>
       )}
-    </Container>
+    </PageShell>
   );
 }
 
@@ -219,7 +221,7 @@ function YesNo({
       aria-labelledby={`${name}-question`}
       className="flex flex-col gap-2 py-3 sm:flex-row sm:items-center sm:gap-4"
     >
-      <p id={`${name}-question`} className="min-w-0 flex-1 font-semibold">
+      <p id={`${name}-question`} className="min-w-0 flex-1 font-medium">
         {question}
       </p>
       <div className="grid grid-cols-2 gap-2 sm:w-48 sm:shrink-0">
@@ -235,7 +237,7 @@ function YesNo({
                 onChange={() => onChange(option)}
                 className="peer absolute inset-0 size-full cursor-pointer opacity-0"
               />
-              <span className="flex min-h-12 w-full items-center justify-center gap-1.5 rounded-xl border-2 border-line-strong bg-surface px-3 font-semibold peer-checked:border-brand peer-checked:bg-brand-soft peer-checked:text-brand-strong peer-focus-visible:outline-3 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-brand">
+              <span className="flex min-h-12 w-full items-center justify-center gap-1.5 rounded-full border border-line-strong bg-surface px-3 font-medium peer-checked:border-brand peer-checked:bg-brand-soft peer-checked:text-brand-strong peer-focus-visible:outline-3 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-brand">
                 {value === option ? <Icon name="check" className="size-4" /> : null}
                 {option ? r.yes : r.no}
               </span>
@@ -272,7 +274,7 @@ function Side({
         alt={`${photoLabel}: ${issue.title}`}
       />
       <figcaption className="text-center text-sm">
-        <span className="block font-semibold">{label}</span>
+        <span className="block font-medium">{label}</span>
         {when ? <span className="block text-muted">{when}</span> : null}
       </figcaption>
     </figure>
@@ -321,16 +323,16 @@ function ReviewFlow({
   const reported = lastEvent(issue, "reported");
   const noteId = `review-note-${issue.id}`;
   const place = (
-    <p className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-sm text-muted">
-      <span className="inline-flex items-center gap-1">
+    <>
+      <span>
         <Icon name="school" className="size-4" />
         {issue.schoolName}, {issue.schoolTown}
       </span>
-      <span className="inline-flex items-center gap-1">
+      <span>
         <Icon name="mapPin" className="size-4" />
         {issue.location}
       </span>
-    </p>
+    </>
   );
 
   /**
@@ -381,214 +383,218 @@ function ReviewFlow({
   }
 
   return (
-    <div data-testid="review-card" data-step={now} className="flex flex-col gap-5">
+    <div data-testid="review-card" data-step={now}>
       <BuddyHint id="reviewer" />
-      {now === "checks" ? (
-        <Fragment key="checks">
-          <div>
+      {/* A new band for each step, so its title takes focus again. */}
+      <PageHero
+        key={now}
+        size="compact"
+        focusTitle
+        back={
+          now === "checks" ? (
             <BackButton onClick={onBack}>{r.position(position, total)}</BackButton>
-            <header className="mt-1 flex flex-col gap-2">
-              <FlowTitle>{issue.title}</FlowTitle>
-              {place}
-            </header>
-          </div>
-
-          <Quote label={r.claimSays}>{claim?.note || r.noClaimNote}</Quote>
-
-          {/* Who ordered, delivered and invoiced, by name. A reviewer is given no prices. */}
-          <StaffCaseTrail issue={issue} />
-
-          <div
-            data-testid="review-shortcut"
-            className="flex flex-col gap-2 rounded-2xl border border-dashed border-accent bg-accent-soft px-4 py-3"
-          >
-            <Button
-              variant="secondary"
-              onClick={useSampleAnswers}
-              className="w-full sm:w-auto sm:self-start"
-            >
-              <Icon name="sparkle" />
-              {m.procurement.reviewShortcut.action}
-            </Button>
-            <p className="text-sm">{m.procurement.reviewShortcut.note}</p>
-          </div>
-
-          <section aria-labelledby="checks-title">
-            <h2 id="checks-title" className="text-xl">
-              {r.checksIntro}
-            </h2>
-            <div className="mt-2 divide-y divide-line rounded-2xl border border-line bg-surface px-4 shadow-card">
-              {r.checks.map((check, index) => (
-                <YesNo
-                  key={check.short}
-                  name={`check-${index}`}
-                  question={check.question}
-                  value={answers[index]}
-                  onChange={(value) =>
-                    setAnswers(answers.map((old, i) => (i === index ? value : old)))
-                  }
-                />
-              ))}
-            </div>
-          </section>
-
-          <section aria-label={r.photosTitle} className="no-print">
-            {addingPhoto || uploads.length > 0 ? (
-              <div className="flex flex-col gap-2">
-                <p className="font-semibold">{r.photosTitle}</p>
-                <FilePicker value={uploads} onChange={setUploads} label={r.photosLabel} />
-                <p className="text-sm text-muted">{r.photosHelp}</p>
-              </div>
-            ) : (
-              <button
-                type="button"
-                onClick={() => setAddingPhoto(true)}
-                className="flex min-h-20 w-full flex-col items-center justify-center gap-1 rounded-2xl border-2 border-dashed border-line-strong bg-surface px-4 py-3 text-center hover:border-brand"
-              >
-                <Icon name="camera" className="size-6 text-brand-strong" />
-                <span className="font-semibold">{r.photosTitle}</span>
-                <span className="text-sm text-muted">({m.common.optional})</span>
-              </button>
-            )}
-          </section>
-
-          <div className="no-print flex flex-col gap-2">
-            <p
-              role="alert"
-              className={cn(
-                "text-sm font-semibold text-danger",
-                !(checksMissing && !yesNo) && "hidden",
-              )}
-            >
-              {checksMissing && !yesNo ? r.checksNeeded : null}
-            </p>
-            <Button size="lg" onClick={toDecide} className="w-full">
-              {r.toDecide}
-              <Icon name="arrowRight" />
-            </Button>
-          </div>
-        </Fragment>
-      ) : (
-        <Fragment key="decide">
-          <div>
+          ) : (
             <BackButton onClick={() => onStep("checks")}>{r.backToChecks}</BackButton>
-            <header className="mt-1 flex flex-col gap-2">
-              <FlowTitle>{issue.title}</FlowTitle>
-              {place}
-            </header>
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            <Side
-              issue={issue}
-              purpose="problem"
-              label={r.originalProblem}
-              photoLabel={r.originalPhoto}
-              when={r.reportedWhen(
-                reported ? timeAgo(reported.occurredAt, m) : formatDate(issue.createdAt),
-              )}
-            />
-            <Side
-              issue={issue}
-              purpose="repair_claim"
-              label={r.schoolRepair}
-              photoLabel={r.claimPhoto}
-              when={claim ? r.claimedWhen(timeAgo(claim.occurredAt, m)) : ""}
-            />
-          </div>
-
-          <Card className="flex flex-col gap-4">
-            <Quote label={r.reportSaid}>{issue.description}</Quote>
+          )
+        }
+        title={issue.title}
+        meta={place}
+      />
+      <Container size="narrow" className="flex flex-col gap-5">
+        {now === "checks" ? (
+          <Fragment key="checks">
             <Quote label={r.claimSays}>{claim?.note || r.noClaimNote}</Quote>
-            <p className="flex items-center gap-1.5 text-sm font-semibold text-muted">
-              <Icon name="users" className="size-4" />
-              {r.affected(issue.endorsements)}
-            </p>
-          </Card>
 
-          <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 rounded-xl bg-sunken px-4 py-3">
-            <div className="min-w-0">
-              <p className="text-sm font-semibold text-muted">{r.yourAnswers}</p>
-              <p data-testid="checks-line">{yesNo ? checksLine(yesNo, r) : ""}</p>
-            </div>
-            <button
-              type="button"
-              onClick={() => onStep("checks")}
-              className={cn(quietLink, "no-print underline")}
-            >
-              {r.change}
-            </button>
-          </div>
+            {/* Who ordered, delivered and invoiced, by name. A reviewer is given no prices. */}
+            <StaffCaseTrail issue={issue} />
 
-          <Field id={noteId} label={r.noteLabel} hint={r.noteHint} error={noteError}>
-            <Textarea
-              id={noteId}
-              rows={3}
-              value={note}
-              onChange={(event) => setNote(event.target.value)}
-              aria-describedby={describedBy(noteId, {
-                hint: true,
-                error: Boolean(noteError),
-              })}
-              aria-invalid={Boolean(noteError)}
-            />
-          </Field>
-
-          <section
-            aria-labelledby="decision-title"
-            className="no-print flex flex-col gap-3"
-          >
-            <h2 id="decision-title" className="text-xl">
-              {r.decisionTitle}
-            </h2>
-            <div className="grid gap-3 sm:grid-cols-2">
-              <Button size="lg" onClick={() => decide("verified")} className="w-full">
-                <Icon name="shieldCheck" />
-                {r.yesFixed}
+            <div data-testid="review-shortcut" className={shortcutBox}>
+              <Button
+                variant="secondary"
+                onClick={useSampleAnswers}
+                className="w-full sm:w-auto sm:self-start"
+              >
+                <Icon name="sparkle" />
+                {m.procurement.reviewShortcut.action}
               </Button>
+              <p className="text-sm">{m.procurement.reviewShortcut.note}</p>
+            </div>
+
+            <section aria-labelledby="checks-title">
+              <h2 id="checks-title" className="text-xl">
+                {r.checksIntro}
+              </h2>
+              <div className="mt-2 divide-y divide-line rounded-2xl border border-line bg-surface px-4 shadow-card">
+                {r.checks.map((check, index) => (
+                  <YesNo
+                    key={check.short}
+                    name={`check-${index}`}
+                    question={check.question}
+                    value={answers[index]}
+                    onChange={(value) =>
+                      setAnswers(answers.map((old, i) => (i === index ? value : old)))
+                    }
+                  />
+                ))}
+              </div>
+            </section>
+
+            <section aria-label={r.photosTitle} className="no-print">
+              {addingPhoto || uploads.length > 0 ? (
+                <div className="flex flex-col gap-2">
+                  <p className="font-medium">{r.photosTitle}</p>
+                  <FilePicker
+                    value={uploads}
+                    onChange={setUploads}
+                    label={r.photosLabel}
+                  />
+                  <p className="text-sm text-muted">{r.photosHelp}</p>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setAddingPhoto(true)}
+                  className="flex min-h-20 w-full flex-col items-center justify-center gap-1 rounded-2xl border border-line bg-surface px-4 py-4 text-center shadow-card transition-colors hover:border-brand"
+                >
+                  <Icon name="camera" className="size-6 text-brand-strong" />
+                  <span className="font-medium">{r.photosTitle}</span>
+                  <span className="text-sm text-muted">({m.common.optional})</span>
+                </button>
+              )}
+            </section>
+
+            <div className="no-print flex flex-col gap-2">
+              <p
+                role="alert"
+                className={cn(
+                  "text-sm font-medium text-danger",
+                  !(checksMissing && !yesNo) && "hidden",
+                )}
+              >
+                {checksMissing && !yesNo ? r.checksNeeded : null}
+              </p>
+              <Button size="lg" onClick={toDecide} className="w-full">
+                {r.toDecide}
+                <Icon name="arrowRight" />
+              </Button>
+            </div>
+          </Fragment>
+        ) : (
+          <Fragment key="decide">
+            <div className="grid grid-cols-2 gap-3">
+              <Side
+                issue={issue}
+                purpose="problem"
+                label={r.originalProblem}
+                photoLabel={r.originalPhoto}
+                when={r.reportedWhen(
+                  reported
+                    ? timeAgo(reported.occurredAt, m)
+                    : formatDate(issue.createdAt),
+                )}
+              />
+              <Side
+                issue={issue}
+                purpose="repair_claim"
+                label={r.schoolRepair}
+                photoLabel={r.claimPhoto}
+                when={claim ? r.claimedWhen(timeAgo(claim.occurredAt, m)) : ""}
+              />
+            </div>
+
+            <Card className="flex flex-col gap-4">
+              <Quote label={r.reportSaid}>{issue.description}</Quote>
+              <Quote label={r.claimSays}>{claim?.note || r.noClaimNote}</Quote>
+              <p className="flex items-center gap-1.5 text-sm font-medium text-muted">
+                <Icon name="users" className="size-4" />
+                {r.affected(issue.endorsements)}
+              </p>
+            </Card>
+
+            <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 rounded-xl bg-sunken px-4 py-3">
+              <div className="min-w-0">
+                <p className="text-sm font-medium text-muted">{r.yourAnswers}</p>
+                <p data-testid="checks-line">{yesNo ? checksLine(yesNo, r) : ""}</p>
+              </div>
               <button
                 type="button"
-                onClick={() => decide("disputed")}
-                className="inline-flex min-h-14 w-full items-center justify-center gap-2 rounded-xl border-2 border-danger bg-surface px-6 text-lg font-semibold text-danger transition-colors select-none hover:bg-danger-soft"
+                onClick={() => onStep("checks")}
+                className={cn(quietLink, "no-print underline")}
               >
-                <Icon name="alert" />
-                {r.notFixed}
+                {r.change}
               </button>
             </div>
-            {failed && !pending ? (
-              <p role="alert" className="font-semibold text-danger">
-                {m.common.actionError}
-              </p>
-            ) : null}
-          </section>
 
-          <div className="no-print flex flex-col items-start gap-1">
-            <Button
-              variant="quiet"
-              aria-expanded={showFiles}
-              aria-controls={`${noteId}-files`}
-              onClick={() => setShowFiles(!showFiles)}
-              className="-ml-3"
+            <Field id={noteId} label={r.noteLabel} hint={r.noteHint} error={noteError}>
+              <Textarea
+                id={noteId}
+                rows={3}
+                value={note}
+                onChange={(event) => setNote(event.target.value)}
+                aria-describedby={describedBy(noteId, {
+                  hint: true,
+                  error: Boolean(noteError),
+                })}
+                aria-invalid={Boolean(noteError)}
+              />
+            </Field>
+
+            <section
+              aria-labelledby="decision-title"
+              className="no-print flex flex-col gap-3"
             >
-              <Icon name="eye" />
-              {showFiles ? r.hideFiles : r.allFiles(issue.evidence.length)}
-            </Button>
-            <div id={`${noteId}-files`} hidden={!showFiles} className="w-full">
-              {showFiles ? (
-                <>
-                  <p className="mb-3 text-sm text-muted">
-                    {getApi().evidenceFileUrl ? r.privateFiles : r.noPreview}
-                  </p>
-                  <EvidenceList issueId={issue.id} items={issue.evidence} showFiles />
-                </>
+              <h2 id="decision-title" className="text-xl">
+                {r.decisionTitle}
+              </h2>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <Button size="lg" onClick={() => decide("verified")} className="w-full">
+                  <Icon name="shieldCheck" />
+                  {r.yesFixed}
+                </Button>
+                <button
+                  type="button"
+                  onClick={() => decide("disputed")}
+                  className="inline-flex min-h-14 w-full items-center justify-center gap-2 rounded-xl border-2 border-danger bg-surface px-6 text-lg font-semibold text-danger transition-colors select-none hover:bg-danger-soft"
+                >
+                  <Icon name="alert" />
+                  {r.notFixed}
+                </button>
+              </div>
+              {failed && !pending ? (
+                <p role="alert" className="font-semibold text-danger">
+                  {m.common.actionError}
+                </p>
               ) : null}
+            </section>
+
+            <div className="no-print flex flex-col items-start gap-1">
+              <Button
+                variant="quiet"
+                aria-expanded={showFiles}
+                aria-controls={`${noteId}-files`}
+                onClick={() => setShowFiles(!showFiles)}
+                className="-ml-3"
+              >
+                <Icon name="eye" />
+                {showFiles ? r.hideFiles : r.allFiles(issue.evidence.length)}
+              </Button>
+              <div id={`${noteId}-files`} hidden={!showFiles} className="w-full">
+                {showFiles ? (
+                  <>
+                    <p className="mb-3 text-sm text-muted">
+                      {getApi().evidenceFileUrl ? r.privateFiles : r.noPreview}
+                    </p>
+                    <EvidenceList issueId={issue.id} items={issue.evidence} showFiles />
+                  </>
+                ) : null}
+              </div>
+              <Link href={`/issues/${issue.id}`} className={quietLink}>
+                {r.publicPage}
+              </Link>
             </div>
-            <Link href={`/issues/${issue.id}`} className={quietLink}>
-              {r.publicPage}
-            </Link>
-          </div>
-        </Fragment>
-      )}
+          </Fragment>
+        )}
+      </Container>
 
       <Dialog
         open={pending !== null}
@@ -623,7 +629,7 @@ function ReviewFlow({
                 <dt className="text-sm font-semibold text-muted">{r.confirm.note}</dt>
                 <dd
                   data-testid="review-note"
-                  className="border-l-4 border-line-strong pl-3 whitespace-pre-line"
+                  className="mt-1 rounded-xl bg-sunken px-4 py-3 whitespace-pre-line"
                 >
                   {composeReviewNote(note, yesNo, r)}
                 </dd>

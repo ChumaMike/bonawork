@@ -6,14 +6,14 @@ import { IssueCard } from "@/components/issue-card";
 import { STATUS_STYLE } from "@/components/status";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/components/ui/cn";
-import { Field, Input, Select } from "@/components/ui/field";
+import { Field, Select } from "@/components/ui/field";
 import { Icon } from "@/components/ui/icon";
 import {
-  Container,
   EmptyState,
+  HeroSearch,
   LoadError,
   Loading,
-  PageHeader,
+  PageShell,
 } from "@/components/ui/page";
 import { getApi } from "@/data/api";
 import {
@@ -58,28 +58,37 @@ export function FeedScreen() {
   }
 
   const chip =
-    "inline-flex min-h-11 shrink-0 items-center gap-1.5 rounded-full border px-4 font-semibold";
+    "inline-flex min-h-11 shrink-0 items-center gap-1.5 rounded-full border px-4 text-[0.95rem] font-medium transition-colors";
 
   return (
-    <Container>
-      <PageHeader title={m.feed.title} intro={m.feed.intro} />
-
-      <div className="flex flex-col gap-4">
-        <div className="grid grid-cols-2 gap-3 md:grid-cols-[1fr_auto_auto] md:items-end">
-          <Field
+    <PageShell
+      eyebrow={m.shell.eyebrow.issues}
+      title={m.feed.title}
+      intro={m.feed.intro}
+      hero={
+        // The list answers as you type, so the form sends nothing.
+        <HeroSearch
+          id="issue-query"
+          label={m.feed.searchLabel}
+          labelHidden
+          onSubmit={(event) => event.preventDefault()}
+        >
+          <span aria-hidden="true" className="flex items-center pl-3">
+            <Icon name="search" className="size-5" />
+          </span>
+          <input
             id="issue-query"
-            label={m.feed.searchLabel}
-            className="col-span-2 md:col-span-1"
-          >
-            <Input
-              id="issue-query"
-              type="search"
-              value={text}
-              onChange={(event) => setText(event.target.value)}
-              placeholder={m.feed.searchPlaceholder}
-              autoComplete="off"
-            />
-          </Field>
+            type="search"
+            value={text}
+            onChange={(event) => setText(event.target.value)}
+            placeholder={m.feed.searchPlaceholder}
+            autoComplete="off"
+          />
+        </HeroSearch>
+      }
+    >
+      <div className="flex flex-col gap-4 rounded-2xl border border-line bg-surface p-4 shadow-card sm:p-5 lg:flex-row-reverse lg:items-start lg:gap-8">
+        <div className="grid grid-cols-2 gap-3 lg:w-[26rem] lg:shrink-0">
           <Field id="issue-category" label={m.feed.categoryLabel}>
             <Select
               id="issue-category"
@@ -108,7 +117,14 @@ export function FeedScreen() {
           </Field>
         </div>
 
-        <div role="group" aria-label={m.feed.statusLabel}>
+        <div
+          role="group"
+          aria-labelledby="issue-status-label"
+          className="min-w-0 lg:flex-1"
+        >
+          <p id="issue-status-label" className="mb-1.5 font-medium">
+            {m.feed.statusLabel}
+          </p>
           {/* Scrolls sideways on small screens instead of wrapping into a wall of chips. */}
           <div className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 sm:mx-0 sm:flex-wrap sm:px-0">
             <button
@@ -119,7 +135,7 @@ export function FeedScreen() {
                 chip,
                 status === ""
                   ? "border-ink bg-ink text-canvas"
-                  : "border-line-strong bg-surface",
+                  : "border-line bg-surface text-muted hover:text-ink",
               )}
             >
               {m.feed.all}
@@ -134,7 +150,7 @@ export function FeedScreen() {
                   chip,
                   status === value
                     ? cn("border-current", STATUS_STYLE[value].badge)
-                    : "border-line-strong bg-surface",
+                    : "border-line bg-surface text-muted hover:text-ink",
                 )}
               >
                 <Icon name={STATUS_STYLE[value].icon} className="size-4" />
@@ -145,7 +161,7 @@ export function FeedScreen() {
         </div>
       </div>
 
-      <div className="mt-6">
+      <div className="mt-8">
         {query.error ? (
           <LoadError onRetry={query.reload} />
         ) : !query.data ? (
@@ -153,7 +169,7 @@ export function FeedScreen() {
         ) : (
           <>
             <div className="mb-3 flex min-h-11 items-center justify-between gap-3">
-              <p aria-live="polite" className="text-sm font-semibold text-muted">
+              <p aria-live="polite" className="text-sm font-medium text-muted">
                 {m.feed.results(query.data.length)}
               </p>
               {filtered ? (
@@ -165,7 +181,7 @@ export function FeedScreen() {
             {query.data.length === 0 ? (
               <EmptyState>{m.feed.none}</EmptyState>
             ) : (
-              <ul className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+              <ul className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                 {query.data.map((issue) => (
                   <li key={issue.id}>
                     <IssueCard issue={issue} heading="h2" />
@@ -176,6 +192,6 @@ export function FeedScreen() {
           </>
         )}
       </div>
-    </Container>
+    </PageShell>
   );
 }

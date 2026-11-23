@@ -72,7 +72,7 @@ export function EndorseButton({
   return (
     <div className={cn("flex flex-wrap items-center gap-x-4 gap-y-2", className)}>
       <span
-        className="flex items-center gap-2 font-semibold"
+        className="flex items-center gap-2 font-medium"
         data-testid="endorsement-count"
       >
         <ProgressRing
@@ -94,8 +94,8 @@ export function EndorseButton({
             disabled={busy}
             aria-pressed={state.endorsedByMe}
             className={cn(
-              "inline-flex items-center justify-center gap-2 rounded-xl border-2 font-semibold whitespace-nowrap transition-colors",
-              large ? "min-h-14 w-full px-6 text-lg" : "min-h-12 w-full px-4",
+              "inline-flex items-center justify-center gap-2 rounded-full border font-medium whitespace-nowrap transition-colors",
+              large ? "min-h-14 w-full px-6 text-lg" : "min-h-11 w-full px-4",
               state.endorsedByMe
                 ? "border-brand bg-brand text-on-brand"
                 : "border-brand bg-surface text-brand-strong hover:bg-brand-soft",

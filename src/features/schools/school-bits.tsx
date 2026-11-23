@@ -1,11 +1,12 @@
 import Link from "next/link";
-import { Picture } from "@/components/community/picture";
+import { schoolPhoto } from "@/components/media/manifest";
+import { Photo } from "@/components/media/photo";
 import { cn } from "@/components/ui/cn";
 import { Icon } from "@/components/ui/icon";
 import type { School } from "@/data/types";
 import { useMessages } from "@/i18n";
 
-/** Whether the school itself responds on BonaBlock. Icon + words, not colour alone. */
+/** Whether the school itself responds on Bona Chain. Icon + words, not colour alone. */
 export function ParticipationBadge({
   school,
 }: {
@@ -17,7 +18,7 @@ export function ParticipationBadge({
     <span
       data-participation={school.participation}
       className={cn(
-        "inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-sm font-semibold",
+        "inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-sm font-medium",
         participating ? "bg-brand-soft text-brand-strong" : "bg-sunken text-muted",
       )}
     >
@@ -33,11 +34,21 @@ export function SchoolCard({ school }: { school: School }) {
     <Link
       href={`/schools/${school.id}`}
       data-testid="school-card"
-      className="flex h-full flex-col overflow-hidden rounded-2xl border border-line bg-surface shadow-card hover:border-brand"
+      className="group flex h-full flex-col overflow-hidden rounded-2xl border border-line bg-surface shadow-card transition-shadow hover:shadow-raised"
     >
-      <Picture name="hero_school" decorative blend className="aspect-[3/1]" />
+      {/* Each school keeps its own picture, chosen from its id. */}
+      <Photo
+        name={schoolPhoto(school.id)}
+        alt=""
+        shape="free"
+        sizes="(min-width: 1024px) 380px, (min-width: 640px) 50vw, 100vw"
+        className="aspect-[16/9] w-full"
+        imageClassName="transition-transform duration-500 group-hover:scale-[1.03] motion-reduce:transition-none"
+      />
       <span className="flex flex-1 flex-col gap-2 p-4 sm:p-5">
-        <span className="text-lg font-semibold leading-snug">{school.name}</span>
+        <span className="text-lg leading-snug font-medium tracking-tight">
+          {school.name}
+        </span>
         <span className="flex items-center gap-1 text-sm text-muted">
           <Icon name="mapPin" className="size-4 shrink-0" />
           {school.town}, {school.province} · {m.schools.learners(school.learners)}

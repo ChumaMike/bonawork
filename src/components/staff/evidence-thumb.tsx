@@ -65,13 +65,13 @@ export function EvidenceThumb({
     return (
       <span
         className={cn(
-          "flex shrink-0 flex-col items-center justify-center gap-1 rounded-lg border border-dashed border-line-strong bg-sunken p-2 text-center text-muted",
+          "flex shrink-0 flex-col items-center justify-center gap-1 rounded-xl bg-sunken p-2 text-center text-muted",
           box,
           className,
         )}
       >
         <Icon name="image" className={size === "lg" ? "size-7" : "size-5"} />
-        <span className={cn("text-xs font-semibold", size === "sm" && "sr-only")}>
+        <span className={cn("text-xs font-medium", size === "sm" && "sr-only")}>
           {photo ? m.admin.photoNotShown : m.admin.noPhoto}
         </span>
       </span>

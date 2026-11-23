@@ -68,6 +68,13 @@ export const procurement = {
   },
 
   home: {
+    /** The title of each role's home. The menu keeps its own, shorter names. */
+    title: {
+      buyer: "Fund a repair",
+      supplier: "My orders",
+      receiving_officer: "Deliveries",
+      payment_approver: "Releases",
+    } satisfies Record<ProcurementRole, string>,
     intro: {
       buyer: "Reported problems you can fund by approving a work order.",
       supplier: "Orders to acknowledge and invoices to send.",
@@ -82,6 +89,12 @@ export const procurement = {
       payment_approver:
         "No releases are waiting. Orders appear here as soon as a work order is approved.",
     } satisfies Record<ProcurementRole, string>,
+    /** The side card on a role's home: its step among the eight rows of the trail. */
+    place: {
+      title: "Where your step fits",
+      yours: "Your step",
+      rule: "Each step belongs to one role. Nobody checks their own work.",
+    },
     nextForYou: "Next for you",
     alsoWaiting: (n: number) => `Also waiting (${n})`,
     waitingSince: (when: string) => `Waiting since ${when}`,
@@ -186,7 +199,7 @@ export const procurement = {
     typeMyself: "Type the fields myself",
     sample: "Use sample invoice",
     sampleWrong: "Use sample invoice with a mistake",
-    sampleNote: "Sample invoices for this order, for the demo:",
+    sampleNote: "Sample invoices for this order:",
     readFailed: "Bona AI could not read the text. You can type the fields yourself.",
     pasteFirst: "Paste the invoice text first.",
     checkTitle: "2. Check the fields",
@@ -416,9 +429,9 @@ export const procurement = {
   },
 
   signIn: {
-    note: "This is a demo. Tap a role to sign in as that person. Nothing here is real.",
+    note: "Tap a role to sign in as that person. No password is needed. These are sample people on a test network.",
     groups: {
-      demo: "In the live demo",
+      demo: "The main steps",
       more: "More roles",
     },
     step: {

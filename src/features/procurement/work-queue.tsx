@@ -52,12 +52,12 @@ export function NextCard({
       // the queue's older "waiting" line would contradict it, so it steps aside.
       className="flex flex-col gap-3 [&:has([data-gate=authorised])_[data-waiting-line]]:hidden"
     >
-      <p className="flex w-fit items-center rounded-full bg-sunken px-2.5 text-sm font-semibold tracking-wide text-muted uppercase">
+      <p className="flex w-fit items-center rounded-full bg-brand-soft px-3 py-1 text-xs font-medium tracking-wider text-brand-strong uppercase">
         {h.nextForYou}
       </p>
       <div>
         <CaseLine item={item} />
-        <h2 className="mt-1 text-2xl">{item.title}</h2>
+        <h2 className="mt-1 text-2xl tracking-tight sm:text-3xl">{item.title}</h2>
       </div>
       <p
         data-waiting-line=""
@@ -100,7 +100,7 @@ export function QueueRows({
       {/* eslint-disable-next-line jsx-a11y/no-redundant-roles */}
       <ul
         role="list"
-        className="mt-2 divide-y divide-line rounded-2xl border border-line bg-surface shadow-card"
+        className="mt-3 divide-y divide-line rounded-2xl border border-line bg-surface shadow-card"
       >
         {items.map((item, index) => (
           <li key={`${item.issueId}:${item.action}`} data-testid="queue-row">
@@ -108,13 +108,13 @@ export function QueueRows({
               type="button"
               onClick={() => onOpen(item.issueId)}
               className={cn(
-                "flex min-h-16 w-full items-center gap-3 px-4 py-3 text-left hover:bg-sunken",
+                "flex min-h-16 w-full items-center gap-3 px-5 py-3.5 text-left hover:bg-sunken",
                 index === 0 && "rounded-t-2xl",
                 index === items.length - 1 && "rounded-b-2xl",
               )}
             >
               <span className="min-w-0 flex-1">
-                <span className="block leading-snug font-semibold">{item.title}</span>
+                <span className="block leading-snug font-medium">{item.title}</span>
                 <span className="mt-0.5 block truncate text-sm text-muted">
                   {item.action === "authorise_release"
                     ? item.blockers.length > 0

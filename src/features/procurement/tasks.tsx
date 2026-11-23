@@ -2,11 +2,19 @@
 
 import Link from "next/link";
 import { useState, type ReactNode } from "react";
-import { FlowTitle, focusHere } from "@/components/staff/flow";
+import { focusHere } from "@/components/staff/flow";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Icon } from "@/components/ui/icon";
-import { LoadError, Loading, Notice } from "@/components/ui/page";
+import {
+  Container,
+  LoadError,
+  Loading,
+  Notice,
+  PageError,
+  PageHero,
+  PageLoading,
+} from "@/components/ui/page";
 import { StatusPill } from "@/components/ui/status-pill";
 import { ApiError, getApi } from "@/data/api";
 import { ReleaseBlockedError } from "@/data/http-api";
@@ -21,10 +29,14 @@ import { OrderDetails } from "./order-details";
 import { OrderForm } from "./order-form";
 import { deliverySentence, ReceiptForm } from "./receipt-form";
 import { ReleaseGate } from "./release-gate";
+import { TestnetNote } from "./role-home";
 import { StagePill } from "./stage-pill";
 
 const quietLink =
-  "no-print inline-flex min-h-11 items-center gap-1.5 font-semibold text-brand-strong underline-offset-4 hover:underline";
+  "no-print inline-flex min-h-11 items-center gap-1.5 font-medium text-brand-strong underline-offset-4 hover:underline";
+
+/** A demo shortcut and its note: set apart on a soft panel, under the real controls. */
+const shortcutBox = "flex flex-col gap-2 rounded-2xl bg-sunken px-4 py-3";
 
 interface CaseData {
   issue: Issue;
@@ -40,15 +52,19 @@ interface BodyProps extends CaseData {
 /**
  * One case for one task: loads the public report and the trail as this
  * person may see it, shows the title and where things stand, then the task.
+ * On its own screen it draws the page's navy band, with the case as the title.
  */
 function CaseFrame({
   issueId,
   header = true,
+  back,
   children,
 }: {
   issueId: string;
   /** False inside a card that already names the case. */
   header?: boolean;
+  /** The way back to the list, shown in the band. */
+  back?: ReactNode;
   children: (props: BodyProps) => ReactNode;
 }) {
   const m = useMessages();
@@ -61,44 +77,66 @@ function CaseFrame({
     return issue ? { issue, trail } : null;
   });
 
-  if (query.error) return <LoadError onRetry={query.reload} />;
-  if (query.data === undefined) return <Loading lines={2} />;
+  if (query.error) {
+    return header ? (
+      <PageError onRetry={query.reload} back={back} />
+    ) : (
+      <LoadError onRetry={query.reload} />
+    );
+  }
+  if (query.data === undefined) {
+    return header ? (
+      <PageLoading lines={2} width="narrow" size="compact" back={back} />
+    ) : (
+      <Loading lines={2} />
+    );
+  }
   if (query.data === null) {
-    return (
+    const missing = (
       <Notice tone="warning" icon="alert">
         <p>{m.procurement.home.notFound}</p>
       </Notice>
     );
+    if (!header) return missing;
+    return (
+      <>
+        <PageHero size="compact" back={back} title={m.common.notFoundTitle} />
+        <Container size="narrow">{missing}</Container>
+      </>
+    );
   }
   const { issue, trail } = query.data;
+  const body = children({
+    issue,
+    trail,
+    update: (next) => query.setData({ issue, trail: next }),
+  });
+  if (!header) return <div className="flex flex-col gap-5">{body}</div>;
   return (
-    <div className="flex flex-col gap-5">
-      {header ? (
-        <header className="mt-1 flex flex-col gap-2">
-          <div className="flex flex-wrap items-center gap-2">
+    <>
+      <PageHero
+        size="compact"
+        focusTitle
+        back={back}
+        title={issue.title}
+        meta={
+          <>
             <StatusPill status={issue.status} />
             <StagePill stage={trail?.stage ?? null} />
-          </div>
-          <FlowTitle>{issue.title}</FlowTitle>
-          <p className="flex flex-wrap items-center gap-x-2 text-sm text-muted">
             <span className="font-mono">{issue.reference}</span>
-            <span aria-hidden="true">·</span>
             <span>{issue.schoolName}</span>
-          </p>
-        </header>
-      ) : null}
-      {children({
-        issue,
-        trail,
-        update: (next) => query.setData({ issue, trail: next }),
-      })}
-      {header ? (
+          </>
+        }
+      />
+      <Container size="narrow" className="flex flex-col gap-5">
+        {body}
         <Link href={`/issues/${issue.id}`} className={quietLink}>
           {m.procurement.home.publicPage}
           <Icon name="arrowRight" className="size-4" />
         </Link>
-      ) : null}
-    </div>
+        <TestnetNote />
+      </Container>
+    </>
   );
 }
 
@@ -131,8 +169,12 @@ function NotYours() {
 /* --------------------------------- Buyer --------------------------------- */
 
 /** The buyer: read the problem, write the work order, approve it. */
-export function BuyerTask({ issueId }: { issueId: string }) {
-  return <CaseFrame issueId={issueId}>{(props) => <BuyerBody {...props} />}</CaseFrame>;
+export function BuyerTask({ issueId, back }: { issueId: string; back?: ReactNode }) {
+  return (
+    <CaseFrame issueId={issueId} back={back}>
+      {(props) => <BuyerBody {...props} />}
+    </CaseFrame>
+  );
 }
 
 function BuyerBody({ issue, trail, update }: BodyProps) {
@@ -151,7 +193,9 @@ function BuyerBody({ issue, trail, update }: BodyProps) {
   return (
     <>
       <Card className="flex flex-col gap-2">
-        <h2 className="text-sm font-semibold text-muted">{f.problem}</h2>
+        <h2 className="font-sans text-sm font-medium tracking-normal text-muted">
+          {f.problem}
+        </h2>
         <p>{issue.description}</p>
         <p className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted">
           <span className="inline-flex items-center gap-1.5">
@@ -183,9 +227,11 @@ function BuyerBody({ issue, trail, update }: BodyProps) {
 /* -------------------------------- Supplier -------------------------------- */
 
 /** The supplier: acknowledge the order, then send the invoice and see what the rules say. */
-export function SupplierTask({ issueId }: { issueId: string }) {
+export function SupplierTask({ issueId, back }: { issueId: string; back?: ReactNode }) {
   return (
-    <CaseFrame issueId={issueId}>{(props) => <SupplierBody {...props} />}</CaseFrame>
+    <CaseFrame issueId={issueId} back={back}>
+      {(props) => <SupplierBody {...props} />}
+    </CaseFrame>
   );
 }
 
@@ -288,10 +334,7 @@ function SupplierBody({ issue, trail, update }: BodyProps) {
             onCorrect={() => setCorrecting(true)}
           />
           {trail.order.totalCents !== undefined ? (
-            <div
-              data-testid="quick-resubmit"
-              className="mt-4 flex flex-col gap-2 rounded-2xl border border-dashed border-accent bg-accent-soft px-4 py-3"
-            >
+            <div data-testid="quick-resubmit" className={`mt-4 ${shortcutBox}`}>
               <Button
                 variant="secondary"
                 loading={quick !== null}
@@ -309,7 +352,7 @@ function SupplierBody({ issue, trail, update }: BodyProps) {
                     : m.procurement.match.quick.note}
               </p>
               {quickFailed ? (
-                <p role="alert" className="text-sm font-semibold text-danger">
+                <p role="alert" className="text-sm font-medium text-danger">
                   {m.procurement.match.quick.failed}
                 </p>
               ) : null}
@@ -319,8 +362,8 @@ function SupplierBody({ issue, trail, update }: BodyProps) {
       ) : null}
       {/* Hidden, not removed, while the result shows: the typed fields are kept. */}
       <div hidden={showResult} className={showResult ? undefined : "flex flex-col gap-5"}>
-        <details className="rounded-2xl border border-line bg-surface px-4">
-          <summary className="flex min-h-12 cursor-pointer items-center font-semibold">
+        <details className="rounded-2xl border border-line bg-surface px-5 shadow-card">
+          <summary className="flex min-h-12 cursor-pointer items-center font-medium">
             {m.procurement.order.see}
           </summary>
           <div className="pb-4">
@@ -343,9 +386,11 @@ function SupplierBody({ issue, trail, update }: BodyProps) {
 /* ---------------------------- Receiving officer --------------------------- */
 
 /** The receiving officer: count what arrived. Quantities only; this role is given no prices. */
-export function ReceivingTask({ issueId }: { issueId: string }) {
+export function ReceivingTask({ issueId, back }: { issueId: string; back?: ReactNode }) {
   return (
-    <CaseFrame issueId={issueId}>{(props) => <ReceivingBody {...props} />}</CaseFrame>
+    <CaseFrame issueId={issueId} back={back}>
+      {(props) => <ReceivingBody {...props} />}
+    </CaseFrame>
   );
 }
 
@@ -369,7 +414,9 @@ function ReceivingBody({ issue, trail, update }: BodyProps) {
   return (
     <>
       <Card className="flex flex-col gap-1">
-        <h2 className="text-sm font-semibold text-muted">{m.procurement.order.scope}</h2>
+        <h2 className="font-sans text-sm font-medium tracking-normal text-muted">
+          {m.procurement.order.scope}
+        </h2>
         <p>{trail.order.description}</p>
         <p className="text-sm text-muted">{trail.order.supplierName}</p>
       </Card>
@@ -396,14 +443,16 @@ export function ReleaseTask({
   issueId,
   inCard = false,
   onOpen,
+  back,
 }: {
   issueId: string;
   /** Inside the "Next for you" card: the gate alone, with a link to the full case. */
   inCard?: boolean;
   onOpen?: () => void;
+  back?: ReactNode;
 }) {
   return (
-    <CaseFrame issueId={issueId} header={!inCard}>
+    <CaseFrame issueId={issueId} header={!inCard} back={back}>
       {(props) => <ReleaseBody {...props} inCard={inCard} onOpen={onOpen} />}
     </CaseFrame>
   );
@@ -480,7 +529,7 @@ function ReleaseBody({
 /**
  * One question for Bona AI, as a chip: what is blocking this release? The
  * assistant answers from the release gate. It is an explanation beside the
- * checklist, in a dashed box of its own: the checklist is what counts.
+ * checklist, on a soft panel of its own: the checklist is what counts.
  */
 function AskWhatBlocks({ reference }: { reference: string }) {
   const m = useMessages();
@@ -509,7 +558,7 @@ function AskWhatBlocks({ reference }: { reference: string }) {
         onClick={() => void ask()}
         disabled={answer === "asking"}
         aria-busy={answer === "asking" || undefined}
-        className="inline-flex min-h-11 items-center gap-2 rounded-full border-2 border-dashed border-accent bg-accent-soft px-4 text-left text-sm font-semibold text-accent disabled:opacity-60"
+        className="inline-flex min-h-11 items-center gap-2 rounded-full border border-line bg-surface px-4 py-2 text-left text-sm font-medium text-brand-strong transition-colors hover:border-brand disabled:opacity-60"
       >
         <Icon name="sparkle" className="size-4" />
         {question}
@@ -518,9 +567,9 @@ function AskWhatBlocks({ reference }: { reference: string }) {
         <div
           role="status"
           data-testid="bona-ai-answer"
-          className="w-full rounded-2xl border-2 border-dashed border-line-strong bg-sunken p-4"
+          className="w-full rounded-2xl bg-sunken p-4"
         >
-          <p className="text-sm font-semibold text-muted">{g.aiLabel}</p>
+          <p className="text-sm font-medium text-muted">{g.aiLabel}</p>
           <p className="mt-1">{answer ?? g.aiFailed}</p>
           {answer ? <p className="mt-2 text-sm text-muted">{g.aiNote}</p> : null}
         </div>

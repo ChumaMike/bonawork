@@ -84,7 +84,7 @@ export function StatusPill({
     <span
       data-status={status}
       className={cn(
-        "inline-flex items-center rounded-full font-semibold whitespace-nowrap",
+        "inline-flex items-center rounded-full font-medium whitespace-nowrap",
         sizes[size],
         tone.pill,
         !meaning && className,

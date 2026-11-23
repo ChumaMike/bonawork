@@ -58,8 +58,7 @@ export const en = {
     account: "Account",
     language: "Language",
     languageNote: "English only for now. More languages are planned.",
-    footerNote:
-      "Built for the UJ BACISS hackathon. Every photo is an AI-generated illustration: no real learners, staff or schools are shown.",
+    footerNote: `${PRODUCT} for Schools. Sample schools and people while we run on the Avalanche Fuji test network.`,
     askAssistant: "Ask Bona AI",
     myReports: "My reports",
     atSchool: (school: string) => `At ${school}`,
@@ -128,6 +127,7 @@ export const en = {
     close: "Close",
     save: "Save",
     loading: "Loading…",
+    loadErrorTitle: "We could not load this",
     loadError: "We could not load this. Please check your connection and try again.",
     actionError: "That did not work. Please try again.",
     retry: "Try again",
@@ -151,6 +151,25 @@ export const en = {
     updated: (when: string) => `Updated ${when}`,
     reported: (when: string) => `Reported ${when}`,
     at: (place: string) => `at ${place}`,
+  },
+
+  /** The small label above each page's title, in the band at the top. */
+  shell: {
+    eyebrow: {
+      issues: "Public record",
+      issue: "Reported problem",
+      schools: "Schools",
+      school: "School",
+      track: "Follow a report",
+      receipt: "Your receipt",
+      verify: "Check a file",
+      report: "Report a problem",
+      evidence: "Add evidence",
+      assistant: "Ask a question",
+      account: "Your account",
+      gate: "Staff workspace",
+      community: "For the community",
+    },
   },
 
   status: {
@@ -283,7 +302,6 @@ export const en = {
   },
 
   landing: {
-    photoNote: "AI-generated illustration",
     eyebrow: `${PRODUCT} for Schools`,
     title: "See it. Report it. Prove it.",
     intro:
@@ -381,7 +399,7 @@ export const en = {
     showcase: {
       title: "A finished case: who did what, and the proof",
       intro:
-        "This case comes from the demo data. Its trail shows each step, the role that took it, the time and the proof. Amounts and names are not public.",
+        "This is a sample case. Its trail shows each step, the role that took it, the time and the proof. Amounts and names are not public.",
       caseAt: (reference: string, school: string) => `${reference} at ${school}`,
       blocked:
         "The invoice did not match the order and the delivery. The supplier had to send a corrected invoice.",
@@ -511,6 +529,15 @@ export const en = {
     reviewDisputed: "An independent reviewer found that the problem is not fixed.",
     reviewerNote: "Reviewer's note",
     share: "Copy link",
+    detailsTitle: "About this report",
+    affectedTitle: "Does this affect you too?",
+    /** Shown while a case has no work order: the way in for someone who can fund it. */
+    fund: {
+      title: "This repair needs a funder",
+      body: "No work order has been approved for it yet. A funder can be a district, a company, an organisation or a parent.",
+      action: "Fund this repair",
+      note: "A funder signs in first. Test network only. No real money moves.",
+    },
   },
 
   addEvidence: {
@@ -647,6 +674,12 @@ export const en = {
     action: "Find my report",
     invalid: "A reference looks like BB-2026-000123. Please check and try again.",
     notFound: "We could not find a report with that reference.",
+    howTitle: "Where to find your reference",
+    how: [
+      "It is on the receipt you got when you sent the report.",
+      "It starts with BB, then the year, then six numbers.",
+      "No receipt? Find the problem on the school's page instead.",
+    ],
     recentTitle: "Reports followed on this phone",
     recentHelp: "Only on this phone. Nobody else can see this list.",
     recentEmptyTitle: "Nothing followed yet",
@@ -661,7 +694,7 @@ export const en = {
     intro:
       "Ask in your own words. I can help you find, report and follow school problems.",
     notice:
-      "Preview: these are scripted sample answers. Bona AI is not connected to an AI service yet.",
+      "These are scripted sample answers. Bona AI is not connected to an AI service here.",
     inputLabel: "Your message",
     placeholder: "Type your question",
     send: "Send",
@@ -688,7 +721,7 @@ export const en = {
   auth: {
     title: "Sign in",
     intro:
-      "For the people who handle a case: schools, buyers, suppliers, receiving officers, reviewers and approvers. Registered reporters too.",
+      "For the people who handle a case: schools, funders, suppliers, receiving officers, reviewers and approvers. Registered reporters too.",
     email: "Email address",
     password: "Password",
     submit: "Sign in",
@@ -724,11 +757,22 @@ export const en = {
     signInAs: (aRole: string) => `Sign in as ${aRole}`,
     wrongRole: (current: string, needed: string) =>
       `You are signed in as ${current}. This page is only for ${needed}.`,
-    sampleTitle: "Demo accounts",
+    /** The navy panel beside the form: the problem, and the one rule. */
+    brand: {
+      statement: "Nobody checks their own work.",
+      body: "Reports get lost: they arrive, nobody answers, and the problem often stays broken. And “fixed” is hard to trust when the people who claim a repair are the ones who record it.",
+      points: [
+        "Each step of a repair belongs to one role",
+        "A funder can be a district, a company, an organisation or a parent",
+        "An independent reviewer checks before a repair counts",
+      ],
+    },
+    formTitle: "Use your account",
+    sampleTitle: "Explore with a sample account",
     sampleBody:
-      "This is the demo. Tap a role to sign in as that person; no password needed. Nothing here is real, and the form below still works for typed sign-ins.",
+      "Tap a role to sign in as that person. No password is needed. These are sample people on a test network.",
     sampleSigningIn: (role: string) => `Signing in as the ${role}…`,
-    /** What each role can do, shown on the demo role cards. */
+    /** What each role can do, shown on the sample account cards. */
     roleCan: {
       reporter: "Report problems, add evidence and say “I'm affected too”.",
       school_admin:

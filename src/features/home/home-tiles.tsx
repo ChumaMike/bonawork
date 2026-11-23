@@ -29,7 +29,7 @@ export function HomeTiles() {
   if (role && role !== "reporter" && workspace) {
     const own: Tile = {
       href: workspace.href,
-      picture: role === "independent_reviewer" ? "verify_phone" : "community_meeting",
+      picture: role === "independent_reviewer" ? "reviewer_check" : "community_meeting",
       ...m.audience.workspaceTile[role],
     };
     tiles = own.href === issues.href ? [own] : [own, issues];

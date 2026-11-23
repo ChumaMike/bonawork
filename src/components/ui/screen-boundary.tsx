@@ -1,6 +1,6 @@
 import { Suspense, type ReactNode } from "react";
 import { HydrationMarker } from "./hydration-marker";
-import { Container, Loading } from "./page";
+import { PageLoading } from "./page";
 
 /**
  * Screens read the URL and load their data in the browser. With Cache
@@ -9,13 +9,7 @@ import { Container, Loading } from "./page";
  */
 export function ScreenBoundary({ children }: { children: ReactNode }) {
   return (
-    <Suspense
-      fallback={
-        <Container>
-          <Loading />
-        </Container>
-      }
-    >
+    <Suspense fallback={<PageLoading />}>
       {children}
       <HydrationMarker />
     </Suspense>

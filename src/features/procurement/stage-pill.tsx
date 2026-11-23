@@ -38,7 +38,7 @@ export function StagePill({
       data-testid="stage-pill"
       data-stage={stage ?? "none"}
       className={cn(
-        "inline-flex min-h-8 items-center gap-1.5 rounded-full px-3 text-sm font-semibold whitespace-nowrap",
+        "inline-flex min-h-8 items-center gap-1.5 rounded-full px-3 text-sm font-medium whitespace-nowrap",
         tone.pill,
         className,
       )}

@@ -3,7 +3,7 @@
 import type { ReactNode } from "react";
 import { Button, ButtonLink } from "@/components/ui/button";
 import { Icon } from "@/components/ui/icon";
-import { Container, Loading, Notice, PageHeader } from "@/components/ui/page";
+import { Notice, PageLoading, PageShell } from "@/components/ui/page";
 import { signOut, useSession } from "@/data/session";
 import type { Session, SessionRole } from "@/data/types";
 import { useMessages } from "@/i18n";
@@ -27,44 +27,36 @@ export function RequireRole({
   const m = useMessages();
   const { status, session } = useSession();
 
-  if (status === "loading") {
-    return (
-      <Container>
-        <Loading lines={2} />
-      </Container>
-    );
-  }
+  if (status === "loading") return <PageLoading lines={2} />;
   if (session?.user.role === allow) return children(session);
 
   const needed = m.auth.aRole[allow];
   return (
-    <Container size="narrow">
-      <PageHeader title={m.auth.gateTitle} />
-      <div data-testid="role-gate" className="flex flex-col gap-4">
+    <PageShell
+      eyebrow={m.shell.eyebrow.gate}
+      title={m.auth.gateTitle}
+      intro={session ? undefined : m.auth.gateBody(needed)}
+      width="narrow"
+      size="compact"
+    >
+      <div data-testid="role-gate" className="flex flex-col items-center gap-4">
         {session ? (
-          <>
-            <Notice tone="warning" icon="alert">
-              {m.auth.wrongRole(m.auth.aRole[session.user.role], needed)}
-            </Notice>
-            <Button
-              variant="secondary"
-              onClick={() => void signOut()}
-              className="sm:self-start"
-            >
+          <Notice tone="warning" icon="alert" className="w-full">
+            {m.auth.wrongRole(m.auth.aRole[session.user.role], needed)}
+          </Notice>
+        ) : null}
+        <div className="flex w-full flex-col justify-center gap-3 sm:w-auto sm:flex-row">
+          <ButtonLink href={`/sign-in?next=${encodeURIComponent(next)}`}>
+            <Icon name="lock" />
+            {m.auth.signInAs(needed)}
+          </ButtonLink>
+          {session ? (
+            <Button variant="secondary" onClick={() => void signOut()}>
               {m.auth.signOut}
             </Button>
-          </>
-        ) : (
-          <p className="text-lg text-muted">{m.auth.gateBody(needed)}</p>
-        )}
-        <ButtonLink
-          href={`/sign-in?next=${encodeURIComponent(next)}`}
-          className="sm:self-start"
-        >
-          <Icon name="lock" />
-          {m.auth.signInAs(needed)}
-        </ButtonLink>
+          ) : null}
+        </div>
       </div>
-    </Container>
+    </PageShell>
   );
 }

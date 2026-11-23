@@ -14,7 +14,7 @@ import { formatRand } from "./money";
  * What the rule engine decided about one invoice.
  *
  * The order of the parts is the point. First the result and the reasons the
- * rules gave, in a solid box. Under it, set apart in a dashed box, the plain
+ * rules gave, in a solid box. Under it, set apart on a soft panel, the plain
  * explanation: by Bona AI or written by code, labelled as which. The
  * explanation explains the rules; it decides nothing, and when it cannot be
  * loaded the result stands on its own.
@@ -147,7 +147,7 @@ function Explanation({ load }: { load: () => Promise<MismatchExplanation> }) {
       data-testid="match-explanation"
       data-source={explanation?.source ?? "loading"}
       aria-busy={explanation === undefined || undefined}
-      className="rounded-2xl border-2 border-dashed border-line-strong bg-sunken p-4"
+      className="rounded-2xl bg-sunken p-4"
     >
       {explanation === undefined ? (
         <div role="status" className="flex flex-col gap-2">

@@ -5,9 +5,9 @@ import { cn } from "./cn";
 import { Icon } from "./icon";
 
 const variants = {
-  primary: "bg-brand text-on-brand hover:bg-brand-strong",
-  secondary:
-    "border-2 border-line-strong bg-surface text-ink hover:border-brand hover:text-brand-strong",
+  primary:
+    "bg-brand text-on-brand hover:bg-brand-strong hover:shadow-[0_10px_24px_-10px_rgb(3_70_255/0.7)]",
+  secondary: "border border-line-strong bg-surface text-ink hover:border-ink",
   quiet: "text-brand-strong hover:bg-brand-soft",
   danger: "bg-danger text-on-brand hover:bg-danger-strong",
   /** @deprecated use `quiet` */
@@ -26,7 +26,7 @@ const sizes = {
 export type ButtonSize = keyof typeof sizes;
 
 const base =
-  "inline-flex items-center justify-center gap-2 rounded-full font-semibold transition-colors select-none disabled:cursor-not-allowed disabled:opacity-50 aria-busy:cursor-progress";
+  "inline-flex items-center justify-center gap-2 rounded-full font-medium transition-[background-color,border-color,color,box-shadow] select-none disabled:cursor-not-allowed disabled:opacity-50 disabled:shadow-none aria-busy:cursor-progress";
 
 type Shared = {
   variant?: ButtonVariant;

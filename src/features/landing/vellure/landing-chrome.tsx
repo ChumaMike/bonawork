@@ -10,21 +10,36 @@ import "./vellure.css";
 
 export type LandingLink = { href: string; label: string };
 
+/** True when `href` is the page someone is on, or the section it belongs to. */
+function isCurrent(pathname: string | undefined, href: string): boolean {
+  if (!pathname) return false;
+  return href === "/" ? pathname === "/" : pathname.startsWith(href);
+}
+
 /**
- * The landing page's top bar: logo, the site's own menu, sign in and one blue
- * button. It lies over the hero and turns solid once the page is scrolled.
+ * The site's top bar, first drawn for the landing page and now on every page:
+ * logo, the site's own menu, sign in and one blue button. It lies over the
+ * navy band at the top of a page and turns solid once the page is scrolled.
  * On a phone the menu folds into a sheet.
  *
- * It holds the same destinations as the header on every other page. The
- * links come from `SiteHeader`, which decides them for the person signed in.
+ * The links come from `SiteHeader`, which decides them for the person signed in.
  */
 export function LandingHeader({
   links,
   showReport,
+  current,
+  school = null,
+  plain = false,
 }: {
   links: readonly LandingLink[];
   /** The community reports; staff do not, so they get no report button. */
   showReport: boolean;
+  /** The path of the page that is open, to mark its menu item. */
+  current?: string;
+  /** The school a page is about: shown as "At <school>" beside the logo. */
+  school?: { id: string; name: string } | null;
+  /** The page has no navy band: the bar is solid and takes its own room. */
+  plain?: boolean;
 }) {
   const m = useMessages();
   const l = m.landingPage.nav;
@@ -49,7 +64,7 @@ export function LandingHeader({
     return () => window.removeEventListener("keydown", key);
   }, [open]);
 
-  const solid = scrolled && !open;
+  const solid = (scrolled || plain) && !open;
   const role = session ? m.auth.role[session.user.role] : null;
 
   const account =
@@ -78,20 +93,38 @@ export function LandingHeader({
       className={`vl vl-header no-print${solid ? "" : " vl-on-dark"}`}
       data-solid={solid ? "" : undefined}
       data-open={open ? "" : undefined}
+      data-flow={plain ? "" : undefined}
       data-testid="landing-header"
     >
       <div className="vl-wrap vl-header-row">
-        <Link
-          href="/"
-          aria-label={`${BRAND_NAME} — ${m.nav.home}`}
-          className="vl-header-logo"
-        >
-          <BrandLogo size="sm" tone={solid ? "colour" : "mono"} />
-        </Link>
+        <div className="vl-header-start">
+          <Link
+            href="/"
+            aria-label={`${BRAND_NAME} — ${m.nav.home}`}
+            className="vl-header-logo"
+          >
+            <BrandLogo size="sm" tone={solid ? "colour" : "mono"} />
+          </Link>
+          {school ? (
+            <Link
+              href={`/schools/${school.id}`}
+              data-testid="school-context"
+              className="vl-school"
+            >
+              <Icon name="mapPin" className="size-4 shrink-0" />
+              <span className="truncate">{m.nav.atSchool(school.name)}</span>
+            </Link>
+          ) : null}
+        </div>
 
         <nav aria-label={m.nav.main} className="vl-links">
           {links.map((link) => (
-            <Link key={link.href} href={link.href} className="vl-link">
+            <Link
+              key={link.href}
+              href={link.href}
+              aria-current={isCurrent(current, link.href) ? "page" : undefined}
+              className="vl-link"
+            >
               {link.label}
             </Link>
           ))}
@@ -154,9 +187,9 @@ export function LandingHeader({
 }
 
 /**
- * The landing page's footer: the logo and one sentence, link columns that
- * point only at pages this site has (and its public code and contract), the
- * way in for staff, and the same honesty line as everywhere else.
+ * The site's footer, on every page: the logo and one sentence, link columns
+ * that point only at pages this site has (and its public code and contract),
+ * the way in for staff, and the honesty lines.
  */
 export function LandingFooter({ staffLinks }: { staffLinks: readonly LandingLink[] }) {
   const m = useMessages();
@@ -166,7 +199,16 @@ export function LandingFooter({ staffLinks }: { staffLinks: readonly LandingLink
       <div className="vl-wrap">
         <div className="vl-footer-grid">
           <div className="vl-footer-about">
-            <BrandLogo />
+            {/*
+              The smaller logo where the full one would not fit: a phone at 200% zoom.
+              Each sits in its own wrapper, because the logo sets its own display.
+            */}
+            <span className="vl-footer-logo-small">
+              <BrandLogo size="sm" />
+            </span>
+            <span className="vl-footer-logo-full">
+              <BrandLogo />
+            </span>
             <p>{f.description}</p>
           </div>
           <div className="vl-footer-cols">

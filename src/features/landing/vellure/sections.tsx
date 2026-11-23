@@ -252,7 +252,7 @@ export function About() {
           {card(first, 0)}
           <figure className="vl-photo" data-reveal style={delay(60)}>
             <Photo
-              name="reviewer_inspecting"
+              name="reviewer_check"
               shape="free"
               sizes="(min-width: 900px) 40vw, 100vw"
             />

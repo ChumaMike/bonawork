@@ -37,7 +37,7 @@ export function IssueCard({
   return (
     <article
       data-testid="issue-card"
-      className="flex h-full flex-col overflow-hidden rounded-2xl border border-line bg-surface shadow-card"
+      className="flex h-full flex-col overflow-hidden rounded-2xl border border-line bg-surface shadow-card transition-shadow hover:shadow-raised"
     >
       {picture ? (
         <Picture
@@ -51,14 +51,14 @@ export function IssueCard({
         <div className="flex flex-wrap items-center gap-2">
           <StatusBadge status={issue.status} />
           {issue.hasInterimProtection ? (
-            <span className="inline-flex items-center gap-1 text-sm font-semibold text-muted">
+            <span className="inline-flex items-center gap-1 text-sm font-medium text-muted">
               <Icon name="shield" className="size-4" />
               {m.feed.interim}
             </span>
           ) : null}
         </div>
 
-        <Heading className="text-lg font-semibold leading-snug">
+        <Heading className="text-lg leading-snug font-medium tracking-tight">
           <Link
             href={`/issues/${issue.id}`}
             className="underline-offset-4 hover:underline"
@@ -86,7 +86,7 @@ export function IssueCard({
           <span>{m.common.updated(timeAgo(issue.updatedAt, m))}</span>
         </p>
 
-        <div className="mt-auto pt-1">
+        <div className="mt-auto border-t border-line pt-3">
           {footer ??
             (endorse ? (
               <EndorseButton
@@ -95,7 +95,7 @@ export function IssueCard({
                 endorsedByMe={issue.endorsedByMe}
               />
             ) : (
-              <span className="flex items-center gap-1.5 font-semibold">
+              <span className="flex items-center gap-1.5 font-medium">
                 <Icon name="users" className="size-5 text-muted" />
                 {m.endorse.count(issue.endorsements)}
               </span>
@@ -118,7 +118,7 @@ export function IssueRow({ issue }: { issue: IssueSummary }) {
     <Link
       href={`/issues/${issue.id}`}
       data-testid="issue-card"
-      className="relative flex min-h-28 items-center overflow-hidden rounded-2xl border border-line bg-surface hover:border-brand"
+      className="relative flex min-h-28 items-center overflow-hidden rounded-2xl border border-line bg-surface shadow-card transition-shadow hover:shadow-raised"
     >
       <Photo
         name={CATEGORY_PICTURE[issue.category]}
@@ -128,7 +128,9 @@ export function IssueRow({ issue }: { issue: IssueSummary }) {
         className="photo-blend-side absolute! inset-y-0 right-0 h-full w-[42%]"
       />
       <span className="relative flex max-w-[68%] flex-col gap-1.5 p-4">
-        <span className="text-lg leading-snug font-semibold">{issue.title}</span>
+        <span className="text-lg leading-snug font-medium tracking-tight">
+          {issue.title}
+        </span>
         <span className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-muted">
           <StatusBadge status={issue.status} />
           <span>{m.endorse.count(issue.endorsements)}</span>

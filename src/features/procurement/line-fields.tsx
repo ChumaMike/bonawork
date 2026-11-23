@@ -134,7 +134,7 @@ export function LineFields({
         error={error}
         hint={
           notFound ? (
-            <span className="font-semibold text-accent">{missingHint}</span>
+            <span className="font-medium text-accent">{missingHint}</span>
           ) : undefined
         }
       >
@@ -148,7 +148,7 @@ export function LineFields({
             error: Boolean(error),
           })}
           data-missing={notFound || undefined}
-          className={cn(notFound && "border-accent bg-accent-soft")}
+          className={cn(notFound && "border-accent")}
           autoComplete="off"
           {...props}
         />

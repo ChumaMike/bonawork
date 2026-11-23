@@ -6,12 +6,11 @@ import { EvidenceList } from "@/components/evidence-list";
 import { FilePicker } from "@/components/file-picker";
 import { Button, ButtonLink } from "@/components/ui/button";
 import {
-  Container,
-  LoadError,
-  Loading,
   NotFound,
   Notice,
-  PageHeader,
+  PageError,
+  PageLoading,
+  PageShell,
 } from "@/components/ui/page";
 import { getApi } from "@/data/api";
 import type { EvidenceItem, EvidenceUpload } from "@/data/types";
@@ -27,20 +26,8 @@ export function AddEvidenceScreen() {
   const [error, setError] = useState<string | null>(null);
   const [added, setAdded] = useState<EvidenceItem[] | null>(null);
 
-  if (query.error) {
-    return (
-      <Container size="narrow">
-        <LoadError onRetry={query.reload} />
-      </Container>
-    );
-  }
-  if (query.data === undefined) {
-    return (
-      <Container size="narrow">
-        <Loading />
-      </Container>
-    );
-  }
+  if (query.error) return <PageError onRetry={query.reload} />;
+  if (query.data === undefined) return <PageLoading width="narrow" size="compact" />;
   if (query.data === null) return <NotFound />;
 
   const issue = query.data;
@@ -61,23 +48,30 @@ export function AddEvidenceScreen() {
 
   if (added) {
     return (
-      <Container size="narrow">
-        <PageHeader title={m.addEvidence.doneTitle} intro={m.addEvidence.doneBody} />
+      <PageShell
+        eyebrow={m.shell.eyebrow.evidence}
+        title={m.addEvidence.doneTitle}
+        intro={m.addEvidence.doneBody}
+        width="narrow"
+        size="compact"
+      >
         <EvidenceList issueId={issueId} items={added} />
         <ButtonLink href={issueHref} className="mt-6 w-full sm:w-auto">
           {m.addEvidence.backToIssue}
         </ButtonLink>
-      </Container>
+      </PageShell>
     );
   }
 
   return (
-    <Container size="narrow">
-      <PageHeader
-        title={m.addEvidence.title}
-        intro={m.addEvidence.intro(issue.title)}
-        back={{ href: issueHref, label: m.common.back }}
-      />
+    <PageShell
+      eyebrow={m.shell.eyebrow.evidence}
+      title={m.addEvidence.title}
+      intro={m.addEvidence.intro(issue.title)}
+      back={{ href: issueHref, label: m.common.back }}
+      width="narrow"
+      size="compact"
+    >
       <FilePicker value={uploads} onChange={setUploads} />
       {error ? (
         <Notice tone="danger" icon="alert" className="mt-4">
@@ -87,6 +81,6 @@ export function AddEvidenceScreen() {
       <Button onClick={submit} disabled={busy} className="mt-6 w-full sm:w-auto">
         {busy ? m.common.loading : m.addEvidence.submit}
       </Button>
-    </Container>
+    </PageShell>
   );
 }

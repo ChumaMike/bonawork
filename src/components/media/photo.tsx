@@ -1,15 +1,14 @@
 import Image from "next/image";
 import { cn } from "@/components/ui/cn";
 import { Icon } from "@/components/ui/icon";
-import { Pattern } from "@/components/ui/pattern";
 import { getPhoto, type PhotoName } from "./manifest";
 
 /**
  * A photograph from the manifest. The box keeps the picture's shape so the
  * page never jumps, shows the dominant colour while bytes arrive, and loads
  * lazily unless `priority` says it is above the fold. When the file has not
- * been produced yet it draws a placeholder (pattern + icon) in the same box,
- * so every page works before the photography does.
+ * been produced yet it draws a placeholder (a tone and an icon) in the same
+ * box, so every page works before the photography does.
  *
  *   <Photo name="hero_home" priority sizes="100vw" className="rounded-2xl" />
  */
@@ -87,8 +86,8 @@ export function Photo({
 }
 
 /**
- * Drawn stand-in for a missing picture: the dominant tone, a quiet pattern and
- * the subject's icon. Labelled like the picture it stands in for.
+ * Drawn stand-in for a missing picture: the dominant tone and the subject's
+ * icon. Labelled like the picture it stands in for.
  */
 export function PhotoPlaceholder({
   name,
@@ -120,7 +119,6 @@ export function PhotoPlaceholder({
         ...style,
       }}
     >
-      <Pattern variant="backdrop" tone="current" className="opacity-25" />
       <span className="relative flex size-[22%] max-h-20 max-w-20 min-h-10 min-w-10 items-center justify-center rounded-full bg-ink/25 backdrop-blur-sm">
         <Icon name={photo.icon} className="size-1/2" />
       </span>
@@ -147,7 +145,7 @@ export function PhotoHeader({
   children,
 }: {
   name: PhotoName;
-  /** A short caption on the photo, such as saying it is AI-generated. */
+  /** A short caption on the photo. */
   note?: string;
   /** Decorative by default: the heading under it says what the page is about. */
   alt?: string;

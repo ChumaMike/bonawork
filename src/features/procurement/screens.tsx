@@ -6,13 +6,21 @@ import { BuyerTask, ReceivingTask, ReleaseTask, SupplierTask } from "./tasks";
 
 /** `/buyer`: reported problems that wait for a work order. */
 export function BuyerScreen() {
-  return <RoleHome forRole="buyer" task={(id) => <BuyerTask key={id} issueId={id} />} />;
+  return (
+    <RoleHome
+      forRole="buyer"
+      task={(id, { back }) => <BuyerTask key={id} issueId={id} back={back} />}
+    />
+  );
 }
 
 /** `/supplier`: this supplier's orders to acknowledge and to invoice. */
 export function SupplierScreen() {
   return (
-    <RoleHome forRole="supplier" task={(id) => <SupplierTask key={id} issueId={id} />} />
+    <RoleHome
+      forRole="supplier"
+      task={(id, { back }) => <SupplierTask key={id} issueId={id} back={back} />}
+    />
   );
 }
 
@@ -21,7 +29,7 @@ export function ReceivingScreen() {
   return (
     <RoleHome
       forRole="receiving_officer"
-      task={(id) => <ReceivingTask key={id} issueId={id} />}
+      task={(id, { back }) => <ReceivingTask key={id} issueId={id} back={back} />}
     />
   );
 }
@@ -41,8 +49,8 @@ export function PaymentsScreen() {
       forRole="payment_approver"
       inCard
       order={openFirst}
-      task={(id, { inCard, open }) => (
-        <ReleaseTask key={id} issueId={id} inCard={inCard} onOpen={open} />
+      task={(id, { inCard, open, back }) => (
+        <ReleaseTask key={id} issueId={id} inCard={inCard} onOpen={open} back={back} />
       )}
     />
   );

@@ -2,7 +2,7 @@
  * English messages for the public landing page.
  *
  * Everything here is read by people who have never seen Bona Chain. Keep it
- * plain and true: test network only, made-up demo data, no real money. Never
+ * plain and true: test network only, sample data, no real money. Never
  * the words "paid" or "resolved", no amounts, no names of people or suppliers.
  */
 
@@ -77,7 +77,7 @@ export const landingPage = {
   about: {
     label: "About Bona Chain",
     title: ["Fewer promises.", "More proof."],
-    photoNote: "AI-generated illustration",
+    photoNote: "An independent check",
     cards: [
       {
         value: "3",
@@ -231,7 +231,7 @@ export const landingPage = {
       {
         value: "6",
         title: "steps on the test network",
-        body: "The demo case writes each of its steps to Avalanche Fuji.",
+        body: "The sample case writes each of its steps to Avalanche Fuji.",
       },
     ],
   },
@@ -309,7 +309,7 @@ export const landingPage = {
     label: "Our promise",
     title: ["Less trust-me.", "More show-me."],
     by: "The Bona Chain team",
-    where: "Built for the UJ BACISS hackathon",
+    where: "Built for South African public schools",
     quote:
       "Bona Chain doesn't call work done because someone says so. It keeps the claim, makes someone else check it, and only then lets the money decision through.",
     firstLabel: "A first school",
@@ -322,7 +322,7 @@ export const landingPage = {
     items: [
       {
         q: "Is Bona Chain live with real schools?",
-        a: "Not yet. It runs on the Avalanche Fuji test network with made-up demo data, and no real school uses it today. The principal of Thaba Jabula Secondary School told us they would use it.",
+        a: "Not yet. It runs on the Avalanche Fuji test network with sample schools and people, and no real school uses it today. The principal of Thaba Jabula Secondary School told us they would use it.",
       },
       {
         q: "Does any money move?",

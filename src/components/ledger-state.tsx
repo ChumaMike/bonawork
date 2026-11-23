@@ -18,19 +18,17 @@ function viewOf(record: LedgerRecord): LedgerView {
     : "simulated";
 }
 
+/** `tone` colours a chip, or the icon tile of the panel. The words carry the meaning. */
 const VIEW: Record<LedgerView, { icon: IconName; tone: string }> = {
   none: { icon: "cube", tone: "border-line bg-sunken text-muted" },
-  // Dashed border: visibly a placeholder, never mistaken for a real record.
-  simulated: {
-    icon: "info",
-    tone: "border-dashed border-accent bg-accent-soft text-accent",
-  },
-  pending: { icon: "clock", tone: "border-st-assess bg-st-assess-soft text-st-assess" },
+  // An outline with no fill: a sample is never dressed as a real record.
+  simulated: { icon: "info", tone: "border-line-strong bg-surface text-muted" },
+  pending: { icon: "clock", tone: "border-transparent bg-st-assess-soft text-st-assess" },
   confirmed: {
     icon: "shieldCheck",
-    tone: "border-st-verified bg-st-verified-soft text-st-verified",
+    tone: "border-transparent bg-st-verified-soft text-st-verified",
   },
-  failed: { icon: "alert", tone: "border-danger bg-danger-soft text-danger" },
+  failed: { icon: "alert", tone: "border-transparent bg-danger-soft text-danger" },
 };
 
 function copyFor(view: LedgerView, m: Messages) {
@@ -67,7 +65,7 @@ export function LedgerChip({ record }: { record: LedgerRecord }) {
     <span
       data-ledger={view}
       className={cn(
-        "inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-xs font-semibold",
+        "inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-xs font-medium",
         VIEW[view].tone,
       )}
     >
@@ -87,12 +85,20 @@ export function LedgerPanel({ record }: { record: LedgerRecord }) {
   const url = receipt ? explorerUrl(receipt.chainId, receipt.txId) : null;
 
   return (
-    <div data-ledger={view} className={cn("rounded-xl border p-4", VIEW[view].tone)}>
-      <p className="flex items-center gap-2 font-semibold">
-        <Icon name={VIEW[view].icon} />
+    <div data-ledger={view} className="rounded-2xl border border-line bg-surface p-4">
+      <p className="flex items-center gap-2.5 font-medium">
+        <span
+          aria-hidden="true"
+          className={cn(
+            "flex size-9 shrink-0 items-center justify-center rounded-xl border",
+            VIEW[view].tone,
+          )}
+        >
+          <Icon name={VIEW[view].icon} className="size-5" />
+        </span>
         {copy.title}
       </p>
-      <p className="mt-1 text-sm text-ink">{copy.body}</p>
+      <p className="mt-2 text-sm text-ink">{copy.body}</p>
       {receipt ? (
         <dl className="mt-3 grid gap-x-4 gap-y-1 text-sm text-ink sm:grid-cols-[auto_1fr]">
           <dt className="font-semibold">{m.ledger.network}</dt>

@@ -8,7 +8,7 @@ import { QueueGroup } from "@/components/staff/queue-list";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Icon } from "@/components/ui/icon";
-import { Container, LoadError, Loading, PageHeader } from "@/components/ui/page";
+import { LoadError, Loading, PageShell } from "@/components/ui/page";
 import { getApi } from "@/data/api";
 import { useQuery } from "@/data/use-query";
 import { useMessages } from "@/i18n";
@@ -64,22 +64,27 @@ function AdminDashboard({ schoolId }: { schoolId: string }) {
   }
 
   return (
-    <Container>
-      <BuddyHint id="admin" />
-      <PageHeader title={a.title}>
-        {issues ? (
-          <p data-testid="queue-headline" className="mt-2 text-xl font-semibold">
-            {a.headline(groups.reply.length)}
-          </p>
-        ) : null}
-        <p className="mt-1 text-sm text-muted">
+    <PageShell
+      eyebrow={m.auth.role.school_admin}
+      title={a.title}
+      intro={
+        <>
           {schoolName ? `${schoolName}. ` : ""}
           {a.onlyThisSchool}
-        </p>
-        <p className="hidden text-sm text-muted print:block">
-          {a.printedFor(schoolName, formatDate(new Date().toISOString()))}
-        </p>
-      </PageHeader>
+        </>
+      }
+      meta={
+        issues ? (
+          <span data-testid="queue-headline" className="vl-pagehero-note">
+            {a.headline(groups.reply.length)}
+          </span>
+        ) : undefined
+      }
+    >
+      <BuddyHint id="admin" />
+      <p className="hidden text-sm text-muted print:block">
+        {a.printedFor(schoolName, formatDate(new Date().toISOString()))}
+      </p>
 
       {queue.error ? (
         <LoadError onRetry={queue.reload} />
@@ -89,7 +94,7 @@ function AdminDashboard({ schoolId }: { schoolId: string }) {
         <EmptyState title={a.empty} photo="admin_desk" />
       ) : (
         <>
-          <div className="flex flex-col gap-6 lg:grid lg:grid-cols-3 lg:items-start">
+          <div className="flex flex-col gap-8 lg:grid lg:grid-cols-3 lg:items-start lg:gap-6">
             {OPEN_GROUPS.map((id) => (
               <QueueGroup
                 key={id}
@@ -134,6 +139,6 @@ function AdminDashboard({ schoolId }: { schoolId: string }) {
           ) : null}
         </>
       )}
-    </Container>
+    </PageShell>
   );
 }

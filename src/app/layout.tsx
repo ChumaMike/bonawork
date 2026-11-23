@@ -84,13 +84,13 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         </a>
         <PreviewBanner />
         {/* The navigation reads the current path, so it streams in its own boundary. */}
-        <Suspense fallback={<div className="h-16 border-b border-line bg-surface" />}>
+        <Suspense fallback={<div className="vl-header-holder" />}>
           <SiteHeader />
         </Suspense>
         <main id="main" className="flex-1">
           {children}
         </main>
-        {/* The footer reads the current path too (the landing page has its own). */}
+        {/* The footer reads who is signed in, so it streams in its own boundary too. */}
         <Suspense fallback={null}>
           <SiteFooter />
         </Suspense>
