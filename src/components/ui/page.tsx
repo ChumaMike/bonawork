@@ -50,6 +50,11 @@ export type PageHeroProps = {
   meta?: ReactNode;
   /** A photograph behind the band, under a navy wash. Decorative. */
   photo?: PhotoName;
+  /**
+   * A picture beside the words, shown as it is (no wash): on the right on a
+   * wide screen, under the words on a phone. See <HeroFigure>.
+   */
+  figure?: ReactNode;
   /** Shorter, for a screen that is one step of a task. */
   size?: "default" | "compact";
   /** Move focus to the title when the screen opens, so a screen reader announces it. */
@@ -77,50 +82,96 @@ export function PageHero({
   back,
   meta,
   photo,
+  figure,
   size = "default",
   focusTitle = false,
   titleRef,
   children,
   testId,
 }: PageHeroProps) {
+  const words = (
+    <>
+      <div className="vl-pagehero-top">
+        {isBackLink(back) ? (
+          <Link
+            href={back.href}
+            aria-label={back.ariaLabel}
+            className="vl-pagehero-back no-print"
+          >
+            <Icon name="arrowLeft" className="size-4" />
+            {back.label}
+          </Link>
+        ) : (
+          (back ?? null)
+        )}
+        {eyebrow ? <p className="vl-badge">{eyebrow}</p> : null}
+      </div>
+      <h1
+        ref={titleRef ?? (focusTitle ? takeFocus : undefined)}
+        tabIndex={titleRef || focusTitle ? -1 : undefined}
+      >
+        {title}
+      </h1>
+      {intro ? <p className="vl-hero-sub">{intro}</p> : null}
+      {meta ? <div className="vl-pagehero-meta">{meta}</div> : null}
+      {children ? <div className="vl-pagehero-control">{children}</div> : null}
+    </>
+  );
   return (
     <section
       className="vl vl-pagehero vl-on-dark"
       data-size={size}
-      data-testid={testId ?? (photo ? "photo-header" : "page-hero")}
+      data-split={figure ? "" : undefined}
+      data-testid={testId ?? (photo || figure ? "photo-header" : "page-hero")}
     >
       {photo ? (
         <div className="vl-pagehero-photo" aria-hidden="true">
           <Photo name={photo} alt="" priority sizes="100vw" shape="free" />
         </div>
       ) : null}
-      <div className="page-wrap">
-        <div className="vl-pagehero-top">
-          {isBackLink(back) ? (
-            <Link
-              href={back.href}
-              aria-label={back.ariaLabel}
-              className="vl-pagehero-back no-print"
-            >
-              <Icon name="arrowLeft" className="size-4" />
-              {back.label}
-            </Link>
-          ) : (
-            (back ?? null)
-          )}
-          {eyebrow ? <p className="vl-badge">{eyebrow}</p> : null}
+      {figure ? (
+        <div className="page-wrap vl-pagehero-split">
+          <div className="vl-pagehero-words">{words}</div>
+          {figure}
         </div>
-        <h1
-          ref={titleRef ?? (focusTitle ? takeFocus : undefined)}
-          tabIndex={titleRef || focusTitle ? -1 : undefined}
-        >
-          {title}
-        </h1>
-        {intro ? <p className="vl-hero-sub">{intro}</p> : null}
-        {meta ? <div className="vl-pagehero-meta">{meta}</div> : null}
-        {children ? <div className="vl-pagehero-control">{children}</div> : null}
-      </div>
+      ) : (
+        <div className="page-wrap">{words}</div>
+      )}
     </section>
+  );
+}
+
+/**
+ * The picture beside a band's words: framed, untinted, with an optional
+ * line under it. For a school's own picture, or the picture for a type of
+ * problem.
+ *
+ *   <PageHero figure={<HeroFigure name="school_brick" />} … />
+ */
+export function HeroFigure({
+  name,
+  alt,
+  caption,
+  testId,
+}: {
+  name: PhotoName;
+  /** Defaults to the manifest's description of the picture. */
+  alt?: string;
+  caption?: ReactNode;
+  testId?: string;
+}) {
+  return (
+    <figure className="vl-pagehero-figure" data-testid={testId}>
+      <Photo
+        name={name}
+        alt={alt}
+        priority
+        sizes="(min-width: 1024px) 520px, 100vw"
+        shape="free"
+        className="vl-pagehero-figure-photo"
+      />
+      {caption ? <figcaption>{caption}</figcaption> : null}
+    </figure>
   );
 }
 

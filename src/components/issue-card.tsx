@@ -5,7 +5,7 @@ import type { ReactNode } from "react";
 import type { IssueSummary } from "@/data/types";
 import { useMessages } from "@/i18n";
 import { timeAgo } from "@/lib/format";
-import { CATEGORY_PICTURE, CategoryGlyph, Picture } from "./community/picture";
+import { CATEGORY_PICTURE, CategoryGlyph } from "./community/picture";
 import { Photo } from "./media/photo";
 import { EndorseButton } from "./endorse-button";
 import { StatusBadge } from "./status";
@@ -40,11 +40,13 @@ export function IssueCard({
       className="flex h-full flex-col overflow-hidden rounded-2xl border border-line bg-surface shadow-card transition-shadow hover:shadow-raised"
     >
       {picture ? (
-        <Picture
+        // The category's name is in the card, so the picture adds nothing for a screen reader.
+        <Photo
           name={CATEGORY_PICTURE[issue.category]}
-          decorative
-          blend
-          className="aspect-[3/1]"
+          alt=""
+          shape="free"
+          sizes="(min-width: 1024px) 360px, (min-width: 768px) 50vw, 100vw"
+          className="aspect-[16/9] w-full"
         />
       ) : null}
       <div className="flex flex-1 flex-col gap-3 p-4 sm:p-5">
@@ -107,10 +109,9 @@ export function IssueCard({
 }
 
 /**
- * One public issue as a picture tile: the problem in words on the left, the
- * picture for that type of problem fading in from the right, and where it
- * stands. The whole tile is the link. Used where the list is the page (a
- * school's problems), so nothing competes with reading down it.
+ * One public issue as a picture card: the picture for that type of problem
+ * on top, then the problem in words and where it stands. The whole card is
+ * the link. Used where the list is the page (a school's problems).
  */
 export function IssueRow({ issue }: { issue: IssueSummary }) {
   const m = useMessages();
@@ -118,20 +119,24 @@ export function IssueRow({ issue }: { issue: IssueSummary }) {
     <Link
       href={`/issues/${issue.id}`}
       data-testid="issue-card"
-      className="relative flex min-h-28 items-center overflow-hidden rounded-2xl border border-line bg-surface shadow-card transition-shadow hover:shadow-raised"
+      className="group flex h-full flex-col overflow-hidden rounded-2xl border border-line bg-surface shadow-card transition-shadow hover:shadow-raised"
     >
       <Photo
         name={CATEGORY_PICTURE[issue.category]}
         alt=""
         shape="free"
-        sizes="220px"
-        className="photo-blend-side absolute! inset-y-0 right-0 h-full w-[42%]"
+        sizes="(min-width: 1024px) 380px, (min-width: 640px) 50vw, 100vw"
+        className="aspect-[16/9] w-full"
       />
-      <span className="relative flex max-w-[68%] flex-col gap-1.5 p-4">
-        <span className="text-lg leading-snug font-medium tracking-tight">
+      <span className="flex flex-1 flex-col gap-1.5 p-4">
+        <span className="inline-flex items-center gap-1 text-sm text-muted">
+          <CategoryGlyph category={issue.category} className="size-4" />
+          {m.category[issue.category]}
+        </span>
+        <span className="text-lg leading-snug font-medium tracking-tight group-hover:underline group-hover:underline-offset-4">
           {issue.title}
         </span>
-        <span className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-muted">
+        <span className="mt-auto flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-muted">
           <StatusBadge status={issue.status} />
           <span>{m.endorse.count(issue.endorsements)}</span>
         </span>

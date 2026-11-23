@@ -90,6 +90,31 @@ export const landingPage = {
         body: "Each role signs its own steps with its own key. Nobody verifies their own work.",
       },
     ],
+    /** The drawing on the "3 smart contracts" card. */
+    contracts: {
+      factory: "Factory",
+      factoryNote: "Sets up each school",
+      operations: "Operations",
+      operationsNote: "Reports, orders, delivery",
+      finance: "Finance",
+      financeNote: "Release instruction",
+      gate: "Verified?",
+    },
+    /** The drawing on the "7 roles" card, in the order a case meets them. */
+    roles: {
+      label: "The seven roles, in the order a case meets them",
+      names: [
+        "Community member",
+        "School admin",
+        "Funder",
+        "Supplier",
+        "Receiving officer",
+        "Independent reviewer",
+        "Payment approver",
+      ],
+      /** The index of the role that is highlighted. */
+      highlight: 5,
+    },
   },
 
   capabilities: {

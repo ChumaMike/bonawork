@@ -124,14 +124,15 @@ export function BuddyChat({
     send(draft);
   }
 
-  const bona = "max-w-[90%] self-start rounded-2xl rounded-bl-md bg-brand-soft px-3 py-2";
+  const bona =
+    "max-w-[90%] self-start rounded-2xl rounded-tl-md border border-line bg-surface px-3 py-2 leading-relaxed";
   const you =
     "max-w-[85%] self-end rounded-2xl rounded-br-md bg-brand px-3 py-2 text-on-brand";
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       <div
-        className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto px-3 py-3 text-[0.9375rem]"
+        className="flex min-h-0 flex-1 flex-col gap-2.5 overflow-y-auto bg-canvas px-3 py-3 text-[0.9375rem]"
         aria-live="polite"
         data-testid="buddy-ask-result"
         data-status={status}
@@ -230,7 +231,7 @@ export function BuddyChat({
                 <button
                   type="button"
                   onClick={() => send(text)}
-                  className="rounded-full border border-sun bg-surface px-2.5 py-1 text-xs font-semibold whitespace-nowrap text-ink hover:bg-sun-soft"
+                  className="min-h-9 rounded-full border border-line bg-surface px-3 py-1.5 text-sm font-medium whitespace-nowrap text-ink hover:border-brand hover:text-brand-strong focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-brand"
                 >
                   {text}
                 </button>
@@ -256,7 +257,7 @@ export function BuddyChat({
             type="submit"
             disabled={thinking || !draft.trim()}
             aria-label={a.send}
-            className="inline-flex size-10 shrink-0 items-center justify-center rounded-full bg-brand text-on-brand disabled:opacity-40"
+            className="inline-flex size-10 shrink-0 items-center justify-center rounded-full bg-brand text-on-brand focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand disabled:bg-sunken disabled:text-faint"
           >
             <Icon name="send" className="size-5" />
           </button>

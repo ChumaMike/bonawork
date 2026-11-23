@@ -716,6 +716,20 @@ export const en = {
     aboutSchool: "About this school",
     nextSteps: "What you can do next",
     careful: "A careful helper, not an official.",
+    canTitle: "It can",
+    can: [
+      "Find a school and its recorded problems",
+      "Explain what a status means",
+      "Show you the next step",
+    ],
+    cannotTitle: "It never",
+    cannot: [
+      "Approves, verifies or authorises anything",
+      "Speaks for a school",
+      "Guesses when there is no record",
+    ],
+    error: "Bona AI could not answer just now. Check your connection and try again.",
+    keyHint: "Enter sends. Shift and Enter starts a new line.",
   },
 
   auth: {

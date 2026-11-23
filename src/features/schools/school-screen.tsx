@@ -14,6 +14,7 @@ import {
   LoadError,
   Loading,
   NotFound,
+  HeroFigure,
   PageError,
   PageHero,
   PageLoading,
@@ -100,7 +101,7 @@ export function SchoolScreen() {
     <>
       <SchoolContext id={s.id} name={s.name} />
       <PageHero
-        photo={schoolPhoto(s.id)}
+        figure={<HeroFigure name={schoolPhoto(s.id)} testId="school-photo" />}
         back={{ href: "/schools", label: m.nav.schools }}
         eyebrow={m.shell.eyebrow.school}
         title={s.name}
@@ -189,7 +190,7 @@ export function SchoolScreen() {
                         {group.issues.length}
                       </span>
                     </h3>
-                    <ul className="mt-3 flex flex-col gap-3">
+                    <ul className="mt-3 grid gap-3 sm:grid-cols-2">
                       {group.issues.map((issue) => (
                         <li key={issue.id}>
                           <IssueRow issue={issue} />

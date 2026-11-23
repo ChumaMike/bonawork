@@ -22,6 +22,7 @@ import { BuddyOptions, PetHearts } from "./pet-parts";
 import { ABOVE_BUDDY, BUDDY_BOTTOM } from "./position";
 import { ResizeGrip, clamp, loadSize, saveSize } from "./resize-grip";
 import { RobotPet } from "./robot-pet";
+import { useDodge } from "./use-dodge";
 import { STROLL_MS, usePet } from "./use-pet";
 
 /**
@@ -185,6 +186,15 @@ export function BonaBuddy() {
     }
   }
 
+  // On a narrow screen, step up off any button or field of the page it would cover.
+  const lift = useDodge(
+    button,
+    pet.spot,
+    open || holdMenu || pet.dragging || signer.status !== "off",
+    pathname,
+  );
+  const shown = pet.spot ? { x: pet.spot.x, y: pet.spot.y - lift } : null;
+
   let mood: BuddyMood = HAPPY_HINTS.has(hintId) ? "happy" : "resting";
   if (open) {
     if (ask.status === "thinking" || signer.status === "loading") mood = "thinking";
@@ -195,7 +205,7 @@ export function BonaBuddy() {
   if (pet.reacting || holdMenu) mood = "happy";
 
   // The bubble opens beside the robot once it has a place; before that, above the button.
-  const place = pet.spot && pet.view ? panelPlacement(pet.spot, pet.view) : null;
+  const place = shown && pet.view ? panelPlacement(shown, pet.view) : null;
   const pinnedLeft = place?.left !== undefined;
   const pinnedTop = place?.top !== undefined;
   const beside = place
@@ -249,14 +259,14 @@ export function BonaBuddy() {
         title={b.pet.howTo}
         {...pet.handlers}
         style={
-          pet.spot
+          shown
             ? {
                 left: 0,
                 top: 0,
-                transform: `translate3d(${pet.spot.x}px, ${pet.spot.y}px, 0)`,
+                transform: `translate3d(${shown.x}px, ${shown.y}px, 0)`,
                 transition: pet.dragging
                   ? "none"
-                  : `transform ${STROLL_MS}ms cubic-bezier(0.45, 0.05, 0.35, 1)`,
+                  : `transform ${pet.strolling ? STROLL_MS : 280}ms cubic-bezier(0.45, 0.05, 0.35, 1)`,
               }
             : { right: "1rem", bottom: BUDDY_BOTTOM }
         }

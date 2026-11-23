@@ -16,6 +16,7 @@ import { Card } from "@/components/ui/card";
 import { cn } from "@/components/ui/cn";
 import {
   Container,
+  HeroFigure,
   NotFound,
   Notice,
   PageError,
@@ -112,7 +113,13 @@ export function IssueScreen() {
     <>
       <SchoolContext id={issue.schoolId} name={issue.schoolName} />
       <PageHero
-        photo={CATEGORY_PICTURE[issue.category]}
+        figure={
+          <HeroFigure
+            name={CATEGORY_PICTURE[issue.category]}
+            caption={m.issue.pictureNote}
+            testId="issue-picture"
+          />
+        }
         back={{
           href: `/schools/${issue.schoolId}`,
           label: issue.schoolName,
@@ -201,8 +208,6 @@ export function IssueScreen() {
                   <p data-testid="no-interim">{m.issue.interimNone}</p>
                 </Notice>
               ) : null}
-
-              <p className="text-xs text-muted">{m.issue.pictureNote}</p>
             </div>
           </TabPanel>
 

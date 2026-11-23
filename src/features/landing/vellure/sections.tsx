@@ -223,17 +223,79 @@ export function StartHere() {
   );
 }
 
-const ABOUT_ICONS: IconName[] = ["cube", "users"];
+type AboutMessages = ReturnType<typeof getMessages>["landingPage"]["about"];
+
+/**
+ * The three contracts: a factory that sets up the other two, and a check
+ * that must pass before the Finance side can act. A drawing: the card's own
+ * words say the same thing to a screen reader.
+ */
+function ContractsDrawing({ c }: { c: AboutMessages["contracts"] }) {
+  return (
+    <div className="vl-contracts" aria-hidden="true">
+      <span className="vl-node" data-kind="factory">
+        <Icon name="cube" className="size-4" />
+        <span>
+          <strong>{c.factory}</strong>
+          <small>{c.factoryNote}</small>
+        </span>
+      </span>
+      <span className="vl-branch">
+        <span className="vl-gate">
+          <Icon name="shieldCheck" className="size-3.5" />
+          {c.gate}
+        </span>
+      </span>
+      <span className="vl-node-row">
+        <span className="vl-node">
+          <Icon name="file" className="size-4" />
+          <span>
+            <strong>{c.operations}</strong>
+            <small>{c.operationsNote}</small>
+          </span>
+        </span>
+        <span className="vl-node" data-kind="finance">
+          <Icon name="lock" className="size-4" />
+          <span>
+            <strong>{c.finance}</strong>
+            <small>{c.financeNote}</small>
+          </span>
+        </span>
+      </span>
+    </div>
+  );
+}
+
+/** The seven roles as a chain of badges, the independent reviewer marked. */
+function RolesDrawing({ r }: { r: AboutMessages["roles"] }) {
+  return (
+    <ol className="vl-roles" aria-label={r.label}>
+      {r.names.map((name, index) => (
+        <li key={name} data-on={index === r.highlight ? "" : undefined}>
+          <span className="vl-roles-n" aria-hidden="true">
+            {index + 1}
+          </span>
+          {name}
+          {index === r.highlight ? (
+            <Icon name="shieldCheck" className="size-3.5" />
+          ) : null}
+        </li>
+      ))}
+    </ol>
+  );
+}
 
 /** Number, picture, number. */
 export function About() {
   const a = getMessages().landingPage.about;
   const [first, second] = a.cards;
+  const drawings = [
+    <ContractsDrawing key="contracts" c={a.contracts} />,
+    <RolesDrawing key="roles" r={a.roles} />,
+  ];
   const card = (item: (typeof a.cards)[number], index: number) => (
     <div className="vl-stat" data-reveal style={delay(index * 120)}>
-      <span className="vl-tile" aria-hidden="true">
-        <Icon name={ABOUT_ICONS[index]} className="size-5" />
-      </span>
+      {drawings[index]}
       <b>{item.value}</b>
       <strong>{item.title}</strong>
       <p>{item.body}</p>

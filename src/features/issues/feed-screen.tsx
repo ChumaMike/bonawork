@@ -184,7 +184,7 @@ export function FeedScreen() {
               <ul className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                 {query.data.map((issue) => (
                   <li key={issue.id}>
-                    <IssueCard issue={issue} heading="h2" />
+                    <IssueCard issue={issue} heading="h2" picture />
                   </li>
                 ))}
               </ul>
