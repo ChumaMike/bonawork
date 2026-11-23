@@ -55,10 +55,10 @@ export const landingPage = {
       trail: [
         { step: "Invoice checked against order and delivery", who: "Bona Chain rules" },
         { step: "Delivery recorded", who: "Receiving officer" },
-        { step: "Work order approved", who: "Programme buyer" },
+        { step: "Work order approved", who: "Funder" },
       ],
       rolesTitle: "Who has acted",
-      roles: ["Community member", "Programme buyer", "Supplier", "Receiving officer"],
+      roles: ["Community member", "Funder", "Supplier", "Receiving officer"],
       recorded: "Recorded",
     },
   },
