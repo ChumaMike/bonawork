@@ -256,7 +256,7 @@ export const DEMO_ACCOUNTS: SeedUser[] = [
     role: "buyer",
     school: null,
     displayName: "Ms Naledi Dlamini",
-    publicLabel: "Programme buyer",
+    publicLabel: "Funder",
   },
   {
     id: uid(2, 13),

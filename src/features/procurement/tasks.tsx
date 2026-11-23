@@ -165,6 +165,11 @@ function BuyerBody({ issue, trail, update }: BodyProps) {
         </p>
       </Card>
       <OrderForm
+        sample={{
+          supplierRef: m.procurement.orderShortcut.supplierRef,
+          scope: m.procurement.orderShortcut.scope(issue.title, issue.location),
+          lines: m.procurement.orderShortcut.lines,
+        }}
         onSubmit={async (input) => {
           const next = await getApi().approveWorkOrder(issue.id, input);
           setApproved(true);

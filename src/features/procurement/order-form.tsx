@@ -3,6 +3,7 @@
 import { useState, type FormEvent } from "react";
 import { Button } from "@/components/ui/button";
 import { describedBy, Field, Input, Textarea } from "@/components/ui/field";
+import { Icon } from "@/components/ui/icon";
 import { Notice } from "@/components/ui/page";
 import { ApiError } from "@/data/api";
 import type { ApproveWorkOrderInput } from "@/data/types";
@@ -17,19 +18,30 @@ import {
 } from "./line-fields";
 import { formatRand } from "./money";
 
+/** A sample order for the demo shortcut: it fills the form and sends nothing. */
+export interface SampleOrder {
+  supplierRef: string;
+  scope: string;
+  lines: LineDraft[];
+}
+
 /**
- * The buyer's work order: who does the work, what must be done, and the
+ * The funder's work order: who does the work, what must be done, and the
  * lines with a quantity and a unit price. The total is computed from the
  * lines and never typed. One main action: approve.
  */
 export function OrderForm({
   onSubmit,
+  sample,
 }: {
   /** Rejects with an `ApiError` when the order is refused. */
   onSubmit: (input: ApproveWorkOrderInput) => Promise<void>;
+  /** When given, a demo shortcut offers to fill the form with it. */
+  sample?: SampleOrder;
 }) {
   const m = useMessages();
   const f = m.procurement.orderForm;
+  const shortcut = m.procurement.orderShortcut;
   const [supplierRef, setSupplierRef] = useState("");
   const [scope, setScope] = useState("");
   const [lines, setLines] = useState<LineDraft[]>([emptyLine()]);
@@ -41,6 +53,14 @@ export function OrderForm({
   }>({ lines: [] });
   const [busy, setBusy] = useState(false);
   const total = draftTotal(lines);
+
+  /** The demo shortcut: fill every field. Nothing is sent until the person approves. */
+  function fillSample(order: SampleOrder) {
+    setSupplierRef(order.supplierRef);
+    setScope(order.scope);
+    setLines(order.lines.map((line) => ({ ...line })));
+    setErrors({ lines: [] });
+  }
 
   async function submit(event: FormEvent) {
     event.preventDefault();
@@ -83,6 +103,24 @@ export function OrderForm({
       <h2 id="order-form-title" className="text-xl">
         {f.title}
       </h2>
+
+      {sample ? (
+        <div
+          data-testid="order-shortcut"
+          className="flex flex-col gap-2 rounded-2xl border border-dashed border-accent bg-accent-soft px-4 py-3"
+        >
+          <Button
+            type="button"
+            variant="secondary"
+            onClick={() => fillSample(sample)}
+            className="w-full sm:w-auto sm:self-start"
+          >
+            <Icon name="sparkle" />
+            {shortcut.action}
+          </Button>
+          <p className="text-sm">{shortcut.note}</p>
+        </div>
+      ) : null}
 
       <Field
         id="order-supplier"

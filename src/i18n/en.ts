@@ -99,7 +99,7 @@ export const en = {
       },
       buyer: {
         title: "Work orders",
-        body: "Reported problems that need a work order approved.",
+        body: "Reported problems you can fund by approving a work order.",
       },
       supplier: {
         title: "My orders",
@@ -193,7 +193,7 @@ export const en = {
     school_admin: "School",
     district: "District",
     reviewer: "Independent reviewer",
-    buyer: "Programme buyer",
+    buyer: "Funder",
     supplier: "Supplier",
     receiving_officer: "Receiving officer",
     payment_approver: "Payment approver",
@@ -339,7 +339,7 @@ export const en = {
         {
           event: "work_order_approved",
           actor: "buyer",
-          body: "A programme buyer approves a work order: what must be fixed and what is needed for it.",
+          body: "A funder approves a work order: what must be fixed and what is needed for it. A funder can be a district, a company, an organisation or a parent.",
         },
         {
           event: "work_order_acknowledged",
@@ -703,7 +703,7 @@ export const en = {
       school_admin: "School administrator",
       district_official: "District official",
       independent_reviewer: "Independent reviewer",
-      buyer: "Programme buyer",
+      buyer: "Funder",
       supplier: "Supplier",
       receiving_officer: "Receiving officer",
       payment_approver: "Payment approver",
@@ -714,7 +714,7 @@ export const en = {
       school_admin: "a school administrator",
       district_official: "a district official",
       independent_reviewer: "an independent reviewer",
-      buyer: "a programme buyer",
+      buyer: "a funder",
       supplier: "a supplier",
       receiving_officer: "a receiving officer",
       payment_approver: "a payment approver",
@@ -736,7 +736,7 @@ export const en = {
       district_official: "See every report in the district.",
       independent_reviewer:
         "Check repair claims and verify or dispute them. Never on the school's staff.",
-      buyer: "Approve the work order for a reported problem.",
+      buyer: "Fund a reported problem by approving its work order.",
       supplier: "Acknowledge the order and submit the invoice for it.",
       receiving_officer: "Record what was actually delivered.",
       payment_approver:

@@ -116,7 +116,7 @@ interface SeedStep {
  * one, because the public trail carries them.
  */
 export const FINANCE_NOTE: Record<FinanceEventType, string> = {
-  work_order_approved: "A programme buyer approved a work order for this repair.",
+  work_order_approved: "A funder approved a work order for this repair.",
   work_order_acknowledged: "The supplier acknowledged the work order.",
   invoice_submitted: "The supplier submitted an invoice for the work.",
   goods_receipt_recorded: "A receiving officer recorded what was delivered.",

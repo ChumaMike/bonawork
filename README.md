@@ -71,7 +71,7 @@ as a fingerprint on the Avalanche Fuji test network.
 | #     | Step                                       | Who                  |
 | ----- | ------------------------------------------ | -------------------- |
 | Start | Problem reported                           | Community member     |
-| 1     | Work order approved                        | Programme buyer      |
+| 1     | Work order approved                        | Funder               |
 | 2     | Supplier acknowledged the order            | Supplier             |
 | 3     | Invoice submitted                          | Supplier             |
 | 4     | Delivery recorded                          | Receiving officer    |
@@ -221,7 +221,7 @@ with `DEMO_ACCOUNT_PASSWORD`).
 | Supplier             | Mr Themba Zulu             | `supplier@emseni-supplies.demo` | Yes               |
 | Independent reviewer | Mr Sipho Mokoena           | `reviewer@vaalridge.demo`       | Yes               |
 | Payment approver     | Mr Pieter van Wyk          | `approver@vaalridge.demo`       | Yes               |
-| Programme buyer      | Ms Naledi Dlamini          | `buyer@vaalridge.demo`          | Step already done |
+| Funder               | Ms Naledi Dlamini          | `buyer@vaalridge.demo`          | Step already done |
 | Receiving officer    | Mrs Ayanda Ngcobo          | `receiving@thandolwethu.demo`   | Step already done |
 | School administrator | Ms Nomvula Dlamini         | `admin@thandolwethu.demo`       | Step already done |
 | Community reporter   | Ms Zanele Nkosi            | `zanele@community.demo`         | No                |

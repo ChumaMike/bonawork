@@ -77,7 +77,7 @@ describe("PublicTrailShowcase", () => {
         row.querySelector("p > span")?.textContent,
       ]),
     ).toEqual([
-      ["Work order approved", "Programme buyer"],
+      ["Work order approved", "Funder"],
       ["Supplier acknowledged the order", "Supplier"],
       ["Delivery recorded", "Receiving officer"],
       ["Invoice submitted", "Supplier"],
