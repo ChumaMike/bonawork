@@ -14,6 +14,12 @@ import { GENERATED, type GeneratedPhoto } from "./generated";
 export const PHOTO_NAMES = [
   "hero_home",
   "hero_school",
+  "school_brick",
+  "school_township",
+  "school_rural",
+  "school_secondary",
+  "signin_side",
+  "reviewer_check",
   "category_water",
   "category_sanitation",
   "category_electricity",
@@ -65,6 +71,42 @@ export const PHOTO_META: Record<PhotoName, PhotoMeta> = {
     icon: "school",
     ratio: LANDSCAPE,
     color: "#8c6a48",
+  },
+  school_brick: {
+    alt: "A long face-brick classroom block with a covered walkway beside a sandy yard, three learners in blue uniform walking away under a large tree.",
+    icon: "school",
+    ratio: LANDSCAPE,
+    color: "#a8745a",
+  },
+  school_township: {
+    alt: "Cream classroom blocks with blue doors around a paved courtyard, seen over a steel palisade fence, two learners crossing in the distance.",
+    icon: "school",
+    ratio: LANDSCAPE,
+    color: "#b89a78",
+  },
+  school_rural: {
+    alt: "Two low classroom blocks painted yellow and red with iron roofs and a green water tank, on grass below green hills under a cloudy sky.",
+    icon: "school",
+    ratio: LANDSCAPE,
+    color: "#7c8a6a",
+  },
+  school_secondary: {
+    alt: "A two-storey brick school building with an outside staircase and open walkways, beside a flowering jacaranda tree and a painted sports court.",
+    icon: "school",
+    ratio: LANDSCAPE,
+    color: "#9a8a8a",
+  },
+  signin_side: {
+    alt: "A parent in a headscarf and a rust-coloured jersey, seen from behind, holding a phone at an open school gate with a classroom block beyond.",
+    icon: "users",
+    ratio: 2 / 3,
+    color: "#8a5a3a",
+  },
+  reviewer_check: {
+    alt: "A person in a high-visibility vest, seen from behind, holding a clipboard in an empty classroom and looking up at new ceiling lights.",
+    icon: "shieldCheck",
+    ratio: LANDSCAPE,
+    color: "#a89868",
   },
   category_water: {
     alt: "A single outdoor school tap on a concrete block with a bucket under it.",
@@ -182,4 +224,39 @@ export function getPhoto(name: PhotoName): Photo {
 /** True once a real picture exists for this key. */
 export function hasPhoto(name: PhotoName): boolean {
   return PHOTOS[name].file !== null;
+}
+
+/**
+ * The pictures of a school building. A school card and a school page show one
+ * of them, chosen from the school's id, so a school always gets the same
+ * picture and a list of schools does not repeat one photograph.
+ */
+export const SCHOOL_PHOTOS = [
+  "hero_school",
+  "school_brick",
+  "school_township",
+  "school_secondary",
+  "school_rural",
+] as const satisfies readonly PhotoName[];
+
+/**
+ * A polynomial hash of the id: small, stable, and the same on the server and
+ * in the browser. With this multiplier the sample schools each land on a
+ * different picture.
+ */
+function hashOf(text: string): number {
+  let hash = 0;
+  for (let index = 0; index < text.length; index++) {
+    hash = (Math.imul(hash, 131) + text.charCodeAt(index)) >>> 0;
+  }
+  return hash;
+}
+
+/**
+ * The picture for one school. Should the chosen picture have no file yet, the
+ * first one that has stands in, so a card is never left with a placeholder.
+ */
+export function schoolPhoto(schoolId: string): PhotoName {
+  const chosen = SCHOOL_PHOTOS[hashOf(schoolId) % SCHOOL_PHOTOS.length];
+  return hasPhoto(chosen) ? chosen : (SCHOOL_PHOTOS.find(hasPhoto) ?? chosen);
 }

@@ -44,15 +44,17 @@ function manifestKeys(): Set<string> {
 
 function existingGenerated(): Record<string, Generated> {
   const source = readFileSync(generatedPath, "utf8");
-  const block = source.match(/GENERATED[^=]*=\s*(\{[\s\S]*\});/);
+  // The constant, not the "AUTO-GENERATED" comment or the type above it.
+  const block = source.match(/export const GENERATED[^=]*=\s*(\{[\s\S]*\});/);
   if (!block) return {};
   try {
     // The file is plain JSON-compatible object literal apart from the keys.
     return JSON.parse(
       block[1].replace(/(\w+):/g, '"$1":').replace(/,\s*}/g, "}"),
     ) as Record<string, Generated>;
-  } catch {
-    return {};
+  } catch (cause) {
+    // Carrying on would rewrite the file without the pictures already in it.
+    throw new Error(`Could not read the entries in ${generatedPath}`, { cause });
   }
 }
 
