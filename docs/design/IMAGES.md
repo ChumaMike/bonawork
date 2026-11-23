@@ -40,7 +40,13 @@ anything outside Next (the verifier app, emails, the README).
 | Key                           | Where it is used                            |
 | ----------------------------- | ------------------------------------------- |
 | `hero_home`                   | Home hero, above the fold (`priority`)      |
-| `hero_school`                 | School page header                          |
+| `hero_school`                 | School cards and the school page band       |
+| `school_brick`                | … one of five school pictures, see below    |
+| `school_township`             | …                                           |
+| `school_secondary`            | …                                           |
+| `school_rural`                | …                                           |
+| `signin_side`                 | The navy panel of the sign-in page, 2:3     |
+| `reviewer_check`              | The independent check: landing page, tiles  |
 | `category_water`              | Category chip and empty state for water     |
 | `category_sanitation`         | … toilets and sanitation                    |
 | `category_electricity`        | … electricity                               |
@@ -54,6 +60,12 @@ anything outside Next (the verifier app, emails, the README).
 | `verify_phone`                | Verify page and BonaBlock Verify            |
 | `evidence_capture`            | Report flow "Show us" step, evidence page   |
 | `empty_state`                 | `<EmptyState photo="empty_state">`, 1:1     |
+
+A school card and the band of a school page show one of the five school
+pictures. `schoolPhoto(schoolId)` in the manifest picks it from the school's
+id, so a school always gets the same one and a list does not repeat a single
+photograph. To add a sixth, add its key to `PHOTO_NAMES`, `PHOTO_META` and
+`SCHOOL_PHOTOS`.
 
 Alt text lives in `PHOTO_META` in the manifest. Write what the picture shows
 ("A single outdoor school tap on a concrete block with a bucket under it"),

@@ -143,6 +143,23 @@
   animation-delay: var(--vl-delay, 0ms);
 }
 
+/*
+ * The dashboard under the headline only slides up; it never fades. Its small
+ * grey print is readable at full strength, and half-faded it is not, so it
+ * is at full strength from the first frame.
+ */
+@keyframes vl-lift {
+  from {
+    transform: translateY(28px);
+  }
+  to {
+    transform: none;
+  }
+}
+.vl .vl-mock-ring[data-rise] {
+  animation-name: vl-lift;
+}
+
 /* --------------------------------- Buttons -------------------------------- */
 
 .vl-btn {

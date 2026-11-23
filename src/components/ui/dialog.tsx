@@ -84,7 +84,7 @@ export function Dialog({
       aria-labelledby={titleId}
       aria-describedby={description ? descriptionId : undefined}
       className={cn(
-        "m-0 mt-auto flex max-h-[92dvh] w-full max-w-none flex-col rounded-t-3xl border border-line bg-surface p-0 text-ink shadow-sheet",
+        "m-0 mt-auto flex max-h-[92dvh] w-full max-w-none flex-col rounded-t-3xl bg-surface p-0 text-ink shadow-sheet",
         "pb-[env(safe-area-inset-bottom)]",
         !sheet && "sm:m-auto sm:rounded-3xl sm:shadow-raised",
         !sheet && sizes[size],

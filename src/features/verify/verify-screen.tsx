@@ -291,19 +291,24 @@ export function VerifyScreen() {
             ))}
           </ol>
         </Card>
-        <Card>
-          <h2 className="text-xl">{v.receiptTitle}</h2>
-          <p className="mt-2 text-[0.95rem] text-muted">{v.receiptBody}</p>
-          <a
-            href={VERIFY_URL}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="mt-2 inline-flex min-h-11 items-center gap-2 font-medium text-brand-strong underline underline-offset-4"
-          >
-            <Icon name="shieldCheck" className="size-5" />
-            {v.openVerify}
-          </a>
-        </Card>
+        {/* One tap away: the separate verifier is for someone who already holds a receipt. */}
+        <details className="rounded-2xl border border-line bg-surface px-5 py-1 shadow-card">
+          <summary className="flex min-h-12 cursor-pointer items-center font-medium">
+            {v.receiptTitle}
+          </summary>
+          <div className="pb-4">
+            <p className="text-[0.95rem] text-muted">{v.receiptBody}</p>
+            <a
+              href={VERIFY_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-2 inline-flex min-h-11 items-center gap-2 font-medium text-brand-strong underline underline-offset-4"
+            >
+              <Icon name="shieldCheck" className="size-5" />
+              {v.openVerify}
+            </a>
+          </div>
+        </details>
       </div>
     </PageShell>
   );

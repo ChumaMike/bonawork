@@ -108,23 +108,29 @@ Motion is short (≤ 300 ms) and only for entering (toasts, sheets) and progress
 (ring, shimmer). `prefers-reduced-motion: reduce` zeroes every animation and
 transition globally; components use `motion-safe:` for anything animated.
 
-## Pattern
+## Page shell
 
-`<Pattern>` draws a stepped-pyramid-and-chevron tile with straight lines only,
-in the spirit of Ndebele wall painting and Basotho blanket borders. It is
-original work, not a tracing. Variants:
+Every page under the landing page is drawn with `<PageShell>`
+(`ui/page.tsx`, styles in `ui/page-shell.css`), in the landing page's own
+language (`src/features/landing/vellure/vellure.css`):
 
-| Variant    | Where                                 | Size / opacity   |
-| ---------- | ------------------------------------- | ---------------- |
-| `band`     | Top edge of the header                | 8 px, full       |
-| `divider`  | Between major sections, top of footer | 16 px, 60 %      |
-| `corner`   | Top-right of a hero, faded            | 160–224 px, 20 % |
-| `backdrop` | Behind an empty state or placeholder  | cover, 7 %       |
+- a navy band, shorter than the landing hero, with a small label chip, the
+  page's one `h1`, a sentence, and the page's main control where it has one
+  (the search on `/issues` and `/schools`, the reference field on `/track`);
+- the landing page's top bar over it, solid once the page is scrolled;
+- one content width, 1120 px (`page-wrap`); a form or a reading page centres a
+  720 px column inside it (`width="narrow"`, `page-narrow`);
+- the landing page's footer.
 
-Use at most one per screen region. Never behind running text. The same tile is
-at `public/pattern/bona-pattern.svg`. If a reference pattern is dropped into
-`public/pattern/pattern_reference.png`, redraw the tile from it rather than
-embedding the bitmap.
+`/sign-in` has no band: its top bar is solid and the page is two panels.
+A page that loads its title uses `<PageLoading>` meanwhile, so the band keeps
+its height. The earlier geometric pattern (`<Pattern>`) is no longer used; its
+tile stays at `public/pattern/bona-pattern.svg`.
+
+Cards are white with a hairline and a soft shadow (`shadow-card`). A message
+on the page (`Notice`, `Alert`, a toast) is a white card whose tone is carried
+by a small icon tile: no large tinted areas, no dashed boxes, no coloured
+edge.
 
 ## Components
 
@@ -137,12 +143,11 @@ embedding the bitmap.
 | `Alert`                                                           | `ui/alert.tsx`                         | On-page message; `live` for errors after an action                    |
 | `toast()`, `ToastRegion`                                          | `ui/toast.tsx`                         | Passing message; the region is mounted once in the layout             |
 | `Stepper`                                                         | `ui/stepper.tsx`                       | Labels always visible; `aria-current="step"`                          |
-| `EmptyState`                                                      | `ui/empty-state.tsx`                   | Pattern + photo or icon + one action                                  |
+| `EmptyState`                                                      | `ui/empty-state.tsx`                   | Soft grey card, photo or icon, one action                             |
 | `Skeleton`, `SkeletonGroup`, `SkeletonCard`                       | `ui/skeleton.tsx`                      | Group announces "Loading…" once                                       |
 | `Dialog`, `BottomSheet`                                           | `ui/dialog.tsx`, `ui/bottom-sheet.tsx` | Native `<dialog>`; sheet on phones                                    |
 | `Avatar`                                                          | `ui/avatar.tsx`                        | Initials; decorative beside a name                                    |
 | `ProgressRing`                                                    | `ui/progress-ring.tsx`                 | `role="progressbar"` with a label                                     |
-| `Pattern`                                                         | `ui/pattern.tsx`                       | See above                                                             |
 | `Photo`, `PhotoPlaceholder`                                       | `media/photo.tsx`                      | See `docs/design/IMAGES.md`                                           |
 | `Logo`, `SiteHeader`, `BottomNav`, `SiteFooter`, `SchoolContext`  | `chrome.tsx`                           | Render `<SchoolContext id name>` inside a school page                 |
 
