@@ -14,6 +14,7 @@ import {
   type Instruction,
 } from "@solana/kit";
 import {
+  getRequestHeapFrameInstruction,
   getSetComputeUnitLimitInstruction,
   getSetComputeUnitPriceInstruction,
 } from "@solana-program/compute-budget";
@@ -30,11 +31,16 @@ import {
   findEscrowAddresses,
   findReviewerPda,
   getClaimTrancheInstruction,
+  getRefundExpiredInstruction,
   getReleaseTrancheInstruction,
   getVerifyTrancheInstruction,
   type EscrowAddresses,
   type VerifyTrancheArgs,
 } from "../program";
+import {
+  MAX_COMPUTE_UNIT_LIMIT,
+  MAX_COMPUTE_UNIT_PRICE_MICRO_LAMPORTS,
+} from "./compute-budget";
 import { decodeTransaction } from "./decode";
 import { describeTransaction } from "./describe";
 import {
@@ -122,6 +128,60 @@ describe("checkVerifyTransaction", () => {
     const result = await checkVerifyTransaction(tx, expected());
     expect(result.findings).toEqual([]);
     expect(result.ok).toBe(true);
+  });
+
+  it("accepts the compute budget exactly at the caps", async () => {
+    const tx = wire(feePayer, [
+      getSetComputeUnitLimitInstruction({ units: MAX_COMPUTE_UNIT_LIMIT }),
+      getSetComputeUnitPriceInstruction({
+        microLamports: BigInt(MAX_COMPUTE_UNIT_PRICE_MICRO_LAMPORTS),
+      }),
+      verifyIx(),
+    ]);
+    expect((await checkVerifyTransaction(tx, expected())).ok).toBe(true);
+  });
+
+  it("REJECTS two priority-fee instructions", async () => {
+    const tx = wire(feePayer, [
+      getSetComputeUnitPriceInstruction({ microLamports: BigInt(1) }),
+      getSetComputeUnitPriceInstruction({ microLamports: BigInt(2) }),
+      verifyIx(),
+    ]);
+    const result = await checkVerifyTransaction(tx, expected());
+    expect(result.ok).toBe(false);
+    expect(codes(result)).toEqual(["DUPLICATE_COMPUTE_BUDGET"]);
+  });
+
+  it("REJECTS a huge priority fee or compute limit", async () => {
+    const price = await checkVerifyTransaction(
+      wire(feePayer, [
+        getSetComputeUnitPriceInstruction({ microLamports: BigInt(5_000_000_000) }),
+        verifyIx(),
+      ]),
+      expected(),
+    );
+    expect(price.ok).toBe(false);
+    expect(codes(price)).toEqual(["PRIORITY_FEE_TOO_HIGH"]);
+    expect(price.findings[0].message).toMatch(/1 000 000 000 lamports \(1 SOL\)/);
+
+    const limit = await checkVerifyTransaction(
+      wire(feePayer, [
+        getSetComputeUnitLimitInstruction({ units: MAX_COMPUTE_UNIT_LIMIT + 1 }),
+        verifyIx(),
+      ]),
+      expected(),
+    );
+    expect(codes(limit)).toEqual(["COMPUTE_LIMIT_TOO_HIGH"]);
+  });
+
+  it("REJECTS any other compute budget instruction", async () => {
+    const tx = wire(feePayer, [
+      getRequestHeapFrameInstruction({ bytes: 64 * 1024 }),
+      verifyIx(),
+    ]);
+    const result = await checkVerifyTransaction(tx, expected());
+    expect(result.ok).toBe(false);
+    expect(codes(result)).toEqual(["UNEXPECTED_COMPUTE_BUDGET"]);
   });
 
   it("accepts wire bytes as well as base64", async () => {
@@ -356,14 +416,44 @@ describe("decodeTransaction and describeTransaction", () => {
     expect(ix.args).toEqual(goodArgs());
   });
 
-  it("describes a verify in plain words, using on-chain data passed in", () => {
-    const lines = describeTransaction(wire(feePayer, [verifyIx()]), {
+  it("describes a verify in plain words, using on-chain data passed in", async () => {
+    const lines = await describeTransaction(wire(feePayer, [verifyIx()]), {
       tranches: { [ids.tranche1]: tranche1 },
       escrows: { [ids.escrow]: escrow },
     });
-    expect(lines).toHaveLength(1);
+    expect(lines).toHaveLength(2);
     expect(lines[0]).toMatch(
       /^No money moves now\. This starts a 60-second challenge window for tranche 2 \(R3 000\.00\)\./,
+    );
+    expect(lines[1]).toBe("No priority fee is set. Only the base network fee applies.");
+  });
+
+  it("states the maximum priority fee in lamports and SOL", async () => {
+    const lines = await describeTransaction(
+      wire(feePayer, [
+        getSetComputeUnitLimitInstruction({ units: 200_000 }),
+        getSetComputeUnitPriceInstruction({ microLamports: BigInt(50_000) }),
+        verifyIx(),
+      ]),
+    );
+    expect(lines[0]).toBe("Sets the compute limit to 200000 units. No money moves.");
+    expect(lines[1]).toMatch(/priority fee of 50000 micro-lamports per compute unit/);
+    // 200 000 units x 50 000 micro-lamports = 10 000 lamports.
+    expect(lines[3]).toMatch(
+      /^Maximum priority fee: 10 000 lamports \(0\.00001 SOL\), paid by /,
+    );
+  });
+
+  it("assumes the network default limit when only a price is set", async () => {
+    const lines = await describeTransaction(
+      wire(feePayer, [
+        getSetComputeUnitPriceInstruction({ microLamports: BigInt(1_000) }),
+        verifyIx(),
+      ]),
+    );
+    // One working instruction: 200 000 units x 1 000 micro-lamports = 200 lamports.
+    expect(lines.at(-1)).toMatch(
+      /^Maximum priority fee: 200 lamports \(0\.0000002 SOL\)/,
     );
   });
 
@@ -376,27 +466,79 @@ describe("decodeTransaction and describeTransaction", () => {
       amount: BigInt(300_000),
       decimals: 2,
     });
-    const lines = describeTransaction(wire(feePayer, [verifyIx(), theft]));
+    const lines = await describeTransaction(wire(feePayer, [verifyIx(), theft]));
     expect(lines[0]).toMatch(/challenge window for the payment stage at/);
     expect(lines[1]).toMatch(/^Moves R3 000\.00 from .+ to .+\.$/);
   });
 
-  it("describes a release without data as best it can", async () => {
-    const release = getReleaseTrancheInstruction({
+  const fullEscrow = { challengeSeconds: 60, contractor, funder, mint } as EscrowAccount;
+
+  async function release(owner: Address, tokenOwner: Address) {
+    return getReleaseTrancheInstruction({
       caller: feePayer,
       escrow: ids.escrow,
       tranche: ids.tranche0,
       vault: ids.vault,
       mint,
-      contractor,
-      contractorAta: await findAssociatedTokenAddress(contractor, mint),
+      contractor: owner,
+      contractorAta: await findAssociatedTokenAddress(tokenOwner, mint),
     });
-    const [line] = describeTransaction(wire(feePayer, [release]), {
-      escrows: { [ids.escrow]: escrow },
-    });
-    expect(line).toMatch(
-      /^Pays the payment stage at .+ from the escrow vault to the contractor/,
+  }
+
+  it("release: confirms the contractor's own token account", async () => {
+    const [line] = await describeTransaction(
+      wire(feePayer, [await release(contractor, contractor)]),
+      { escrows: { [ids.escrow]: fullEscrow } },
     );
+    expect(line).toMatch(/^Pays the payment stage at .+ from the escrow vault\./);
+    expect(line).toMatch(/That is the contractor's own token account\./);
+    expect(line).toMatch(/The program checks the recipient against the escrow\./);
+    expect(line).not.toMatch(/WARNING|Nobody can change/);
+  });
+
+  it("release: warns when the token account is not the contractor's", async () => {
+    const [redirected] = await describeTransaction(
+      wire(feePayer, [await release(contractor, attacker)]),
+      { escrows: { [ids.escrow]: fullEscrow } },
+    );
+    expect(redirected).toMatch(
+      /WARNING: This sends money to an account that is NOT the contractor's/,
+    );
+    const [wrongOwner] = await describeTransaction(
+      wire(feePayer, [await release(attacker, attacker)]),
+      { escrows: { [ids.escrow]: fullEscrow } },
+    );
+    expect(wrongOwner).toMatch(/NOT the contractor's/);
+  });
+
+  it("release without escrow data says it could not compare", async () => {
+    const [line] = await describeTransaction(
+      wire(feePayer, [await release(contractor, contractor)]),
+    );
+    expect(line).toMatch(/could not be compared with the escrow's contractor/);
     expect(DEFAULT_PUBKEY).toBe("11111111111111111111111111111111");
+  });
+
+  it("refund: checks the funder's token account, match and mismatch", async () => {
+    const refund = async (tokenOwner: Address) =>
+      getRefundExpiredInstruction({
+        caller: feePayer,
+        escrow: ids.escrow,
+        tranche: ids.tranche0,
+        vault: ids.vault,
+        mint,
+        funder,
+        funderAta: await findAssociatedTokenAddress(tokenOwner, mint),
+      });
+    const ctx = { escrows: { [ids.escrow]: fullEscrow } };
+    const [good] = await describeTransaction(wire(feePayer, [await refund(funder)]), ctx);
+    expect(good).toMatch(/That is the funder's own token account\./);
+    const [bad] = await describeTransaction(
+      wire(feePayer, [await refund(attacker)]),
+      ctx,
+    );
+    expect(bad).toMatch(
+      /WARNING: This sends money to an account that is NOT the funder's/,
+    );
   });
 });

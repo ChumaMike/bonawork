@@ -3,7 +3,6 @@
  * passes only if it does exactly the one thing the signer agreed to and nothing else.
  */
 import { isSignerRole, isWritableRole, type Address } from "@solana/kit";
-import { ComputeBudgetInstruction } from "@solana-program/compute-budget";
 
 import type { EscrowAccount } from "../accounts";
 import { bytesEqual, type Bytes32 } from "../borsh";
@@ -16,6 +15,12 @@ import {
   type BonaInstructionName,
   type VerifyTrancheArgs,
 } from "../program";
+import {
+  formatLamports,
+  MAX_COMPUTE_UNIT_LIMIT,
+  MAX_COMPUTE_UNIT_PRICE_MICRO_LAMPORTS,
+  summarizeComputeBudget,
+} from "./compute-budget";
 import {
   decodeTransaction,
   GuardianDecodeError,
@@ -32,6 +37,9 @@ export type FindingCode =
   | "TOKEN_PROGRAM_CALLED"
   | "UNEXPECTED_PROGRAM"
   | "UNEXPECTED_COMPUTE_BUDGET"
+  | "DUPLICATE_COMPUTE_BUDGET"
+  | "COMPUTE_LIMIT_TOO_HIGH"
+  | "PRIORITY_FEE_TOO_HIGH"
   | "WRONG_INSTRUCTION_COUNT"
   | "WRONG_INSTRUCTION"
   | "MALFORMED_INSTRUCTION"
@@ -79,10 +87,38 @@ export type ReleaseExpectation = {
   escrowAccount: Pick<EscrowAccount, "contractor" | "mint">;
 };
 
-const ALLOWED_COMPUTE_BUDGET = new Set<string>([
-  ComputeBudgetInstruction[ComputeBudgetInstruction.SetComputeUnitLimit],
-  ComputeBudgetInstruction[ComputeBudgetInstruction.SetComputeUnitPrice],
-]);
+/** At most one limit and one price, both under the caps, and no other budget instruction. */
+function checkComputeBudget(
+  decoded: DecodedTransaction,
+  add: (code: FindingCode, message: string) => void,
+) {
+  const budget = summarizeComputeBudget(decoded);
+  for (const ix of budget.other) {
+    add(
+      "UNEXPECTED_COMPUTE_BUDGET",
+      `Instruction ${ix.index + 1} changes the fee budget in a way that is not allowed (${ix.name ?? "unreadable"}).`,
+    );
+  }
+  if (budget.unitLimits.length > 1) {
+    add("DUPLICATE_COMPUTE_BUDGET", "The compute limit is set more than once.");
+  }
+  if (budget.unitPrices.length > 1) {
+    add("DUPLICATE_COMPUTE_BUDGET", "The priority fee is set more than once.");
+  }
+  if (budget.unitLimits.some((u) => u > MAX_COMPUTE_UNIT_LIMIT)) {
+    add(
+      "COMPUTE_LIMIT_TOO_HIGH",
+      `The compute limit is above ${MAX_COMPUTE_UNIT_LIMIT} units, which this step never needs.`,
+    );
+  }
+  if (budget.unitPrices.some((p) => p > BigInt(MAX_COMPUTE_UNIT_PRICE_MICRO_LAMPORTS))) {
+    add(
+      "PRIORITY_FEE_TOO_HIGH",
+      `The priority fee is above ${MAX_COMPUTE_UNIT_PRICE_MICRO_LAMPORTS} micro-lamports per unit. ` +
+        `It could cost up to ${formatLamports(budget.maxPriorityFeeLamports)}.`,
+    );
+  }
+}
 
 /** Checks a transaction the reviewer is about to sign to verify one tranche. */
 export async function checkVerifyTransaction(
@@ -184,12 +220,7 @@ function checkSingleInstruction(
     if (ix.program === "BonaWork") {
       ours.push(ix);
     } else if (ix.program === "Compute Budget") {
-      if (!ix.name || !ALLOWED_COMPUTE_BUDGET.has(ix.name)) {
-        add(
-          "UNEXPECTED_COMPUTE_BUDGET",
-          `Instruction ${ix.index + 1} changes the fee budget in an unusual way.`,
-        );
-      }
+      continue; // Checked as a whole below.
     } else if (ix.program === "SPL Token") {
       add(
         "TOKEN_PROGRAM_CALLED",
@@ -204,6 +235,8 @@ function checkSingleInstruction(
       );
     }
   }
+
+  checkComputeBudget(decoded, add);
 
   if (ours.length !== 1) {
     add(

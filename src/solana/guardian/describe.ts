@@ -11,11 +11,13 @@ import {
 import type { EscrowAccount, TrancheAccount } from "../accounts";
 import {
   DisputeOutcome,
+  findAssociatedTokenAddress,
   formatRand,
   MINT_DECIMALS,
   type BonaInstructionArgs,
   type BonaInstructionName,
 } from "../program";
+import { formatLamports, summarizeComputeBudget } from "./compute-budget";
 import {
   decodeTransaction,
   type DecodedInstruction,
@@ -31,16 +33,37 @@ export type DescribeContext = {
   escrows?: Record<string, EscrowAccount>;
 };
 
-export function describeTransaction(
+/**
+ * One line per instruction, then one line with the most the fee payer can be
+ * charged as a priority fee. Async because recipient token accounts are re-derived.
+ */
+export async function describeTransaction(
   tx: TransactionInput | DecodedTransaction,
   context: DescribeContext = {},
-): string[] {
+): Promise<string[]> {
   const decoded =
     typeof tx === "string" || tx instanceof Uint8Array ? decodeTransaction(tx) : tx;
-  return decoded.instructions.map((ix) => describeInstruction(ix, context));
+  const lines = await Promise.all(
+    decoded.instructions.map((ix) => describeInstruction(ix, context)),
+  );
+  return [...lines, describePriorityFee(decoded)];
 }
 
-function describeInstruction(ix: DecodedInstruction, ctx: DescribeContext): string {
+function describePriorityFee(decoded: DecodedTransaction): string {
+  const { maxPriorityFeeLamports } = summarizeComputeBudget(decoded);
+  if (maxPriorityFeeLamports === BigInt(0)) {
+    return "No priority fee is set. Only the base network fee applies.";
+  }
+  return (
+    `Maximum priority fee: ${formatLamports(maxPriorityFeeLamports)}, ` +
+    `paid by ${short(decoded.feePayer)} on top of the base network fee.`
+  );
+}
+
+async function describeInstruction(
+  ix: DecodedInstruction,
+  ctx: DescribeContext,
+): Promise<string> {
   switch (ix.program) {
     case "BonaWork":
       if (!ix.name || ix.decodeError)
@@ -49,7 +72,7 @@ function describeInstruction(ix: DecodedInstruction, ctx: DescribeContext): stri
     case "SPL Token":
       return describeToken(ix);
     case "Compute Budget":
-      return "Sets the network fee budget. No money moves.";
+      return describeComputeBudget(ix);
     case "Associated Token":
       return "Creates a token account if it does not exist yet. The fee payer covers its rent.";
     case "System":
@@ -63,23 +86,18 @@ function account(ix: DecodedInstruction, name: string): Address | undefined {
   return ix.accounts.find((a) => a.name === name)?.address;
 }
 
-function trancheLabel(
-  ix: DecodedInstruction,
-  ctx: DescribeContext,
-): { label: string; amount?: bigint } {
+function trancheLabel(ix: DecodedInstruction, ctx: DescribeContext): string {
   const address = account(ix, "tranche");
   const data = address ? ctx.tranches?.[address] : undefined;
   if (!data)
-    return {
-      label: address ? `the payment stage at ${short(address)}` : "a payment stage",
-    };
-  return {
-    label: `tranche ${data.index + 1} (${formatRand(data.amount)})`,
-    amount: data.amount,
-  };
+    return address ? `the payment stage at ${short(address)}` : "a payment stage";
+  return `tranche ${data.index + 1} (${formatRand(data.amount)})`;
 }
 
-function describeBona(ix: DecodedInstruction, ctx: DescribeContext): string {
+async function describeBona(
+  ix: DecodedInstruction,
+  ctx: DescribeContext,
+): Promise<string> {
   const name = ix.name as BonaInstructionName;
   const tranche = trancheLabel(ix, ctx);
   const escrowAddress = account(ix, "escrow");
@@ -92,33 +110,35 @@ function describeBona(ix: DecodedInstruction, ctx: DescribeContext): string {
         ? `a ${escrow.challengeSeconds}-second challenge window`
         : "the challenge window";
       return (
-        `No money moves now. This starts ${window} for ${tranche.label}. ` +
+        `No money moves now. This starts ${window} for ${tranche}. ` +
         `It approves evidence revision ${args.expectedRevision} only.`
       );
     }
     case "claim_tranche": {
       const args = ix.args as BonaInstructionArgs["claim_tranche"];
       return (
-        `No money moves now. The contractor says the work for ${tranche.label} is done ` +
+        `No money moves now. The contractor says the work for ${tranche} is done ` +
         `(evidence revision ${args.expectedRevision + 1}). An independent reviewer still has to check it.`
       );
     }
     case "open_dispute":
-      return `No money moves now. This freezes ${tranche.label} until the dispute is settled.`;
+      return `No money moves now. This freezes ${tranche} until the dispute is settled.`;
     case "resolve_dispute": {
       const args = ix.args as BonaInstructionArgs["resolve_dispute"];
-      return args.outcome === DisputeOutcome.Refund
-        ? `Returns ${tranche.label} from the escrow vault to the funder.`
-        : `No money moves now. This sends ${tranche.label} back for a fresh independent review.`;
+      if (args.outcome !== DisputeOutcome.Refund) {
+        return `No money moves now. This sends ${tranche} back for a fresh independent review.`;
+      }
+      return `Returns ${tranche} from the escrow vault. ${await describeRecipient(ix, escrow, "funder")}`;
     }
-    case "release_tranche": {
-      const to = escrow ? ` (${short(escrow.contractor)})` : "";
-      return `Pays ${tranche.label} from the escrow vault to the contractor${to}. Nobody can change the amount or the recipient.`;
-    }
+    case "release_tranche":
+      return `Pays ${tranche} from the escrow vault. ${await describeRecipient(ix, escrow, "contractor")}`;
     case "refund_expired":
-      return `Returns ${tranche.label} from the escrow vault to the funder.`;
+      return `Returns ${tranche} from the escrow vault. ${await describeRecipient(ix, escrow, "funder")}`;
     case "cancel_unfunded":
-      return "Cancels an escrow that missed its funding deadline. Whatever reached the vault goes back to the funder.";
+      return (
+        "Cancels an escrow that missed its funding deadline and returns whatever reached the vault. " +
+        (await describeRecipient(ix, escrow, "funder"))
+      );
     case "activate_funding":
       return "No money moves. This marks the escrow as funded, once the vault holds the full amount.";
     case "create_escrow": {
@@ -142,6 +162,58 @@ function describeBona(ix: DecodedInstruction, ctx: DescribeContext): string {
     case "initialize_config":
       return "Sets up the BonaWork program settings. No money moves.";
   }
+}
+
+/**
+ * Names the token account the instruction actually pays and compares it with the
+ * canonical token account of the escrow's contractor or funder for the escrow's mint.
+ */
+async function describeRecipient(
+  ix: DecodedInstruction,
+  escrow: EscrowAccount | undefined,
+  role: "contractor" | "funder",
+): Promise<string> {
+  const owner = account(ix, role);
+  const tokenAccount = account(ix, `${role}Ata`);
+  const mint = account(ix, "mint");
+  const sentence =
+    `The money goes to token account ${maybeShort(tokenAccount)}, ` +
+    `listed as belonging to ${maybeShort(owner)}.`;
+  if (!escrow) {
+    return (
+      `${sentence} The escrow data was not provided, so this could not be compared with ` +
+      `the escrow's ${role}. The program checks the recipient against the escrow.`
+    );
+  }
+  const expectedOwner = role === "contractor" ? escrow.contractor : escrow.funder;
+  const expectedAccount = await findAssociatedTokenAddress(expectedOwner, escrow.mint);
+  if (
+    owner !== expectedOwner ||
+    tokenAccount !== expectedAccount ||
+    mint !== escrow.mint
+  ) {
+    return (
+      `${sentence} WARNING: This sends money to an account that is NOT the ${role}'s ` +
+      `(expected ${short(expectedAccount)}, owned by ${short(expectedOwner)}). Do not sign.`
+    );
+  }
+  return (
+    `${sentence} That is the ${role}'s own token account. ` +
+    "The program checks the recipient against the escrow."
+  );
+}
+
+function describeComputeBudget(ix: DecodedInstruction): string {
+  const { unitPrices, unitLimits } = summarizeComputeBudget({
+    instructions: [ix],
+  } as DecodedTransaction);
+  if (unitPrices.length === 1) {
+    return `Sets a priority fee of ${unitPrices[0]} micro-lamports per compute unit. No tokens move.`;
+  }
+  if (unitLimits.length === 1) {
+    return `Sets the compute limit to ${unitLimits[0]} units. No money moves.`;
+  }
+  return `Changes the fee budget in an unusual way (${ix.name ?? "unreadable"}).`;
 }
 
 function describeToken(ix: DecodedInstruction): string {

@@ -5,3 +5,4 @@ export { BorshReader, BorshWriter, bytesEqual, toHex, type Bytes32 } from "./bor
 export * from "./guardian/decode";
 export * from "./guardian/policy";
 export * from "./guardian/describe";
+export * from "./guardian/compute-budget";
