@@ -80,24 +80,24 @@ export const landingPage = {
     photoNote: "An independent check",
     cards: [
       {
-        value: "3",
-        title: "smart contracts",
-        body: "A factory, plus an Operations and a Finance contract for each institution.",
+        value: "1",
+        title: "Anchor program on Solana devnet",
+        body: "Each repair gets an escrow of sandbox rand, released in two stages after independent review.",
       },
       {
         value: "7",
         title: "roles",
-        body: "Each role signs its own steps with its own key. Nobody verifies their own work.",
+        body: "Each role does its own steps. Nobody verifies their own work.",
       },
     ],
-    /** The drawing on the "3 smart contracts" card. */
+    /** The drawing on the "1 Anchor program" card: one escrow, two stages, a check between. */
     contracts: {
-      factory: "Factory",
-      factoryNote: "Sets up each school",
-      operations: "Operations",
-      operationsNote: "Reports, orders, delivery",
-      finance: "Finance",
-      financeNote: "Release instruction",
+      factory: "Escrow",
+      factoryNote: "Holds the sandbox rand",
+      operations: "Materials",
+      operationsNote: "Stage 1",
+      finance: "Completion",
+      financeNote: "Stage 2",
       gate: "Verified?",
     },
     /** The drawing on the "7 roles" card, in the order a case meets them. */
@@ -181,7 +181,7 @@ export const landingPage = {
         body: "A reviewer who does not work for the school visits, answers three questions and writes a public note.",
         points: [
           "Only a reviewer can mark a repair as verified",
-          "The contract will not let the school's own account also be its reviewer",
+          "The escrow will not take the school as its own reviewer",
           "A repair stays “Repair claimed” until it is checked",
         ],
         action: "Sign in",
@@ -249,9 +249,9 @@ export const landingPage = {
         body: "Run before every change is accepted.",
       },
       {
-        value: "180",
-        title: "smart contract tests",
-        body: "Including every refusal: the wrong role, the early release, the mismatch.",
+        value: "24",
+        title: "program tests",
+        body: "On the Anchor program, including every refusal: the wrong signer, the early release, the mismatch.",
       },
       {
         value: "6",
@@ -355,7 +355,7 @@ export const landingPage = {
       },
       {
         q: "Who is the independent reviewer?",
-        a: "Someone who does not work for the school or the supplier, with their own role and their own key. The contract will not let the school's own account also be its reviewer.",
+        a: "Someone who does not work for the school or the supplier, with their own role and their own key. The escrow program refuses a reviewer who is also the school, the funder or the contractor.",
       },
       {
         q: "What can the public see?",

@@ -226,8 +226,8 @@ export function StartHere() {
 type AboutMessages = ReturnType<typeof getMessages>["landingPage"]["about"];
 
 /**
- * The three contracts: a factory that sets up the other two, and a check
- * that must pass before the Finance side can act. A drawing: the card's own
+ * One escrow and its two payment stages, with the independent check
+ * that must pass before a stage is released. A drawing: the card's own
  * words say the same thing to a screen reader.
  */
 function ContractsDrawing({ c }: { c: AboutMessages["contracts"] }) {

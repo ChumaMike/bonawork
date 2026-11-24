@@ -926,10 +926,10 @@ export const en = {
       action: "Try to verify this repair",
       refusedTitle: "Refused. A school cannot verify its own repair.",
       refusedBody:
-        "The blockchain contract only accepts a verification from an independent reviewer. Nothing was changed.",
-      reason: "Contract answer",
+        "The program only accepts a verification from an independent reviewer. Nothing was changed.",
+      reason: "Program answer",
       yourRole: "Your role on the ledger",
-      sample: "Preview: this answer comes from sample data. No contract was called.",
+      sample: "Preview: this answer comes from sample data. Solana was not asked.",
       allowed: "Your role is allowed to verify this repair.",
     },
     probeHelp:

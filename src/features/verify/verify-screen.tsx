@@ -16,8 +16,11 @@ import type { DigestMatch, LedgerRecord } from "@/data/types";
 import { useMessages } from "@/i18n";
 import { type Hex32, SOLANA_CHAINS } from "@/shared";
 
-/** The separate verifier. It reads Solana itself and never calls this app. */
-const VERIFY_URL = process.env.NEXT_PUBLIC_VERIFY_URL || "https://bona-verify.vercel.app";
+/**
+ * A separate verifier that reads Solana itself and never calls this app. The
+ * earlier verifier in `verifier/` reads EVM chains only, so there is no default.
+ */
+const VERIFY_URL = process.env.NEXT_PUBLIC_VERIFY_URL || null;
 
 /** Solana devnet. Anything else is a sample. */
 const PUBLIC_CHAINS = new Set<string>(Object.values(SOLANA_CHAINS));
@@ -291,24 +294,27 @@ export function VerifyScreen() {
             ))}
           </ol>
         </Card>
-        {/* One tap away: the separate verifier is for someone who already holds a receipt. */}
-        <details className="rounded-2xl border border-line bg-surface px-5 py-1 shadow-card">
-          <summary className="flex min-h-12 cursor-pointer items-center font-medium">
-            {v.receiptTitle}
-          </summary>
-          <div className="pb-4">
-            <p className="text-[0.95rem] text-muted">{v.receiptBody}</p>
-            <a
-              href={VERIFY_URL}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="mt-2 inline-flex min-h-11 items-center gap-2 font-medium text-brand-strong underline underline-offset-4"
-            >
-              <Icon name="shieldCheck" className="size-5" />
-              {v.openVerify}
-            </a>
-          </div>
-        </details>
+        {/* One tap away: the separate verifier is for someone who already holds a receipt.
+            Shown only when a Solana-capable verifier is configured: the old one reads EVM only. */}
+        {VERIFY_URL ? (
+          <details className="rounded-2xl border border-line bg-surface px-5 py-1 shadow-card">
+            <summary className="flex min-h-12 cursor-pointer items-center font-medium">
+              {v.receiptTitle}
+            </summary>
+            <div className="pb-4">
+              <p className="text-[0.95rem] text-muted">{v.receiptBody}</p>
+              <a
+                href={VERIFY_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="mt-2 inline-flex min-h-11 items-center gap-2 font-medium text-brand-strong underline underline-offset-4"
+              >
+                <Icon name="shieldCheck" className="size-5" />
+                {v.openVerify}
+              </a>
+            </div>
+          </details>
+        ) : null}
       </div>
     </PageShell>
   );
