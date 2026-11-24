@@ -89,6 +89,10 @@ const EnvSchema = z
      */
     AI_MODE: z.enum(["auto", "off"]).default("auto"),
     AI_MODEL: z.string().min(1).default("google/gemini-2.5-flash-lite"),
+
+    /* Price check */
+    /** Firecrawl key for the invoice price check. Without it every line is `unavailable`. */
+    FIRECRAWL_API_KEY: z.string().min(1).optional(),
   })
   .refine(
     (e) => {
