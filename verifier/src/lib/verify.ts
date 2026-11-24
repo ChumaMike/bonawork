@@ -47,7 +47,7 @@ export const FINANCE_EVENTS = [
 export const REGISTRY_EVENTS = [...OPERATIONS_EVENTS, ...FINANCE_EVENTS] as const;
 export type RegistryEvent = (typeof REGISTRY_EVENTS)[number];
 
-/** The two kinds of contract the Bona Chain factory creates for an institution. */
+/** The two kinds of contract the BonaWork factory creates for an institution. */
 export type ContractKind = "operations" | "finance";
 
 /** The kind of contract that emits an event. */
@@ -342,7 +342,7 @@ export async function verify(
     push(
       "receipt",
       "fail",
-      `The receipt is not in Bona Chain's receipt format. ${problems}.`,
+      `The receipt is not in BonaWork's receipt format. ${problems}.`,
     );
     return finish("REJECTED", "The receipt could not be read, so nothing was checked.");
   }
@@ -446,7 +446,7 @@ export async function verify(
         push(
           "contract",
           "fail",
-          `The receipt names ${contract}, the earlier BonaRegistry. That contract records no finance steps: a ${receipt.event} record can only come from an InstitutionFinance contract created by the Bona Chain factory.`,
+          `The receipt names ${contract}, the earlier BonaRegistry. That contract records no finance steps: a ${receipt.event} record can only come from an InstitutionFinance contract created by the BonaWork factory.`,
         );
         return finish(
           "REJECTED",
@@ -523,11 +523,11 @@ export async function verify(
       push(
         "contract",
         "fail",
-        `Could not ask the Bona Chain factory at ${expectedFactory} about ${contract}: ${errorMessage(error)}. No claim is made either way.`,
+        `Could not ask the BonaWork factory at ${expectedFactory} about ${contract}: ${errorMessage(error)}. No claim is made either way.`,
       );
       return finish(
         "CANNOT_VERIFY",
-        "The Bona Chain factory could not be read. Try again later.",
+        "The BonaWork factory could not be read. Try again later.",
       );
     }
     const kind: ContractKind | null =
@@ -536,19 +536,16 @@ export async function verify(
       push(
         "contract",
         "fail",
-        `The Bona Chain factory at ${expectedFactory} did not create ${contract}. Anyone can deploy a contract that emits look-alike events, so a contract the factory does not know is rejected.`,
+        `The BonaWork factory at ${expectedFactory} did not create ${contract}. Anyone can deploy a contract that emits look-alike events, so a contract the factory does not know is rejected.`,
       );
-      return finish(
-        "REJECTED",
-        "This contract was not created by the Bona Chain factory.",
-      );
+      return finish("REJECTED", "This contract was not created by the BonaWork factory.");
     }
     facts.contractKind = kind;
     if (kind !== family) {
       push(
         "contract",
         "fail",
-        `The Bona Chain factory created ${contract} as an ${KIND_CONTRACT[kind]} contract, but a ${receipt.event} record can only come from an ${KIND_CONTRACT[family]} contract.`,
+        `The BonaWork factory created ${contract} as an ${KIND_CONTRACT[kind]} contract, but a ${receipt.event} record can only come from an ${KIND_CONTRACT[family]} contract.`,
       );
       return finish(
         "REJECTED",
@@ -558,7 +555,7 @@ export async function verify(
     push(
       "contract",
       "pass",
-      `The Bona Chain factory at ${expectedFactory} created ${contract} as an ${KIND_CONTRACT[kind]} contract, the kind that records ${receipt.event}.`,
+      `The BonaWork factory at ${expectedFactory} created ${contract} as an ${KIND_CONTRACT[kind]} contract, the kind that records ${receipt.event}.`,
     );
   }
 

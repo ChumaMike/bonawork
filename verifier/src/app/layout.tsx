@@ -2,7 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Inter_Tight } from "next/font/google";
 import "./globals.css";
 
-/* The same face as the Bona Chain app, so the verifier reads as one product. */
+/* The same face as the BonaWork app, so the verifier reads as one product. */
 const body = Inter_Tight({
   variable: "--font-body",
   subsets: ["latin", "latin-ext"],
@@ -15,9 +15,9 @@ const display = Inter_Tight({
 });
 
 export const metadata: Metadata = {
-  title: "Bona Chain Verify",
+  title: "BonaWork Verify",
   description:
-    "Independently check that a Bona Chain receipt matches the evidence you hold, by reading the Avalanche network directly.",
+    "Independently check that a BonaWork receipt matches the evidence you hold, by reading the Avalanche network directly.",
 };
 
 export const viewport: Viewport = {

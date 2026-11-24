@@ -51,7 +51,7 @@ export async function GET(): Promise<Response> {
         chainId: config.chainId,
         expectedContractAddress: config.expectedContractAddress ?? null,
         expectedFactoryAddress: config.expectedFactoryAddress ?? null,
-        note: "This tool talks only to the Avalanche network. Bona Chain's servers are not involved.",
+        note: "This tool talks only to the Avalanche network. BonaWork's servers are not involved.",
       },
       { headers: { "Cache-Control": "no-store" } },
     );

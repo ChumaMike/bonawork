@@ -1,4 +1,4 @@
-// COPY of parts of contracts/abi/chain/finance.json and factory.json (Bona Chain, Avalanche Fuji).
+// COPY of parts of contracts/abi/chain/finance.json and factory.json (BonaWork, Avalanche Fuji).
 // The verifier deliberately does not import from the contracts or app packages:
 // it must not share code with the system it checks. Re-copy these entries
 // whenever the contract ABIs change; `bona-chain.test.ts` fails when they drift.

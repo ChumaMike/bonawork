@@ -71,7 +71,7 @@ export function VerifyApp({ trust }: { trust: Trust }) {
   if (opened === null) {
     return (
       <div className="min-h-72" aria-busy="true">
-        <p className="sr-only">Opening Bona Chain Verify</p>
+        <p className="sr-only">Opening BonaWork Verify</p>
       </div>
     );
   }
@@ -164,12 +164,12 @@ export function Landing({
         tabIndex={-1}
         className="text-2xl font-bold tracking-tight focus:outline-none sm:text-3xl"
       >
-        Scan the code on a Bona Chain record
+        Scan the code on a BonaWork record
       </h1>
       <p className="mt-3 text-muted">
-        Every Bona Chain record shows a square code. Point your phone&rsquo;s camera at
-        it, from another phone, a laptop or a printed receipt. This page then opens with
-        the record filled in.
+        Every BonaWork record shows a square code. Point your phone&rsquo;s camera at it,
+        from another phone, a laptop or a printed receipt. This page then opens with the
+        record filled in.
       </p>
 
       <div className="mt-6 flex flex-col items-center rounded-xl border-2 border-dashed border-brand bg-surface px-4 py-8 text-center">
@@ -206,7 +206,7 @@ export function Landing({
       </p>
 
       <p className="mt-5 text-center text-sm text-muted">
-        This site does not ask Bona Chain anything. It reads the {trust.network} itself.
+        This site does not ask BonaWork anything. It reads the {trust.network} itself.
       </p>
     </section>
   );

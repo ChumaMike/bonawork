@@ -24,7 +24,7 @@ const events = (abi: readonly Entry[]) =>
     .filter((entry) => entry.type === "event")
     .sort((a, b) => (a.name! < b.name! ? -1 : 1));
 
-describe("the verifier's copy of the Bona Chain ABIs", () => {
+describe("the verifier's copy of the BonaWork ABIs", () => {
   it("holds the eight InstitutionFinance events exactly as compiled", () => {
     expect(events(institutionFinanceEventsAbi)).toEqual(
       events(generated("finance.json")),

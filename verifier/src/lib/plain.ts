@@ -51,7 +51,7 @@ export const OUTCOME_GUIDE: { outcome: Overall; plain: string; means: string }[]
     outcome: "REJECTED",
     plain: "Cannot be checked here",
     means:
-      "the receipt is damaged, is for another network, or does not point to the Bona Chain contract.",
+      "the receipt is damaged, is for another network, or does not point to the BonaWork contract.",
   },
   {
     outcome: "CANNOT_VERIFY",
@@ -134,9 +134,9 @@ function recordedAnswer(
   const { verifier, facts } = result;
   const by =
     verifier.expectedFactoryAddress && facts.contractKind !== "registry"
-      ? "by a contract that the Bona Chain factory created"
+      ? "by a contract that the BonaWork factory created"
       : verifier.expectedContractAddress || verifier.expectedFactoryAddress
-        ? "by the Bona Chain contract this site trusts"
+        ? "by the BonaWork contract this site trusts"
         : null;
   const outcome =
     event === "MatchRecorded" && facts.matchPassed !== undefined
@@ -147,7 +147,7 @@ function recordedAnswer(
       tone: "neutral",
       title: "Recorded on Avalanche",
       body: `${RECORD_NAME[event]} was recorded on the ${network} in this transaction.${outcome}`,
-      note: "This site is not set up to check which contract recorded it, so this does not show that it is a Bona Chain record. Its details were not compared.",
+      note: "This site is not set up to check which contract recorded it, so this does not show that it is a BonaWork record. Its details were not compared.",
     };
   }
   return {
@@ -211,7 +211,7 @@ export function nounFor(event: RegistryEvent, fileType?: string): string {
 export const SAMPLE_ANSWER: PlainAnswer = {
   tone: "sample",
   title: "Sample record: nothing to check",
-  body: "This receipt comes from Bona Chain's practice data, not from Avalanche. It has no transaction, so this site did not call the network.",
+  body: "This receipt comes from BonaWork's practice data, not from Avalanche. It has no transaction, so this site did not call the network.",
   note: "This is not a Verified result and not a real record.",
 };
 
@@ -298,7 +298,7 @@ export function plainAnswer(
         note:
           event === "EvidenceRegistered"
             ? "A screenshot, an edited copy, or a copy sent through a chat app is not the same file. Try the original."
-            : "Copy the details again from the same record in Bona Chain and try once more.",
+            : "Copy the details again from the same record in BonaWork and try once more.",
       };
     }
 
@@ -338,26 +338,26 @@ export function plainAnswer(
           ? {
               tone: "warn",
               title: "Not a record of this kind",
-              body: "This receipt points to a Bona Chain contract that does not keep this kind of record, so this site does not accept it.",
+              body: "This receipt points to a BonaWork contract that does not keep this kind of record, so this site does not accept it.",
             }
           : {
               tone: "warn",
-              title: "Not a Bona Chain record",
-              body: "This contract was not created by the Bona Chain factory. Anyone can make a look-alike, so this site does not accept it.",
+              title: "Not a BonaWork record",
+              body: "This contract was not created by the BonaWork factory. Anyone can make a look-alike, so this site does not accept it.",
             };
       }
       if (failed === "contract" || failed === "transaction") {
         return {
           tone: "warn",
-          title: "Not a Bona Chain record",
-          body: "This receipt does not point to the Bona Chain contract. Anyone can make a look-alike, so this site does not accept it.",
+          title: "Not a BonaWork record",
+          body: "This receipt does not point to the BonaWork contract. Anyone can make a look-alike, so this site does not accept it.",
         };
       }
       return {
         tone: "warn",
         title: "This receipt cannot be checked",
         body: `The receipt is damaged, or it does not go with this ${noun}.`,
-        note: "Copy the receipt again from the record in Bona Chain and try once more.",
+        note: "Copy the receipt again from the record in BonaWork and try once more.",
       };
     }
 

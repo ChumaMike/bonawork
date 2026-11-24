@@ -1,6 +1,6 @@
 @import "tailwindcss";
 
-/* Design tokens: the same white, near-black and electric blue as the Bona Chain web app
+/* Design tokens: the same white, near-black and electric blue as the BonaWork web app
    (src/app/globals.css), so the verifier reads as part of one product. It shares no code with it.
    Components use these names only, never raw colour values. */
 @theme {

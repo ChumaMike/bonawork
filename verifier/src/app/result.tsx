@@ -141,7 +141,7 @@ export function ResultView({
           {facts.eventTimestamp ? (
             <Row name="Recorded">{formatRecordedAt(facts.eventTimestamp)}</Row>
           ) : null}
-          <Row name="By the Bona Chain contract">
+          <Row name="By the BonaWork contract">
             {result.verifier.expectedContractAddress ||
             result.verifier.expectedFactoryAddress ? (
               <span className="text-good">Yes</span>
@@ -178,8 +178,8 @@ export function ResultView({
           <Row
             name={
               facts.contractKind === "operations" || facts.contractKind === "finance"
-                ? "Created by the Bona Chain factory"
-                : "By the Bona Chain contract"
+                ? "Created by the BonaWork factory"
+                : "By the BonaWork contract"
             }
           >
             {result.verifier.expectedContractAddress ||

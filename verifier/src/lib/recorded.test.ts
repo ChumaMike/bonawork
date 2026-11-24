@@ -197,7 +197,7 @@ describe("a link without its document: recorded, not a dead end", () => {
     expect(answer).toEqual({
       tone: "good",
       title: "Recorded on Avalanche",
-      body: "A release authorisation was recorded on the Avalanche Fuji test network, by a contract that the Bona Chain factory created.",
+      body: "A release authorisation was recorded on the Avalanche Fuji test network, by a contract that the BonaWork factory created.",
       note: "This shows the step was recorded and by which contract. The details (amounts, names, documents) are private. Someone who holds the record can paste it here to check that it matches this fingerprint.",
     });
     expect(stepName("ReleaseAuthorised")).toBe("Release authorisation");
@@ -215,7 +215,7 @@ describe("a link without its document: recorded, not a dead end", () => {
     const answer = answerFor(result, event);
     expect(answer.title).toBe("Recorded on Avalanche");
     expect(answer.tone).toBe("good");
-    expect(answer.body).toContain("by a contract that the Bona Chain factory created");
+    expect(answer.body).toContain("by a contract that the BonaWork factory created");
     // Plain words: never "paid" or "resolved", no codes, no jargon, never mainnet.
     expect(wordsOf(answer)).not.toMatch(/\bpaid\b|payment was made|resolved/i);
     expect(wordsOf(answer)).not.toMatch(
@@ -238,10 +238,10 @@ describe("a link without its document: recorded, not a dead end", () => {
       return answerFor(result, "MatchRecorded");
     };
     expect((await check(true)).body).toBe(
-      "A three-way match result was recorded on the Avalanche Fuji test network, by a contract that the Bona Chain factory created. The rules passed this invoice.",
+      "A three-way match result was recorded on the Avalanche Fuji test network, by a contract that the BonaWork factory created. The rules passed this invoice.",
     );
     expect((await check(false)).body).toBe(
-      "A three-way match result was recorded on the Avalanche Fuji test network, by a contract that the Bona Chain factory created. The rules blocked this invoice.",
+      "A three-way match result was recorded on the Avalanche Fuji test network, by a contract that the BonaWork factory created. The rules blocked this invoice.",
     );
     expect(matchOutcomeWords(true)).toBe("The rules passed this invoice");
     expect(matchOutcomeWords(false)).toBe("The rules blocked this invoice");
@@ -262,7 +262,7 @@ describe("a link without its document: recorded, not a dead end", () => {
     const answer = answerFor(result, "ReportRegistered");
     expect(answer.title).toBe("Recorded on Avalanche");
     expect(answer.body).toBe(
-      "A report was recorded on the Avalanche Fuji test network, by a contract that the Bona Chain factory created.",
+      "A report was recorded on the Avalanche Fuji test network, by a contract that the BonaWork factory created.",
     );
     expect(answer.note).toMatch(/Its details were not compared/);
   });
@@ -322,7 +322,7 @@ describe("a link without its document: recorded, not a dead end", () => {
   });
 });
 
-describe("recorded is never given to a record that is not there, or not Bona Chain's", () => {
+describe("recorded is never given to a record that is not there, or not BonaWork's", () => {
   it("rejects a contract the factory did not create, however good its event looks", async () => {
     const chain = reader(txReceipt([financeLog("ReleaseAuthorised", FAKE)], FAKE));
     const result = await verify(
@@ -330,13 +330,11 @@ describe("recorded is never given to a record that is not there, or not Bona Cha
       withFactory(chain),
     );
     expect(result.overall).toBe("REJECTED");
-    expect(result.summary).toBe(
-      "This contract was not created by the Bona Chain factory.",
-    );
+    expect(result.summary).toBe("This contract was not created by the BonaWork factory.");
     // The look-alike transaction is never read.
     expect(chain.getTransactionReceipt).not.toHaveBeenCalled();
     const answer = answerFor(result, "ReleaseAuthorised");
-    expect(answer.title).toBe("Not a Bona Chain record");
+    expect(answer.title).toBe("Not a BonaWork record");
     expect(answer.tone).toBe("warn");
     expect(wordsOf(answer)).not.toContain("Recorded on Avalanche");
   });
@@ -431,8 +429,8 @@ describe("recorded is never given to a record that is not there, or not Bona Cha
     expect(result.overall).toBe("RECORDED");
     const answer = answerFor(result, "ReleaseAuthorised");
     expect(answer.tone).toBe("neutral");
-    expect(answer.body).not.toContain("Bona Chain");
-    expect(answer.note).toMatch(/does not show that it is a Bona Chain record/);
+    expect(answer.body).not.toContain("BonaWork");
+    expect(answer.note).toMatch(/does not show that it is a BonaWork record/);
   });
 
   it("names the pinned registry for an earlier BonaRegistry record", async () => {
@@ -445,7 +443,7 @@ describe("recorded is never given to a record that is not there, or not Bona Cha
     expect(result.facts.contractKind).toBe("registry");
     expect(chain.getContractKind).not.toHaveBeenCalled();
     expect(answerFor(result, "ReportRegistered").body).toBe(
-      "A report was recorded on the Avalanche Fuji test network, by the Bona Chain contract this site trusts.",
+      "A report was recorded on the Avalanche Fuji test network, by the BonaWork contract this site trusts.",
     );
   });
 });

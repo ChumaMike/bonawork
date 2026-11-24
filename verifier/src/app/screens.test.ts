@@ -115,7 +115,7 @@ describe("opened with nothing", () => {
         onPaste: noop,
       }),
     );
-    expect(html).toContain("Scan the code on a Bona Chain record");
+    expect(html).toContain("Scan the code on a BonaWork record");
     expect(html).toContain("Paste a receipt instead");
     expect(html).toContain("Avalanche Fuji test network");
     expect(html).not.toContain("could not be read");
@@ -155,9 +155,9 @@ describe("paste a receipt instead", () => {
     expect(words(html)).not.toMatch(TECHNICAL);
   });
 
-  it("names the test network and makes no claim about Bona Chain", () => {
+  it("names the test network and makes no claim about BonaWork", () => {
     expect(html).toContain(
-      "This site does not ask Bona Chain anything. It reads the Avalanche Fuji test network itself.",
+      "This site does not ask BonaWork anything. It reads the Avalanche Fuji test network itself.",
     );
   });
 });
@@ -248,7 +248,7 @@ describe("the answer", () => {
       "Avalanche has this exact photo on record. It has not been changed.",
     );
     expect(seen).toMatch(/Recorded<\/dt>.*18 Nov 2026/s);
-    expect(seen).toMatch(/By the Bona Chain contract<\/dt>.*Yes/s);
+    expect(seen).toMatch(/By the BonaWork contract<\/dt>.*Yes/s);
     expect(seen).toMatch(/Network<\/dt>.*Avalanche Fuji test network/s);
     expect(seen).toContain("See it on Snowtrace");
     expect(seen).toContain(`href="https://testnet.snowtrace.io/tx/${TX}"`);
@@ -285,14 +285,14 @@ describe("the answer", () => {
     const html = draw(
       createElement(ResultView, { outcome, trust: { ...trust, contract: null } }),
     );
-    expect(closed(html)).toMatch(/By the Bona Chain contract<\/dt>.*Not checked here/s);
+    expect(closed(html)).toMatch(/By the BonaWork contract<\/dt>.*Not checked here/s);
   });
 
   it("gives each of the five results its own plain words", () => {
     const cases: [Overall, StepId, string][] = [
       ["MISMATCH", "event", "Not the same"],
       ["NOT_FOUND", "event", "No record found"],
-      ["REJECTED", "contract", "Not a Bona Chain record"],
+      ["REJECTED", "contract", "Not a BonaWork record"],
       ["CANNOT_VERIFY", "network", "Could not check right now"],
     ];
     for (const [overall, failed, title] of cases) {
@@ -307,7 +307,7 @@ describe("the answer", () => {
       expect(seen).toContain(`data-outcome="${overall}"`);
       expect(seen).toContain(`>${title}</h2>`);
       expect(seen).not.toContain(">Verified<");
-      expect(seen).not.toContain("By the Bona Chain contract");
+      expect(seen).not.toContain("By the BonaWork contract");
       expect(seen.includes("Try again")).toBe(overall === "CANNOT_VERIFY");
       expect(html.slice(html.indexOf("<details"))).toContain(overall);
     }
@@ -441,7 +441,7 @@ describe("recorded on Avalanche: a link that carries no details", () => {
     expect(seen).toContain('data-outcome="RECORDED"');
     expect(seen).toMatch(/<h2[^>]*>Recorded on Avalanche<\/h2>/);
     expect(seen).toContain(
-      "A release authorisation was recorded on the Avalanche Fuji test network, by a contract that the Bona Chain factory created.",
+      "A release authorisation was recorded on the Avalanche Fuji test network, by a contract that the BonaWork factory created.",
     );
     expect(seen).toContain(
       "This shows the step was recorded and by which contract. The details (amounts, names, documents) are private. Someone who holds the record can paste it here to check that it matches this fingerprint.",
@@ -451,7 +451,7 @@ describe("recorded on Avalanche: a link that carries no details", () => {
     expect(seen).toMatch(/Recorded<\/dt>.*18 Nov 2026/s);
     expect(seen).toMatch(/Block<\/dt>.*48123456/s);
     expect(seen).toMatch(new RegExp(`Contract</dt>.*${FINANCE}`, "s"));
-    expect(seen).toMatch(/Created by the Bona Chain factory<\/dt>.*Yes/s);
+    expect(seen).toMatch(/Created by the BonaWork factory<\/dt>.*Yes/s);
     expect(seen).toMatch(
       new RegExp(`Fingerprint on the blockchain</dt>.*${FINGERPRINT}`, "s"),
     );
@@ -499,8 +499,8 @@ describe("recorded on Avalanche: a link that carries no details", () => {
       draw(createElement(ResultView, { outcome, trust: { ...trust, contract: null } })),
     );
     expect(seen).toContain("Recorded on Avalanche");
-    expect(seen).toMatch(/By the Bona Chain contract<\/dt>.*Not checked here/s);
-    expect(seen).toContain("does not show that it is a Bona Chain record");
+    expect(seen).toMatch(/By the BonaWork contract<\/dt>.*Not checked here/s);
+    expect(seen).toContain("does not show that it is a BonaWork record");
   });
 
   it("shows a rejection, never Recorded, for a contract the factory did not create", () => {
@@ -513,8 +513,8 @@ describe("recorded on Avalanche: a link that carries no details", () => {
     };
     const seen = closed(draw(createElement(ResultView, { outcome, trust })));
     expect(seen).toContain('data-outcome="REJECTED"');
-    expect(seen).toContain(">Not a Bona Chain record</h2>");
-    expect(seen).toContain("This contract was not created by the Bona Chain factory.");
+    expect(seen).toContain(">Not a BonaWork record</h2>");
+    expect(seen).toContain("This contract was not created by the BonaWork factory.");
     expect(seen).not.toContain("Recorded on Avalanche");
     expect(seen).not.toContain("recorded-facts");
   });

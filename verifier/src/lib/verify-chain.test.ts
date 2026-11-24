@@ -28,7 +28,7 @@ import {
 } from "./verify";
 
 /*
- * Bona Chain: receipts from the contracts a BonaChainFactory created, and the
+ * BonaWork: receipts from the contracts a BonaChainFactory created, and the
  * procurement trail. Every chain answer here is fabricated in the test; no
  * network is touched.
  */
@@ -125,7 +125,7 @@ function receiptFor(event: RegistryEvent, contractAddress: string) {
   };
 }
 
-/** A verifier set up for Bona Chain: VERIFY_FACTORY_ADDRESS, and optionally the old registry. */
+/** A verifier set up for BonaWork: VERIFY_FACTORY_ADDRESS, and optionally the old registry. */
 const withFactory = (chain: ChainReader, registry?: string): VerifyContext => ({
   chain,
   expectedChainId: 43113,
@@ -316,9 +316,7 @@ describe("genuine and fake contracts (VERIFY_FACTORY_ADDRESS)", () => {
       withFactory(chain),
     );
     expect(result.overall).toBe("REJECTED");
-    expect(result.summary).toBe(
-      "This contract was not created by the Bona Chain factory.",
-    );
+    expect(result.summary).toBe("This contract was not created by the BonaWork factory.");
     expect(step(result, "contract")).toMatchObject({ status: "fail" });
     expect(chain.getContractKind).toHaveBeenCalledWith(FACTORY, FAKE);
     // The look-alike transaction is never even read.
@@ -329,9 +327,9 @@ describe("genuine and fake contracts (VERIFY_FACTORY_ADDRESS)", () => {
       noun: nounFor("WorkOrderApproved"),
       network: "Avalanche Fuji test network",
     });
-    expect(answer.title).toBe("Not a Bona Chain record");
+    expect(answer.title).toBe("Not a BonaWork record");
     expect(answer.body).toContain(
-      "This contract was not created by the Bona Chain factory",
+      "This contract was not created by the BonaWork factory",
     );
     expect(answer.tone).toBe("warn");
   });
@@ -357,9 +355,7 @@ describe("genuine and fake contracts (VERIFY_FACTORY_ADDRESS)", () => {
       withFactory(reader(txReceipt([log], FAKE))),
     );
     expect(result.overall).toBe("REJECTED");
-    expect(result.summary).toBe(
-      "This contract was not created by the Bona Chain factory.",
-    );
+    expect(result.summary).toBe("This contract was not created by the BonaWork factory.");
   });
 
   it("rejects a finance record that names an operations contract, and the reverse", async () => {
@@ -1038,7 +1034,7 @@ describe("verifier configuration", () => {
     expect(trustedContracts({})).toBeNull();
     expect(trustedContracts({ expectedContractAddress: REGISTRY })).toBe(REGISTRY);
     expect(trustedContracts({ expectedFactoryAddress: FACTORY })).toBe(
-      `contracts created by the Bona Chain factory ${FACTORY}`,
+      `contracts created by the BonaWork factory ${FACTORY}`,
     );
     expect(
       trustedContracts({
@@ -1046,7 +1042,7 @@ describe("verifier configuration", () => {
         expectedContractAddress: REGISTRY,
       }),
     ).toBe(
-      `contracts created by the Bona Chain factory ${FACTORY}, and the earlier registry ${REGISTRY}`,
+      `contracts created by the BonaWork factory ${FACTORY}, and the earlier registry ${REGISTRY}`,
     );
   });
 });

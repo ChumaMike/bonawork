@@ -55,9 +55,9 @@ export function trustedContracts(
 ): string | null {
   const { expectedContractAddress: contract, expectedFactoryAddress: factory } = config;
   if (factory && contract) {
-    return `contracts created by the Bona Chain factory ${factory}, and the earlier registry ${contract}`;
+    return `contracts created by the BonaWork factory ${factory}, and the earlier registry ${contract}`;
   }
-  if (factory) return `contracts created by the Bona Chain factory ${factory}`;
+  if (factory) return `contracts created by the BonaWork factory ${factory}`;
   return contract ?? null;
 }
 

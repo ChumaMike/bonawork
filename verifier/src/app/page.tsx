@@ -27,7 +27,7 @@ export default async function Page() {
       <header className="no-print border-b border-line bg-surface">
         <div className="mx-auto flex min-h-16 w-full max-w-xl flex-wrap items-center justify-between gap-x-3 gap-y-1 px-4 py-3 sm:px-6">
           <span className="inline-flex min-w-0 items-center gap-2.5">
-            {/* The Bona Chain mark: two chain links, and an eye where they join. */}
+            {/* The BonaWork mark: two chain links, and an eye where they join. */}
             <svg
               viewBox="0 0 40 40"
               fill="none"
@@ -105,11 +105,11 @@ function HowItWorks({ trust }: { trust: Trust }) {
           Your device works out the fingerprint of the photo or document you choose: a
           short code that changes if anything in the file changes. Only that fingerprint
           is sent to this site. This site then reads the {trust.network} and compares the
-          fingerprint with what was recorded there. Bona Chain&rsquo;s servers are not
-          asked anything.
+          fingerprint with what was recorded there. BonaWork&rsquo;s servers are not asked
+          anything.
         </p>
         <p className="mt-2">
-          Receipts from Bona Chain&rsquo;s practice data are not on any network. This site
+          Receipts from BonaWork&rsquo;s practice data are not on any network. This site
           says so, and does not call the network for them.
         </p>
 
