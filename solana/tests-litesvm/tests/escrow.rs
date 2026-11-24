@@ -541,6 +541,20 @@ fn t02_create_escrow_fixes_terms() {
 }
 
 #[test]
+fn t02b_pre_created_vault_cannot_block_an_escrow() {
+    let mut w = World::new();
+    let args = w.default_args(1);
+    let c = w.case_for(&args);
+    // A griefer creates the escrow's vault address before the escrow exists.
+    let griefer = Keypair::new();
+    sol(&mut w.svm, &griefer.pubkey());
+    CreateAssociatedTokenAccount::new(&mut w.svm, &griefer, &w.mint).owner(&c.escrow).send().unwrap();
+    w.create(&args).unwrap();
+    let vault = get_spl_account::<TokenAccount>(&w.svm, &c.vault).unwrap();
+    assert_eq!(vault.owner, c.escrow);
+}
+
+#[test]
 fn t03_bad_terms_rejected() {
     let mut w = World::new();
     let mut a = w.default_args(1);

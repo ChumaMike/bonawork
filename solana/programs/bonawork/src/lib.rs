@@ -645,8 +645,11 @@ pub struct CreateEscrow<'info> {
         bump
     )]
     pub tranche1: Box<Account<'info, Tranche>>,
+    /// `init_if_needed`: the vault address is predictable, so anyone could create it
+    /// first to block this call. An existing one is still owned by the escrow, and only
+    /// the escrow can move its tokens; any tokens already in it count as surplus.
     #[account(
-        init,
+        init_if_needed,
         payer = admin,
         associated_token::mint = mint,
         associated_token::authority = escrow,
