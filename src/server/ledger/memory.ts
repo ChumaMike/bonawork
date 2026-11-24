@@ -45,7 +45,7 @@ const roleOfAccount = (account: string): ChainRole | null =>
 /**
  * A LedgerPort that keeps everything in memory and applies the same ordering
  * rules as the contracts. For local development and tests only: receipts carry
- * `MEMORY_CHAIN_ID`, so they can never be mistaken for Avalanche receipts.
+ * `MEMORY_CHAIN_ID`, so they can never be mistaken for Solana receipts.
  *
  * Report writes do not model signing keys. Who may call what is the backend's
  * job (`can`, `PERMISSION_FOR_STATUS`) and, on the real chain, the contract's.

@@ -6,7 +6,7 @@ import { Icon } from "@/components/ui/icon";
 import type { School } from "@/data/types";
 import { useMessages } from "@/i18n";
 
-/** Whether the school itself responds on Bona Chain. Icon + words, not colour alone. */
+/** Whether the school itself responds on BonaWork. Icon + words, not colour alone. */
 export function ParticipationBadge({
   school,
 }: {

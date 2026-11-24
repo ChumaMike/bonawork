@@ -147,7 +147,7 @@ describe("verifyLink", () => {
       {},
       { ...RECEIPT, status: "pending", blockNumber: null, blockTimestamp: null },
       { ...RECEIPT, status: "failed" },
-      // The in-memory development ledger is never presented as an Avalanche record.
+      // The in-memory development ledger is never presented as a Solana record.
       { ...RECEIPT, chainId: "bona:memory" },
       { ...RECEIPT, chainId: "eip155:1" },
       { ...RECEIPT, txId: "0x1234" },
@@ -437,7 +437,7 @@ describe("verify links for the procurement trail", () => {
 
   it("builds no link for a simulated or unconfirmed finance step", () => {
     for (const [event] of FINANCE_LINKS) {
-      // The memory ledger's receipt: never presented as an Avalanche record.
+      // The memory ledger's receipt: never presented as a Solana record.
       expect(
         verifyLink({ ...receiptFor(event), chainId: "bona:memory" }),
         event,

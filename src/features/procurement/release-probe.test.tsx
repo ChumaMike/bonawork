@@ -60,7 +60,7 @@ describe("asking the contract from the locked release gate", () => {
     expect(screen.queryByRole("button", { name: g.authorise })).toBeNull();
   });
 
-  it("labels an answer from sample data as not from Avalanche", async () => {
+  it("labels an answer from sample data as not from Solana", async () => {
     probeRelease.mockResolvedValue({
       allowed: false,
       revert: "RepairNotVerified",

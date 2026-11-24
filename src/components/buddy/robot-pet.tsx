@@ -2,7 +2,7 @@ import { cn } from "@/components/ui/cn";
 import type { BuddyMood } from "./buddy-face";
 
 /*
- * Bolt, the Bona buddy: a small robot in the Bona Chain blues with a
+ * Bolt, the Bona buddy: a small robot in the BonaWork blues with a
  * blinking antenna light and a tick on its chest (it is about checking).
  * Decorative: the button around it carries the name. Its face follows the
  * same moods as <BuddyFace>. The motion classes live in BUDDY_FACE_CSS and

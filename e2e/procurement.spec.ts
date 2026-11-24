@@ -253,7 +253,7 @@ test("the demo path: blocked invoice, matched invoice, locked gate, verification
   await expect(trail.locator("[data-testid=trail-row][data-state=done]")).toHaveCount(8);
   await expect(rows.nth(1)).toContainText("Work order approved");
   await expect(rows.nth(1)).toContainText("Funder");
-  await expect(rows.nth(5)).toContainText("Bona Chain rules");
+  await expect(rows.nth(5)).toContainText("BonaWork rules");
   await expect(rows.nth(5)).toContainText(
     "The invoice matches the order and the delivery.",
   );

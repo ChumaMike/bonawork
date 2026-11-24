@@ -28,7 +28,7 @@ export const FINANCE_EVENT_NOTE: Record<FinanceCaseEventType, string> = {
   payment_dispute_opened: "A query about the invoice was opened.",
   payment_dispute_closed: "The query about the invoice was closed.",
   release_authorised:
-    "A release instruction was authorised. Bona Chain records the decision; it moves no money.",
+    "A release instruction was authorised. BonaWork records the decision; it moves no money.",
 };
 
 /** A match event says which way the rule engine decided. The outcome is on the ledger too. */

@@ -10,7 +10,7 @@ import "./vellure.css";
 
 /*
  * The sections of the public landing page, top to bottom. They are drawn in
- * the layout of the free Framer template "Vellure" with Bona Chain's own
+ * the layout of the free Framer template "Vellure" with BonaWork's own
  * words, logo and pictures. Every "screen" on this page is an illustration
  * built from HTML and marked as a sample: none of it is live data.
  */

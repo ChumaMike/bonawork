@@ -642,13 +642,13 @@ export function createFixtureApi(options: FixtureOptions = {}): BonaApi {
       const record = evidence ?? event ?? step;
       if (!issue || !record || record.ledger.source === "none") return null;
       // A sample has no transaction and no salt. Both say so in every field,
-      // and Bona Chain Verify will refuse them rather than report a match.
+      // and BonaWork Verify will refuse them rather than report a match.
       const receipt =
         record.ledger.source === "ledger"
           ? copy(record.ledger.receipt)
           : {
               sample: true,
-              note: "Sample receipt from the Bona Chain preview. This is not an Avalanche transaction.",
+              note: "Sample receipt from the BonaWork preview. This is not a Solana transaction.",
               chainId: "bona:memory",
               contractAddress: null,
               txId: null,
@@ -678,7 +678,7 @@ export function createFixtureApi(options: FixtureOptions = {}): BonaApi {
         receipt,
         document: {
           sample: true,
-          note: "Sample document from the Bona Chain preview. It was never committed to a ledger.",
+          note: "Sample document from the BonaWork preview. It was never committed to a ledger.",
           type: documentType,
           reportId: issue.id,
           salt: null,

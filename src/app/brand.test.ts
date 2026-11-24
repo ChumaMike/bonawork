@@ -1,5 +1,5 @@
 /**
- * The product is Bona Chain. No message a person can read, and no name in the
+ * The product is BonaWork. No message a person can read, and no name in the
  * web manifest, may still say "BonaBlock". (`BonaRegistry`, package names, the
  * `bona_session` cookie and the `BB-` reference prefix keep their names; none
  * of them is a message.)
@@ -35,9 +35,9 @@ const manifest = JSON.parse(
 ) as Record<string, unknown>;
 
 describe("the product name", () => {
-  it("is Bona Chain, and the verifier is Bona Chain Verify", () => {
-    expect(PRODUCT).toBe("Bona Chain");
-    expect(VERIFIER).toBe("Bona Chain Verify");
+  it("is BonaWork, and the verifier is BonaWork Verify", () => {
+    expect(PRODUCT).toBe("BonaWork");
+    expect(VERIFIER).toBe("BonaWork Verify");
   });
 
   it.each(Object.entries(LOCALES))("no %s message says BonaBlock", (_locale, locale) => {
@@ -51,13 +51,13 @@ describe("the product name", () => {
     const { en } = LOCALES;
     expect(en.brand.name).toBe(PRODUCT);
     expect(en.ledger.openInVerify).toBe(`Open in ${VERIFIER}`);
-    expect(en.actor.system).toBe("Bona Chain rules");
+    expect(en.actor.system).toBe("BonaWork rules");
     expect(en.event.goods_receipt_recorded).toBe("Delivery recorded");
     expect(en.event.match_recorded).toBe("Invoice checked against order and delivery");
   });
 
   it("the web manifest does not say BonaBlock", () => {
-    expect(manifest.name).toBe("Bona Chain");
+    expect(manifest.name).toBe("BonaWork");
     expect(manifest.short_name).toBe(PRODUCT);
     const stale = messages(manifest, "").filter(([, text]) => OLD_NAME.test(text));
     expect(stale).toEqual([]);

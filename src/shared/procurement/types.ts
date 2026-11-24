@@ -203,7 +203,7 @@ export type TrailActor = z.infer<typeof TrailActorSchema>;
 /**
  * Where a step stands on the ledger. The same shape as `LedgerRecord` in
  * `src/data/types.ts`: a simulated (memory-ledger) result carries no
- * transaction data, so it can never be shown as an Avalanche transaction.
+ * transaction data, so it can never be shown as a Solana transaction.
  */
 export const TrailProofSchema = z.discriminatedUnion("source", [
   z.object({ source: z.literal("none") }),

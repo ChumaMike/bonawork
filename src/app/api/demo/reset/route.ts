@@ -5,7 +5,7 @@ import { cronAuthorised } from "../../ledger/retry/route";
 
 /**
  * `POST /api/demo/reset` — truncate everything and seed again through the
- * configured ledger (with Avalanche this re-anchors and costs gas). Only
+ * configured ledger (with Solana this re-anchors and costs gas). Only
  * exists when `DEMO_RESET_ENABLED=true` and the `x-cron-secret` header
  * matches `CRON_SECRET`; otherwise 404.
  */

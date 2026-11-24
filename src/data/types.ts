@@ -342,7 +342,7 @@ export interface VerificationProbe {
 /**
  * Result of asking the ledger whether a release would be accepted now. Never
  * writes. `source` says who answered: `live` is the Finance contract on
- * Avalanche Fuji, `simulated` is the built-in copy of its rules (sample data),
+ * Solana devnet, `simulated` is the built-in copy of its rules (sample data),
  * `off` means no ledger was asked.
  */
 export interface ReleaseProbe {

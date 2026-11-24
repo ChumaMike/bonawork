@@ -60,7 +60,7 @@ const CandidateSchema = z.strictObject({
 });
 type Candidate = z.infer<typeof CandidateSchema>;
 
-const SYSTEM_PROMPT = `You are Bona AI inside Bona Chain. A supplier has pasted the text of an invoice. Your only job is to copy what the text states into fields, so the supplier can check them before submitting. You do not judge the invoice and you decide nothing.
+const SYSTEM_PROMPT = `You are Bona AI inside BonaWork. A supplier has pasted the text of an invoice. Your only job is to copy what the text states into fields, so the supplier can check them before submitting. You do not judge the invoice and you decide nothing.
 Rules you must follow:
 - ${DATA_RULE}
 - Copy, never guess. A field the text does not state is null. Copy every identifier and description exactly as it is written.

@@ -5,7 +5,7 @@
  * the same services the API uses, so commitments, documents and case events
  * are exactly what a live run produces. Ledger writes are queued and then
  * replayed through the configured `LedgerPort`: with the in-memory ledger the
- * receipts are `bona:memory`, with Avalanche they are real transactions, and
+ * receipts are `bona:memory`, with Solana they are real transactions, and
  * if the ledger throws the record keeps `receipt: null` with a failed job.
  */
 import { createHash, randomUUID } from "node:crypto";
@@ -131,7 +131,7 @@ export const SEED_SCHOOLS: SeedSchool[] = [
     participation: "invited",
     participatingSince: null,
     about:
-      "A combined school with Grade R to Grade 12. The school has been invited to respond to reports on Bona Chain and has not joined yet.",
+      "A combined school with Grade R to Grade 12. The school has been invited to respond to reports on BonaWork and has not joined yet.",
   },
 ];
 
@@ -834,7 +834,7 @@ function stableCaseId(reference: string): string {
 
 /** Truncate every table and seed again (`POST /api/demo/reset`). */
 export async function resetDatabase(ctx: ServerContext): Promise<void> {
-  // The ledger (memory or Avalanche) keeps the previous cases forever; the
+  // The ledger (memory or Solana) keeps the previous cases forever; the
   // re-seeded cases get new report ids in runSeed, so nothing collides.
   await ctx.db.execute(
     sql`TRUNCATE TABLE "ledger_jobs", "release_instructions", "match_results", "goods_receipts", "invoices", "work_order_versions", "work_orders", "commitment_documents", "independent_reviews", "repair_claims", "interim_protections", "endorsements", "evidence_commitments", "case_events", "reports", "users", "institutions" RESTART IDENTITY CASCADE`,
@@ -918,7 +918,7 @@ export async function runSeed(
       anonymous: c.anonymous ?? false,
       uploads: await uploads(c.files),
       at: c.at,
-      // A re-seed gets fresh ids: a ledger (memory or Avalanche) remembers
+      // A re-seed gets fresh ids: a ledger (memory or Solana) remembers
       // report ids forever, so a re-seeded case must never reuse one.
       id: freshIds ? randomUUID() : stableCaseId(c.reference),
       reference: c.reference,

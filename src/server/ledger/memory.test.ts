@@ -17,7 +17,7 @@ async function registered() {
 }
 
 describe("in-memory ledger", () => {
-  it("runs the full lifecycle and returns valid, clearly non-Avalanche receipts", async () => {
+  it("runs the full lifecycle and returns valid, clearly non-Solana receipts", async () => {
     const ledger = await registered();
     expect(await ledger.statusOf(reportId)).toBe("reported");
     await ledger.registerEvidence({ reportId, digest: hex("e1"), kind: "report" });

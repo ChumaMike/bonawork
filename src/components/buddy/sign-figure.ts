@@ -78,7 +78,7 @@ export function createSignFigure(
     sheenColor: new THREE.Color(0xffc9a8),
     sheenRoughness: 0.6,
   });
-  // Bona Chain blue shirt with a white collar.
+  // BonaWork blue shirt with a white collar.
   const shirt = new THREE.MeshStandardMaterial({ color: 0x0346ff, roughness: 0.72 });
   const collar = new THREE.MeshStandardMaterial({ color: 0xfffdf8, roughness: 0.6 });
   const hairMat = new THREE.MeshStandardMaterial({ color: 0x17171b, roughness: 0.92 });

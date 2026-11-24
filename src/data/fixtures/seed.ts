@@ -88,7 +88,7 @@ export const SAMPLE_SCHOOLS: School[] = [
     participation: "invited",
     participatingSince: null,
     about:
-      "A combined school with Grade R to Grade 12. The school has been invited to respond to reports on Bona Chain and has not joined yet.",
+      "A combined school with Grade R to Grade 12. The school has been invited to respond to reports on BonaWork and has not joined yet.",
   },
 ];
 

@@ -18,9 +18,9 @@ import { landingPage } from "./en-landing";
 import { procurement } from "./en-procurement";
 
 /** The product. Every message that names it uses this constant, so the name lives in one place. */
-export const PRODUCT = "Bona Chain";
+export const PRODUCT = "BonaWork";
 /** The separate site that checks a record against the ledger without asking this one. */
-export const VERIFIER = "Bona Chain Verify";
+export const VERIFIER = "BonaWork Verify";
 
 const plural = (count: number, one: string, many: string) =>
   `${count} ${count === 1 ? one : many}`;
@@ -58,7 +58,7 @@ export const en = {
     account: "Account",
     language: "Language",
     languageNote: "English only for now. More languages are planned.",
-    footerNote: `${PRODUCT} for Schools. Sample schools and people while we run on the Avalanche Fuji test network.`,
+    footerNote: `${PRODUCT} for Schools. Sample schools and people while we run on the Solana devnet test network.`,
     askAssistant: "Ask Bona AI",
     myReports: "My reports",
     atSchool: (school: string) => `At ${school}`,
@@ -248,15 +248,15 @@ export const en = {
 
   ledger: {
     heading: "Blockchain record",
-    noneTitle: "Not recorded on Avalanche",
+    noneTitle: "Not recorded on Solana",
     noneBody:
       "This preview is not connected to the blockchain, so nothing has been written to it.",
     simulatedTitle: "Sample of a recorded item",
     simulatedBody:
-      "This shows how a recorded item will look. It is not a real Avalanche transaction.",
-    pendingTitle: "Being recorded on Avalanche",
+      "This shows how a recorded item will look. It is not a real Solana transaction.",
+    pendingTitle: "Being recorded on Solana",
     pendingBody: "The record has been sent and is waiting to be confirmed.",
-    confirmedTitle: "Recorded on Avalanche",
+    confirmedTitle: "Recorded on Solana",
     confirmedBody: "Anyone can check this record. It cannot be changed or removed.",
     failedTitle: "Recording failed",
     failedBody: "The record was not written. It will be sent again.",
@@ -275,7 +275,7 @@ export const en = {
     proofTitle: (what: string) => `Proof for ${what}`,
     proofIntro: "What was written to the public record, and how to check it yourself.",
     checkElsewhere: "Check it on a separate site",
-    checkElsewhereHelp: `${VERIFIER} does not ask ${PRODUCT} anything. It reads the Avalanche record itself. Scan the code with a phone camera, or open the link.`,
+    checkElsewhereHelp: `${VERIFIER} does not ask ${PRODUCT} anything. It reads the Solana record itself. Scan the code with a phone camera, or open the link.`,
     technical: "Technical details",
     technicalHelp: `For people who want the raw record to paste into ${VERIFIER}.`,
     copyReceipt: "Copy receipt",
@@ -1034,7 +1034,7 @@ export const en = {
     ledgerNot:
       "Not written: your name, the words of your note, or the photos themselves.",
     ledgerSample:
-      "Until BonaRegistry is live on Avalanche Fuji, this is kept as a sample record. It is never shown as a transaction.",
+      "Until the BonaWork program is live on Solana devnet, this is kept as a sample record. It is never shown as a transaction.",
     decided: {
       verified: "Recorded. You verified this repair.",
       disputed: "Recorded. You disputed this repair.",
@@ -1059,7 +1059,7 @@ export const en = {
     how: [
       "Your device works out the file's fingerprint. The file is not uploaded.",
       "The fingerprint is compared with the fingerprints recorded for each issue.",
-      `When a fingerprint is recorded on Avalanche, anyone can check it without trusting ${PRODUCT}.`,
+      `When a fingerprint is recorded on Solana, anyone can check it without trusting ${PRODUCT}.`,
     ],
     independentNote: `${VERIFIER}, a separate tool, does the blockchain part of this check without using this website.`,
     stepsTitle: "What happened",
@@ -1077,10 +1077,10 @@ export const en = {
       "Your file is exactly the one on record. Nobody has changed it since it was added.",
     noMatchPlain: `Either this file was never added to ${PRODUCT}, or it was changed after it was added. Try the original file from the phone that took it.`,
     receiptTitle: "Have a receipt?",
-    receiptBody: `${VERIFIER} is a separate tool that reads Avalanche directly. Paste a receipt there to check it without trusting this website.`,
+    receiptBody: `${VERIFIER} is a separate tool that reads Solana directly. Paste a receipt there to check it without trusting this website.`,
     openVerify: `Open ${VERIFIER}`,
     sampleNote:
-      "This record is a sample from the preview. It is not a real Avalanche transaction.",
+      "This record is a sample from the preview. It is not a real Solana transaction.",
     print: "Print this result",
   },
 

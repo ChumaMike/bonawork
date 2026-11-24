@@ -1,7 +1,7 @@
 import { cn } from "@/components/ui/cn";
 
 /*
- * The Bona Chain logo. Documented in docs/design/BRAND.md; the files in
+ * The BonaWork logo. Documented in docs/design/BRAND.md; the files in
  * public/brand/ are built from the same shapes by docs/design/brand/build-logo.mjs.
  *
  * The colours are tokens, so the logo follows light and dark mode by itself.
@@ -10,7 +10,7 @@ import { cn } from "@/components/ui/cn";
  */
 
 /** The product name is a brand asset, not a translated string. */
-export const BRAND_NAME = "Bona Chain";
+export const BRAND_NAME = "BonaWork";
 
 type Tone = "colour" | "mono";
 
@@ -77,7 +77,9 @@ export function BrandLogo({
   tone?: Tone;
   className?: string;
 }) {
-  const [first, second] = BRAND_NAME.split(" ");
+  // "Bona" in ink, "Work" in the accent colour, as one word.
+  const first = BRAND_NAME.slice(0, 4);
+  const second = BRAND_NAME.slice(4);
   return (
     <span className={cn("inline-flex shrink-0 items-center gap-2", className)}>
       <BrandMark tone={tone} className={SIZES[size].mark} />
@@ -88,7 +90,7 @@ export function BrandLogo({
           tone === "colour" && "text-ink",
         )}
       >
-        {first}{" "}
+        {first}
         <span className={tone === "colour" ? "text-earth" : undefined}>{second}</span>
       </span>
     </span>

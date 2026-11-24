@@ -93,7 +93,7 @@ export function VerifyQr({
   href,
   size = 176,
   className,
-  label = "Square code that opens Bona Chain Verify with this record filled in",
+  label = "Square code that opens BonaWork Verify with this record filled in",
 }: {
   href: string;
   /** Width and height in CSS pixels. 160 or more scans comfortably from another phone. */

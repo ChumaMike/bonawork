@@ -81,14 +81,14 @@ describe("PublicTrailShowcase", () => {
       ["Supplier acknowledged the order", "Supplier"],
       ["Delivery recorded", "Receiving officer"],
       ["Invoice submitted", "Supplier"],
-      ["Invoice checked against order and delivery", "Bona Chain rules"],
+      ["Invoice checked against order and delivery", "BonaWork rules"],
       ["Invoice submitted", "Supplier"],
-      ["Invoice checked against order and delivery", "Bona Chain rules"],
+      ["Invoice checked against order and delivery", "BonaWork rules"],
       ["Release authorised", "Payment approver"],
     ]);
     for (const row of rows) {
       expect(row.querySelector("time")).toHaveAttribute("datetime");
-      // A simulated record is labelled as a sample, never as an Avalanche record.
+      // A simulated record is labelled as a sample, never as a Solana record.
       expect(row.querySelector("[data-ledger]")).toHaveAttribute(
         "data-ledger",
         "simulated",

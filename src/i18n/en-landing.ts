@@ -1,15 +1,15 @@
 /**
  * English messages for the public landing page.
  *
- * Everything here is read by people who have never seen Bona Chain. Keep it
+ * Everything here is read by people who have never seen BonaWork. Keep it
  * plain and true: test network only, sample data, no real money. Never
  * the words "paid" or "resolved", no amounts, no names of people or suppliers.
  */
 
-/** The public repository and the registry contract, shown in the footer. */
+/** The public repository and the BonaWork program on devnet, shown in the footer. */
 const REPOSITORY = "https://github.com/obxalethia-star/BonaChain";
 const REGISTRY =
-  "https://testnet.snowtrace.io/address/0x9AA7Cf8a0cd0c015F01DF8fdb400510D1407d6E3#code";
+  "https://explorer.solana.com/address/5LkegW1dBfTL1Xiw2n15Rt99ZVcG4uipCjDH9bMiyEGY?cluster=devnet";
 
 export const landingPage = {
   nav: {
@@ -19,7 +19,7 @@ export const landingPage = {
   },
 
   hero: {
-    badge: "Live on the Avalanche Fuji test network",
+    badge: "Live on the Solana devnet test network",
     /** The page's one h1, on two lines. */
     title: ["From the report to the release,", "every step checked."],
     sub: "Reports, repairs, invoices and independent checks for a school, in one trail anyone can verify.",
@@ -53,7 +53,7 @@ export const landingPage = {
       ],
       trailTitle: "Latest steps",
       trail: [
-        { step: "Invoice checked against order and delivery", who: "Bona Chain rules" },
+        { step: "Invoice checked against order and delivery", who: "BonaWork rules" },
         { step: "Delivery recorded", who: "Receiving officer" },
         { step: "Work order approved", who: "Funder" },
       ],
@@ -66,7 +66,7 @@ export const landingPage = {
   /** What it is built on. Not customers: there are none yet. */
   builtOn: {
     label: "Built on",
-    items: ["Avalanche Fuji", "Solidity", "Next.js", "Postgres", "Vercel AI Gateway"],
+    items: ["Solana devnet", "Anchor", "Next.js", "Postgres", "Vercel AI Gateway"],
   },
 
   start: {
@@ -75,7 +75,7 @@ export const landingPage = {
   },
 
   about: {
-    label: "About Bona Chain",
+    label: "About BonaWork",
     title: ["Fewer promises.", "More proof."],
     photoNote: "An independent check",
     cards: [
@@ -121,7 +121,7 @@ export const landingPage = {
     label: "Core capabilities",
     title: ["Everything behind", "every repair"],
     intro:
-      "From the moment a problem is reported to the moment a release is authorised, Bona Chain shows who did what, and the proof.",
+      "From the moment a problem is reported to the moment a release is authorised, BonaWork shows who did what, and the proof.",
     cards: [
       {
         title: "Community reporting",
@@ -194,7 +194,7 @@ export const landingPage = {
         body: "The release stays locked until the invoice matches and the repair has been independently verified.",
         points: [
           "The lock shows what is still missing, in plain words",
-          "The contract on Avalanche refuses an early release",
+          "The program on Solana refuses an early release",
           "A release is an instruction. No money moves",
         ],
         action: "Sign in",
@@ -256,7 +256,7 @@ export const landingPage = {
       {
         value: "6",
         title: "steps on the test network",
-        body: "The sample case writes each of its steps to Avalanche Fuji.",
+        body: "The sample case writes each of its steps to Solana devnet.",
       },
     ],
   },
@@ -333,10 +333,10 @@ export const landingPage = {
   promise: {
     label: "Our promise",
     title: ["Less trust-me.", "More show-me."],
-    by: "The Bona Chain team",
+    by: "The BonaWork team",
     where: "Built for South African public schools",
     quote:
-      "Bona Chain doesn't call work done because someone says so. It keeps the claim, makes someone else check it, and only then lets the money decision through.",
+      "BonaWork doesn't call work done because someone says so. It keeps the claim, makes someone else check it, and only then lets the money decision through.",
     firstLabel: "A first school",
     first: "The principal of Thaba Jabula Secondary School told us they would use it.",
   },
@@ -346,8 +346,8 @@ export const landingPage = {
     title: "Frequently asked questions",
     items: [
       {
-        q: "Is Bona Chain live with real schools?",
-        a: "Not yet. It runs on the Avalanche Fuji test network with sample schools and people, and no real school uses it today. The principal of Thaba Jabula Secondary School told us they would use it.",
+        q: "Is BonaWork live with real schools?",
+        a: "Not yet. It runs on the Solana devnet test network with sample schools and people, and no real school uses it today. The principal of Thaba Jabula Secondary School told us they would use it.",
       },
       {
         q: "Does any money move?",
@@ -367,7 +367,7 @@ export const landingPage = {
       },
       {
         q: "Why use a blockchain?",
-        a: "Several parties share one history, and the party being checked should not control it. The contracts on Avalanche enforce the rules, and anyone can read the record.",
+        a: "Several parties share one history, and the party being checked should not control it. The program on Solana enforces the rules, and anyone can read the record.",
       },
     ],
   },
@@ -379,7 +379,7 @@ export const landingPage = {
 
   footer: {
     description:
-      "Bona Chain follows a school repair from the report to the release instruction, with a proof at every step.",
+      "BonaWork follows a school repair from the report to the release instruction, with a proof at every step.",
     columns: [
       {
         title: "Community",
@@ -402,7 +402,7 @@ export const landingPage = {
         title: "Open",
         links: [
           { label: "Source code", href: REPOSITORY },
-          { label: "Registry contract", href: REGISTRY },
+          { label: "Program on Solana devnet", href: REGISTRY },
         ],
       },
     ],

@@ -6,7 +6,7 @@ import { begin, deps } from "@/server/request";
 /**
  * `POST /api/issues/:id/release/probe`: asks the ledger whether it would accept
  * a release for this case right now. Needs `release:authorise`. Never writes:
- * on Fuji it is a simulated call to the institution's Finance contract, which
+ * on devnet it is a simulated call to the institution's Finance contract, which
  * answers with its own refusal (for example `RepairNotVerified`).
  *
  * 401 signed out · 403 another role · 404 an unknown report or no work order.

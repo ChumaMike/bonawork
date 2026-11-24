@@ -8,7 +8,7 @@
  * case through /api/demo/reset at the end so the deployment is left demo-ready).
  *
  * Screenshots go to docs/screenshots/release/. Nothing here asserts that a receipt is
- * a real Avalanche transaction unless the server itself reports a live ledger.
+ * a real Solana transaction unless the server itself reports a live ledger.
  */
 import { expect, test, type Page } from "@playwright/test";
 
@@ -193,7 +193,7 @@ test("steps 1–8: community journey on a phone", async ({ page }) => {
     .poll(() => page.getByTestId("evidence-item").count(), { timeout: 30_000 })
     .toBeGreaterThan(before);
   if (!ledgerLive) {
-    // Memory ledger: the UI must never call this an Avalanche transaction.
+    // Memory ledger: the UI must never call this a Solana transaction.
     await expect(page.locator("[data-ledger=confirmed]")).toHaveCount(0);
     await expect(
       page.getByRole("link", { name: /block explorer|Snowtrace/i }),

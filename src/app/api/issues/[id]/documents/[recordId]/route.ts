@@ -14,7 +14,7 @@ import { isUuid, requireReport } from "@/server/reports/common";
 import { begin } from "@/server/request";
 
 /**
- * `GET /api/issues/:id/documents/:recordId` — what Bona Chain Verify needs.
+ * `GET /api/issues/:id/documents/:recordId` — what BonaWork Verify needs.
  *
  * For a report / protection / claim / review record: the salted
  * `CommitmentDocument` behind its on-chain commitment, plus the receipt.

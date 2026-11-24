@@ -72,7 +72,7 @@ async function matched(ledger: LedgerPort) {
 }
 
 describe("memory ledger: the procurement trail", () => {
-  it("says finance is simulated and is never presented as Avalanche", () => {
+  it("says finance is simulated and is never presented as Solana", () => {
     const info = createMemoryLedger().info();
     expect(info).toMatchObject({ finance: "simulated", live: false });
     expect(info.chainId).toBe(MEMORY_CHAIN_ID);
@@ -109,9 +109,10 @@ describe("memory ledger: the procurement trail", () => {
     expect(receipts.map((r) => r.event)).toEqual([...FINANCE_EVENTS]);
     for (const receipt of receipts) {
       expect(BlockchainReceiptSchema.safeParse(receipt).success).toBe(true);
-      // A simulated result is never an Avalanche transaction.
+      // A simulated result is never a Solana (or EVM) transaction.
       expect(receipt.chainId).toBe("bona:memory");
       expect(receipt.chainId.startsWith("eip155:")).toBe(false);
+      expect(receipt.chainId.startsWith("solana:")).toBe(false);
       expect(await ledger.getReceipt(receipt.txId, receipt.event)).toEqual(receipt);
     }
     // Finance steps never change the report status.

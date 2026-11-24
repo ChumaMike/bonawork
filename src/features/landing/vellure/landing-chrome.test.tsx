@@ -54,7 +54,7 @@ describe("the site's top bar", () => {
       "href",
       "/report",
     );
-    expect(within(bar).getByRole("link", { name: /Bona Chain/ })).toHaveAttribute(
+    expect(within(bar).getByRole("link", { name: /BonaWork/ })).toHaveAttribute(
       "href",
       "/",
     );
@@ -176,7 +176,7 @@ describe("the site's footer", () => {
     const outside = all.filter((href) => href?.startsWith("http"));
     expect(outside).toEqual([
       "https://github.com/obxalethia-star/BonaChain",
-      "https://testnet.snowtrace.io/address/0x9AA7Cf8a0cd0c015F01DF8fdb400510D1407d6E3#code",
+      "https://explorer.solana.com/address/5LkegW1dBfTL1Xiw2n15Rt99ZVcG4uipCjDH9bMiyEGY?cluster=devnet",
     ]);
     for (const href of all.filter((href) => !href?.startsWith("http"))) {
       expect(PUBLIC_ROUTES).toContain(href);
@@ -200,7 +200,7 @@ describe("the site's footer", () => {
     );
     expect(text).toContain("Test network only. No real money moves.");
     expect(text).toContain(
-      "Bona Chain for Schools. Sample schools and people while we run on the Avalanche Fuji test network.",
+      "BonaWork for Schools. Sample schools and people while we run on the Solana devnet test network.",
     );
     expect(text).not.toMatch(/\bpaid\b|\bresolved\b|BonaBlock/i);
     // It does not say where it was built, and does not label its pictures.

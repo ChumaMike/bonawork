@@ -2,7 +2,7 @@ import { Badge } from "@/components/ui/card";
 import { getMessages } from "@/i18n";
 
 /**
- * What Bona Chain does, for someone who has never seen it: three steps
+ * What BonaWork does, for someone who has never seen it: three steps
  * (report, check, prove), then the trail in plain words, with the role that
  * takes each step. It is words only: no case data, no amounts, no names, and
  * no link to a staff workspace.

@@ -13,7 +13,7 @@ describe("BrandMark", () => {
     const { container, rerender } = render(<BrandMark />);
     expect(container.querySelector("svg")).toHaveAttribute("aria-hidden", "true");
     rerender(<BrandMark title={BRAND_NAME} />);
-    expect(screen.getByRole("img", { name: "Bona Chain" })).toBeInTheDocument();
+    expect(screen.getByRole("img", { name: "BonaWork" })).toBeInTheDocument();
   });
 
   it("stays simple enough for a 24 px icon", () => {
@@ -32,7 +32,7 @@ describe("BrandMark", () => {
 describe("BrandLogo", () => {
   it("says the product name once and hides the mark from screen readers", () => {
     const { container } = render(<BrandLogo />);
-    expect(container.textContent).toBe("Bona Chain");
+    expect(container.textContent).toBe("BonaWork");
     expect(container.querySelector("svg")).toHaveAttribute("aria-hidden", "true");
   });
 });
@@ -46,12 +46,12 @@ describe("brand files", () => {
     expect(mark).toContain('r="11.5"');
   });
 
-  it("names the app Bona Chain in the manifest", () => {
+  it("names the app BonaWork in the manifest", () => {
     const manifest = JSON.parse(
       readFileSync(join(publicDir, "manifest.webmanifest"), "utf8"),
     ) as { name: string; short_name: string; icons: { src: string }[] };
-    expect(manifest.name).toBe("Bona Chain");
-    expect(manifest.short_name).toBe("Bona Chain");
+    expect(manifest.name).toBe("BonaWork");
+    expect(manifest.short_name).toBe("BonaWork");
     expect(manifest.icons.map((icon) => icon.src)).toEqual([
       "/icon.svg",
       "/icon-maskable.svg",

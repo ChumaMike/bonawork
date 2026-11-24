@@ -337,11 +337,11 @@ test("sample data is never shown as a real blockchain record", async ({ page }) 
   await page.getByRole("tab", { name: /^Proof/ }).click();
   await page.getByTestId("show-proof").filter({ visible: true }).first().click();
   await expect(
-    page.getByRole("dialog").getByText("It is not a real Avalanche transaction."),
+    page.getByRole("dialog").getByText("It is not a real Solana transaction."),
   ).toBeVisible();
 });
 
-test("a receipt can be copied and taken to Bona Chain Verify", async ({
+test("a receipt can be copied and taken to BonaWork Verify", async ({
   page,
   context,
 }) => {
@@ -370,7 +370,7 @@ test("a receipt can be copied and taken to Bona Chain Verify", async ({
   await expect(
     sheet
       .getByTestId("receipt-actions")
-      .getByRole("link", { name: "Open in Bona Chain Verify" }),
+      .getByRole("link", { name: "Open in BonaWork Verify" }),
   ).toHaveAttribute("href", process.env.NEXT_PUBLIC_VERIFY_URL || "/verify");
   // A sample has no transaction, so there is no link or code to the independent verifier.
   await expect(sheet.getByTestId("verify-link")).toHaveCount(0);

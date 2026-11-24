@@ -16,7 +16,7 @@ import { verifyLink } from "@/lib/verify-link";
 /**
  * "Show proof". Pages say one word about a record ("Recorded"); everything a
  * careful person, a journalist or a judge wants is one tap away in a sheet:
- * what was written to Avalanche and when, the file's fingerprint, a link and a
+ * what was written to Solana and when, the file's fingerprint, a link and a
  * square code that open the independent verifier with this record filled in,
  * and the raw receipt to copy.
  *

@@ -40,7 +40,7 @@ export const procurement = {
   /** The last line of every signed-in procurement screen. */
   testnet: "Test network only. No real money moves.",
   /** The rule engine. Never a person and never "AI". */
-  rules: "Bona Chain rules",
+  rules: "BonaWork rules",
 
   stage: {
     label: {
@@ -322,7 +322,7 @@ export const procurement = {
       "Release authorised. This is an instruction. No money moved on this test network.",
     confirmTitle: (reference: string) => `Authorise the release for ${reference}?`,
     confirmBody:
-      "This records a release instruction on the Avalanche Fuji test network. No money moves.",
+      "This records a release instruction on the Solana devnet test network. No money moves.",
     conflict: "The release could not be authorised. Something changed on this case.",
     /** The question sent to Bona AI. The assistant answers it from the release gate. */
     askAi: (reference: string) => `What is blocking payment on ${reference}?`,
@@ -331,14 +331,14 @@ export const procurement = {
       "Bona AI explains the release gate. It decides nothing and authorises nothing.",
     aiFailed: "Bona AI could not answer just now. The checklist above is what counts.",
     probe: {
-      action: "Ask the Avalanche contract",
+      action: "Ask the Solana program",
       help: "This asks the smart contract whether it would accept a release right now. Nothing is written.",
       refusedTitle: "The contract refused",
       allowedTitle: "The contract would accept a release now",
       reason: "The contract's answer",
-      live: "Answered by this institution's Finance contract on the Avalanche Fuji test network. Nothing was written.",
+      live: "Answered by the BonaWork program on the Solana devnet test network. Nothing was written.",
       simulated:
-        "Sample data: this answer came from a built-in copy of the contract's rules, not from Avalanche.",
+        "Sample data: this answer came from a built-in copy of the program's rules, not from Solana.",
       off: "No ledger is connected here, so the contract could not be asked.",
       failed: "The contract could not be reached just now. Try again.",
       reasons: {
@@ -386,7 +386,7 @@ export const procurement = {
   trail: {
     publicTitle: "Who did what, and the proof",
     publicIntro:
-      "Each step is recorded on the Avalanche Fuji test network. Amounts and names are not public.",
+      "Each step is recorded on the Solana devnet test network. Amounts and names are not public.",
     staffTitle: "The trail for this case",
     tab: "Trail",
     next: "Next",

@@ -51,7 +51,7 @@ export interface ReleaseProbeResult {
 
 /**
  * `POST /api/issues/:id/release/probe`: asks the ledger whether it would accept
- * a release for this case now. On Fuji the Finance contract answers from a
+ * a release for this case now. On devnet the Finance contract answers from a
  * simulated call: nothing is sent and nothing is written. The app's own gate
  * is not consulted here, so the answer is the contract's, not ours.
  */

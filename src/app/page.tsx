@@ -18,7 +18,7 @@ import {
 /**
  * The public landing page.
  *
- * One long page for someone who has never seen Bona Chain: what it is, the
+ * One long page for someone who has never seen BonaWork: what it is, the
  * school search and the three things people come to do, what it checks, who
  * does what, what has been tested, one finished case as its public trail, who
  * funds it, and the questions people ask first.

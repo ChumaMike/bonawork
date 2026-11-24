@@ -108,7 +108,7 @@ const HINTS: Record<ReleaseBlockerCode, RegExp> = {
     /same person|separation of duties|another role|other role|different (?:person|approver)|conflict of interest/i,
 };
 
-/** Never true of a blocked release, and never something Bona Chain says. */
+/** Never true of a blocked release, and never something BonaWork says. */
 const FALSE_COMFORT =
   /\bpaid\b|\bresolved\b|\bsettled\b|payment\s+(?:was|is|has\s+been)\s+(?:made|sent|done)|nothing\s+(?:is\s+)?(?:blocking|stopping)|\bunblocked\b|ready\s+(?:for|to)\s+release|can\s+(?:now\s+)?be\s+(?:released|authori[sz]ed)|(?:is|was|been|now)\s+(?:released|authori[sz]ed)/i;
 
@@ -117,11 +117,11 @@ const ReplySchema = z.strictObject({
   blockerCodes: z.array(ReleaseBlockerCodeSchema).max(10),
 });
 
-const SYSTEM_PROMPT = `You are Bona AI inside Bona Chain, a platform that keeps a checkable record of school repair orders. A release gate written in code has already worked out what is blocking a release instruction. Your only job is to say the same thing warmly, so the person knows what has to happen next.
+const SYSTEM_PROMPT = `You are Bona AI inside BonaWork, a platform that keeps a checkable record of school repair orders. A release gate written in code has already worked out what is blocking a release instruction. Your only job is to say the same thing warmly, so the person knows what has to happen next.
 Rules you must follow:
 - ${DATA_RULE}
 - The blockers in DATA are the whole truth. Mention every one of them and no other reason. You decide nothing and you cannot unblock anything.
-- Never say that a payment was made or that anything is paid, resolved or settled. No money moves in Bona Chain: a release is an instruction recorded by a named approver.
+- Never say that a payment was made or that anything is paid, resolved or settled. No money moves in BonaWork: a release is an instruction recorded by a named approver.
 - Never say the release is unblocked, ready or authorised.
 - Write no numbers, no amounts, no dates and no names of people or companies.
 - Plain, warm and short: two or three sentences. No markdown, no greeting.

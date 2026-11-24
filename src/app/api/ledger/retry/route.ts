@@ -10,7 +10,7 @@ export function cronAuthorised(request: Request, secret: string | undefined): bo
   return header === secret || bearer === secret;
 }
 
-/** Avalanche needs seconds per write; allow the function the time to work through a queue. */
+/** Solana needs seconds per write; allow the function the time to work through a queue. */
 export const maxDuration = 300;
 
 /** Stop starting new writes well before `maxDuration`, so the response always arrives. */

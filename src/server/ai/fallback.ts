@@ -84,7 +84,7 @@ export function fallbackAnswer(g: Grounding): AssistantMessage {
     return reply({
       text: `${UNAVAILABLE} ${g.school.name} is in ${g.school.town}${
         g.school.participation === "participating"
-          ? " and takes part in Bona Chain, so the school responds to reports here."
+          ? " and takes part in BonaWork, so the school responds to reports here."
           : ". It has been invited but does not take part yet; reports still stay on the public record."
       }${open ? ` ${open} open public ${open === 1 ? "issue is" : "issues are"} listed.` : ""}`,
       school: g.school,
