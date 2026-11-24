@@ -1,0 +1,21 @@
+{
+  "cluster": "devnet",
+  "chainId": "solana:devnet",
+  "explorerBase": "https://explorer.solana.com",
+  "programId": "5LkegW1dBfTL1Xiw2n15Rt99ZVcG4uipCjDH9bMiyEGY",
+  "mint": "5AHRPsVABhZESFmPMXX9jeYb6krkz9XUAsLy1LiWXud3",
+  "mintSymbol": "BDZAR",
+  "mintLabel": "Sandbox demo rand (no real money)",
+  "mintDecimals": 2,
+  "admin": "1256WGST3eD9eJkftLrLnnMrA42ioXRrFLEdM17Wtif1",
+  "match": "5g1LswC7r4uAQST8M4YWKqM9JcT2qnPoye939jf1yjjt",
+  "dispute": "EqEmop4L62J1EXgqvDEVDS2M2pTTHDTtnvoxfivCmzze",
+  "feepayer": "J2bMwzDURRuKWJunXu1ZEjdzjFV1tRWmYJk8pDwrMHuz",
+  "treasury": "CBu6NtDfY3pq56Wf5Re7bSbJBfuNjp3r1MHzofgumepY",
+  "keeper": "K1RpcZWdwB9Py8usGfPWDYn9W3DiCcRkjKUcZCUrWCX",
+  "demoReviewer": "DJ4nwQdup8vvACbcFpmn2rB28fcwt3LDnFgGGGLAVqRh",
+  "challengeSeconds": {
+    "min": 60,
+    "max": 604800
+  }
+}

@@ -4,6 +4,13 @@ import { SOLANA_CHAINS } from "@/shared";
 const PrivateKey = z
   .string()
   .regex(/^0x[0-9a-fA-F]{64}$/, "expected a 0x-prefixed 32-byte hex key");
+/** Base58 or a JSON byte array. Parsed fully (and never echoed) in src/server/solana/keys.ts. */
+const SolanaSecret = z
+  .string()
+  .regex(
+    /^\s*(\[[\d,\s]+\]|[1-9A-HJ-NP-Za-km-z]{80,90})\s*$/,
+    "expected base58 or a JSON byte array",
+  );
 const Address = z.string().regex(/^0x[0-9a-fA-F]{40}$/, "expected a 0x-prefixed address");
 
 /** The variable that holds the signing key of each on-chain role. Server-side only. */
@@ -89,6 +96,24 @@ const EnvSchema = z
      */
     AI_MODE: z.enum(["auto", "off"]).default("auto"),
     AI_MODEL: z.string().min(1).default("google/gemini-2.5-flash-lite"),
+
+    /* BonaWork on Solana devnet */
+    /** Solana JSON-RPC endpoint. Default: the public devnet endpoint (rate limited). */
+    SOLANA_RPC_URL: z.url().optional(),
+    /**
+     * Server-side Solana keys, base58 or a JSON array of 64 bytes. One per role,
+     * never shared, never NEXT_PUBLIC_. See src/server/solana/keys.ts.
+     */
+    BONAWORK_ADMIN_KEY: SolanaSecret.optional(),
+    BONAWORK_MATCH_KEY: SolanaSecret.optional(),
+    BONAWORK_DISPUTE_KEY: SolanaSecret.optional(),
+    BONAWORK_FEEPAYER_KEY: SolanaSecret.optional(),
+    BONAWORK_TREASURY_KEY: SolanaSecret.optional(),
+    BONAWORK_KEEPER_KEY: SolanaSecret.optional(),
+    /** DEMO ONLY: stands in for the contractor's own wallet in the sandbox. */
+    BONAWORK_DEMO_CONTRACTOR_KEY: SolanaSecret.optional(),
+    /** Local development only: folder of keypair files used when a key variable is unset. */
+    BONAWORK_KEYS_DIR: z.string().min(1).optional(),
 
     /* Price check */
     /** Firecrawl key for the invoice price check. Without it every line is `unavailable`. */
