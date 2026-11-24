@@ -25,6 +25,9 @@
   },
   "dependencies": {
     "@electric-sql/pglite": "^0.5.16",
+    "@solana-program/compute-budget": "0.20.0",
+    "@solana-program/token": "0.18.0",
+    "@solana/kit": "8.6.0",
     "@vercel/blob": "^2.9.0",
     "ai": "^7.0.173",
     "drizzle-orm": "^0.45.4",
