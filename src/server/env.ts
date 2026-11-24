@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { SOLANA_CHAINS } from "@/shared";
 
 const PrivateKey = z
   .string()
@@ -51,7 +52,14 @@ const EnvSchema = z
     /* Ledger — decision D4 in docs/coordination/DEPENDENCIES.md */
     LEDGER_MODE: z.enum(["auto", "memory", "off"]).default("auto"),
     LEDGER_RPC_URL: z.url().optional(),
-    LEDGER_CHAIN_ID: z.string().min(1).default("eip155:43113"),
+    /**
+     * `solana:devnet` for BonaWork. `eip155:<n>` is still accepted for the
+     * earlier EVM adapters, which refuse anything but Avalanche Fuji.
+     */
+    LEDGER_CHAIN_ID: z
+      .string()
+      .regex(/^(solana:devnet|eip155:\d+)$/, "expected solana:devnet")
+      .default(SOLANA_CHAINS.devnet),
     /**
      * The BonaChainFactory. When set, the Bona Chain contracts are used and
      * LEDGER_CONTRACT_ADDRESS is ignored: nothing is written to it.

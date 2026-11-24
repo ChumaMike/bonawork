@@ -1,5 +1,5 @@
 import type { BlockchainReceipt, ChainStatus, EvidenceKind } from "./domain";
-import type { Hex32, Id } from "./primitives";
+import type { ChainTxId, Hex32, Id } from "./primitives";
 import type { ChainRole } from "./roles";
 
 /** Names one work order on one institution's InstitutionFinance contract. */
@@ -18,7 +18,7 @@ export type FinanceRef = { institutionId: Id; workOrderId: Id };
  * or `confirmed`) and rejects with a `LedgerError` if the contract reverts.
  */
 export interface LedgerPort {
-  /** Which ledger this is. The UI must never present a non-`live` ledger as Avalanche. */
+  /** Which ledger this is. The UI must never present a non-`live` ledger as Solana. */
   info(): LedgerInfo;
   /** Signed by the registrar key. */
   registerReport(input: {
@@ -81,7 +81,10 @@ export interface LedgerPort {
   /** On-chain status. `none` means the report is not registered. */
   statusOf(reportId: Id, institutionId?: Id): Promise<ChainStatus>;
   /** Refresh a pending receipt. */
-  getReceipt(txId: Hex32, event: BlockchainReceipt["event"]): Promise<BlockchainReceipt>;
+  getReceipt(
+    txId: ChainTxId,
+    event: BlockchainReceipt["event"],
+  ): Promise<BlockchainReceipt>;
 
   /*
    * Finance writes (InstitutionFinance). Fingerprints only: no amount, name or
@@ -124,7 +127,7 @@ export interface LedgerPort {
 }
 
 export interface LedgerInfo {
-  /** CAIP-2, e.g. `eip155:43113`. */
+  /** Chain id, e.g. `solana:devnet`. */
   chainId: string;
   contractAddress: string;
   /** Human-readable network name for the UI. */
@@ -136,7 +139,7 @@ export interface LedgerInfo {
   /**
    * Whether finance writes reach a ledger: `live` on a real chain with the
    * finance signers configured, `simulated` on the in-memory ledger, `off`
-   * when they are not available. Only `live` may be presented as Avalanche.
+   * when they are not available. Only `live` may be presented as Solana.
    */
   finance: "live" | "simulated" | "off";
 }

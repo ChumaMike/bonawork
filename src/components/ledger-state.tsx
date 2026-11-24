@@ -1,4 +1,6 @@
 import type { LedgerRecord } from "@/data/types";
+import { solanaTxUrl } from "@/lib/solana-explorer";
+import { SOLANA_CHAINS } from "@/shared";
 import { useMessages, type Messages } from "@/i18n";
 import { formatDate } from "@/lib/format";
 import { cn } from "./ui/cn";
@@ -6,16 +8,14 @@ import { Icon, type IconName } from "./ui/icon";
 
 type LedgerView = "none" | "simulated" | "pending" | "confirmed" | "failed";
 
-/** Avalanche C-Chain and the Fuji test network. Anything else is not a public record. */
-const AVALANCHE_CHAINS = new Set(["eip155:43114", "eip155:43113"]);
+/** Solana devnet. Anything else is not a public record. */
+const PUBLIC_CHAINS = new Set<string>(Object.values(SOLANA_CHAINS));
 
 function viewOf(record: LedgerRecord): LedgerView {
   if (record.source !== "ledger") return record.source;
   // A receipt from the in-memory development ledger (`bona:memory`) or any
-  // unknown network is shown as a sample, never as "Recorded on Avalanche".
-  return AVALANCHE_CHAINS.has(record.receipt.chainId)
-    ? record.receipt.status
-    : "simulated";
+  // unknown network is shown as a sample, never as "Recorded on Solana".
+  return PUBLIC_CHAINS.has(record.receipt.chainId) ? record.receipt.status : "simulated";
 }
 
 /** `tone` colours a chip, or the icon tile of the panel. The words carry the meaning. */
@@ -50,11 +50,9 @@ function copyFor(view: LedgerView, m: Messages) {
   }[view];
 }
 
-/** Explorer links exist only for real receipts on a known Avalanche network. */
+/** Explorer links exist only for real receipts on a known Solana network. */
 function explorerUrl(chainId: string, txId: string): string | null {
-  if (chainId === "eip155:43114") return `https://snowtrace.io/tx/${txId}`;
-  if (chainId === "eip155:43113") return `https://testnet.snowtrace.io/tx/${txId}`;
-  return null;
+  return chainId === SOLANA_CHAINS.devnet ? solanaTxUrl(txId) : null;
 }
 
 /** Small inline label for lists and timelines. */

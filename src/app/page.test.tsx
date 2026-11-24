@@ -18,7 +18,7 @@ describe("home page", () => {
       "From the report to the release, every step checked.",
     );
     expect(
-      screen.getByText("Live on the Avalanche Fuji test network"),
+      screen.getByText("Live on the Solana devnet test network"),
     ).toBeInTheDocument();
   });
 
@@ -186,18 +186,21 @@ describe("status and ledger honesty", () => {
 
   it("labels sample ledger records as not real and shows no transaction", () => {
     render(<LedgerPanel record={{ source: "simulated", status: "confirmed" }} />);
-    expect(screen.getByText(/not a real Avalanche transaction/)).toBeInTheDocument();
+    expect(screen.getByText(/not a real Solana transaction/)).toBeInTheDocument();
     expect(screen.queryByText("Transaction")).not.toBeInTheDocument();
     expect(screen.queryByRole("link")).not.toBeInTheDocument();
   });
+
+  const SIGNATURE =
+    "5VERv8NMvzbJMEkV8xnrLkEaWRtSz9CosKDYjCJjBRnbJLgp8uirBgmQpjKhoR4tjF3ZpRzrFmBV6UjKdiSZkQUW";
 
   // Only the fields the panel reads. The receipt type gains and loses other
   // fields as the shared contract evolves; the panel does not depend on them.
   const receiptOn = (chainId: string) =>
     ({
       chainId,
-      contractAddress: `0x${"c".repeat(40)}`,
-      txId: `0x${"d".repeat(64)}`,
+      contractAddress: "5LkegW1dBfTL1Xiw2n15Rt99ZVcG4uipCjDH9bMiyEGY",
+      txId: SIGNATURE,
       status: "confirmed",
       blockNumber: 12,
       blockTimestamp: "2026-11-16T09:30:00.000Z",
@@ -205,12 +208,12 @@ describe("status and ledger honesty", () => {
 
   it("shows transaction details and an explorer link only for a real receipt", () => {
     render(
-      <LedgerPanel record={{ source: "ledger", receipt: receiptOn("eip155:43113") }} />,
+      <LedgerPanel record={{ source: "ledger", receipt: receiptOn("solana:devnet") }} />,
     );
-    expect(screen.getByText("Recorded on Avalanche")).toBeInTheDocument();
+    expect(screen.getByText("Recorded on Solana")).toBeInTheDocument();
     expect(screen.getByRole("link")).toHaveAttribute(
       "href",
-      `https://testnet.snowtrace.io/tx/0x${"d".repeat(64)}`,
+      `https://explorer.solana.com/tx/${SIGNATURE}?cluster=devnet`,
     );
   });
 
@@ -218,8 +221,8 @@ describe("status and ledger honesty", () => {
     render(
       <LedgerPanel record={{ source: "ledger", receipt: receiptOn("bona:memory") }} />,
     );
-    expect(screen.getByText(/not a real Avalanche transaction/)).toBeInTheDocument();
-    expect(screen.queryByText("Recorded on Avalanche")).not.toBeInTheDocument();
+    expect(screen.getByText(/not a real Solana transaction/)).toBeInTheDocument();
+    expect(screen.queryByText("Recorded on Solana")).not.toBeInTheDocument();
     expect(screen.queryByText("Transaction")).not.toBeInTheDocument();
     expect(screen.queryByRole("link")).not.toBeInTheDocument();
   });

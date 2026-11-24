@@ -14,16 +14,16 @@ import { Notice, PageShell } from "@/components/ui/page";
 import { getApi } from "@/data/api";
 import type { DigestMatch, LedgerRecord } from "@/data/types";
 import { useMessages } from "@/i18n";
-import type { Hex32 } from "@/shared";
+import { type Hex32, SOLANA_CHAINS } from "@/shared";
 
-/** The separate verifier. It reads Avalanche itself and never calls this app. */
+/** The separate verifier. It reads Solana itself and never calls this app. */
 const VERIFY_URL = process.env.NEXT_PUBLIC_VERIFY_URL || "https://bona-verify.vercel.app";
 
-/** Avalanche C-Chain and the Fuji test network. Anything else is a sample. */
-const AVALANCHE_CHAINS = new Set(["eip155:43114", "eip155:43113"]);
+/** Solana devnet. Anything else is a sample. */
+const PUBLIC_CHAINS = new Set<string>(Object.values(SOLANA_CHAINS));
 
 function isSampleRecord(record: LedgerRecord): boolean {
-  return record.source !== "ledger" || !AVALANCHE_CHAINS.has(record.receipt.chainId);
+  return record.source !== "ledger" || !PUBLIC_CHAINS.has(record.receipt.chainId);
 }
 
 interface Result {
@@ -85,7 +85,7 @@ function Step({
 }
 
 /**
- * Check a file against Bona Chain's records. The fingerprint is computed in
+ * Check a file against BonaWork's records. The fingerprint is computed in
  * the browser; only the fingerprint is looked up. Three short steps show what
  * was checked, then one plain answer. The codes sit behind "Show proof".
  */

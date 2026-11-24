@@ -113,6 +113,23 @@ describe("schemas", () => {
     expect(parsed).not.toHaveProperty("status");
   });
 
+  it("accepts a Solana devnet receipt with a base58 signature and program id", () => {
+    const solana = {
+      ...receipt,
+      chainId: "solana:devnet",
+      contractAddress: "5LkegW1dBfTL1Xiw2n15Rt99ZVcG4uipCjDH9bMiyEGY",
+      txId: "5VERv8NMvzbJMEkV8xnrLkEaWRtSz9CosKDYjCJjBRnbJLgp8uirBgmQpjKhoR4tjF3ZpRzrFmBV6UjKdiSZkQUW",
+    };
+    expect(BlockchainReceiptSchema.safeParse(solana).success).toBe(true);
+    // Base58 has no 0, O, I or l.
+    expect(
+      BlockchainReceiptSchema.safeParse({ ...solana, txId: "0OIl".repeat(22) }).success,
+    ).toBe(false);
+    expect(
+      BlockchainReceiptSchema.safeParse({ ...solana, contractAddress: "short" }).success,
+    ).toBe(false);
+  });
+
   it("validates receipts, evidence, endorsements, protections, claims and reviews", () => {
     expect(BlockchainReceiptSchema.safeParse(receipt).success).toBe(true);
     expect(

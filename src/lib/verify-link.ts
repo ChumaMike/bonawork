@@ -26,7 +26,7 @@ import { AVALANCHE_CHAINS, BlockchainReceiptSchema, type LedgerEvent } from "@/s
  * characters for an evidence record.
  *
  * The receipt's status, block number and block time are not sent. The verifier
- * reads those from Avalanche itself.
+ * reads those from the chain itself.
  *
  * The parser is `verifier/src/lib/link.ts`. The two files share no code, only
  * this format; `verify-link.test.ts` checks them against each other.
@@ -86,7 +86,7 @@ export interface VerifyLinkOptions {
   label?: string;
   /**
    * The report's id (a UUID, not the BB- reference). The verifier checks that
-   * the record on Avalanche belongs to this report. Anything else is left out.
+   * the record on the chain belongs to this report. Anything else is left out.
    */
   reportId?: string;
   /**
@@ -120,7 +120,9 @@ export function verifyLink(
   if (!parsed.success) return null;
   const { chainId, contractAddress, txId, status, event } = parsed.data;
   // A pending or failed write, or one on the in-memory sample ledger, is not
-  // something Avalanche can vouch for. It gets no link.
+  // something the chain can vouch for. It gets no link. The link format and
+  // the verifier still read only the earlier EVM ledger, so a Solana receipt
+  // gets no link yet either.
   if (status !== "confirmed" || !PUBLIC_CHAINS.includes(chainId)) return null;
 
   const document = documentFor(event, opts.document);

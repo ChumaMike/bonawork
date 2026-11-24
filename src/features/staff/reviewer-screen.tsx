@@ -29,17 +29,18 @@ import type { EvidencePurpose, EvidenceUpload, Issue, LedgerRecord } from "@/dat
 import { useQuery } from "@/data/use-query";
 import { useMessages } from "@/i18n";
 import { formatDate, timeAgo } from "@/lib/format";
+import { SOLANA_CHAINS } from "@/shared";
 import { RequireRole } from "../auth/require-role";
 import { StaffCaseTrail } from "../procurement/tasks";
 import { lastEvent } from "./queue";
 import { allAnswered, checksLine, composeReviewNote } from "./review-note";
 
-/** Avalanche C-Chain and the Fuji test network. Anything else is a sample. */
-const AVALANCHE_CHAINS = new Set(["eip155:43114", "eip155:43113"]);
+/** Solana devnet. Anything else is a sample. */
+const PUBLIC_CHAINS = new Set<string>(Object.values(SOLANA_CHAINS));
 
 function isSampleRecord(record: LedgerRecord | undefined): boolean {
   if (!record || record.source !== "ledger") return true;
-  return !AVALANCHE_CHAINS.has(record.receipt.chainId);
+  return !PUBLIC_CHAINS.has(record.receipt.chainId);
 }
 
 /** The two steps of one review: the checks at the school, then the decision. */

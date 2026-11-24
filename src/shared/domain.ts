@@ -1,5 +1,11 @@
 import { z } from "zod";
-import { Hex32Schema, IdSchema, IsoDateTimeSchema } from "./primitives";
+import {
+  ChainAddressSchema,
+  ChainTxIdSchema,
+  Hex32Schema,
+  IdSchema,
+  IsoDateTimeSchema,
+} from "./primitives";
 import {
   CentsSchema,
   CurrencySchema,
@@ -100,7 +106,12 @@ export const LEDGER_EVENTS = [...REGISTRY_EVENTS, ...FINANCE_EVENTS] as const;
 export const LedgerEventSchema = z.enum(LEDGER_EVENTS);
 export type LedgerEvent = z.infer<typeof LedgerEventSchema>;
 
-/** CAIP-2 ids of the Avalanche C-Chain networks. */
+/** CAIP-2 style id of the Solana network BonaWork records to. */
+export const SOLANA_CHAINS = {
+  devnet: "solana:devnet",
+} as const;
+
+/** CAIP-2 ids of the earlier EVM ledger (Avalanche). Kept for the old adapters only. */
 export const AVALANCHE_CHAINS = {
   fuji: "eip155:43113",
   mainnet: "eip155:43114",
@@ -108,10 +119,12 @@ export const AVALANCHE_CHAINS = {
 
 /** Proof that one ledger write happened. Contains no personal data. */
 export const BlockchainReceiptSchema = z.object({
-  /** CAIP-2 chain id, e.g. `eip155:43113` (Avalanche Fuji). */
+  /** Chain id, e.g. `solana:devnet`. */
   chainId: z.string().min(1),
-  contractAddress: z.string().regex(/^0x[0-9a-fA-F]{40}$/),
-  txId: Hex32Schema,
+  /** The program (Solana) or contract (earlier EVM ledger) that recorded it. */
+  contractAddress: ChainAddressSchema,
+  /** A Solana signature, or a `0x` hash on the earlier EVM ledger. */
+  txId: ChainTxIdSchema,
   status: z.enum(["pending", "confirmed", "failed"]),
   /** Null until the transaction is confirmed. */
   blockNumber: z.number().int().nonnegative().nullable(),
