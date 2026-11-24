@@ -31,6 +31,7 @@ import type { IndependentReview } from "@/data/types";
 import { useQuery } from "@/data/use-query";
 import { useMessages, type Messages } from "@/i18n";
 import { timeAgo } from "@/lib/format";
+import { EscrowCard } from "../escrow/escrow-card";
 import { PublicTrail, StaffTrail } from "../procurement/money-trail";
 import { FundRepair } from "./fund-repair";
 
@@ -327,6 +328,13 @@ export function IssueScreen() {
           </Card>
 
           <FundRepair issue={issue} audience={audience} />
+
+          {issue.status !== "declined" ? (
+            <EscrowCard
+              issueId={issue.id}
+              role={audience.status === "ready" ? audience.role : null}
+            />
+          ) : null}
 
           <dl className="divide-y divide-line rounded-2xl border border-line bg-surface px-5 shadow-card">
             <div className="py-4">
