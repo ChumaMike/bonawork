@@ -36,3 +36,8 @@ public/images/raw/*
 *.pem
 *.log
 .vercel
+
+# Solana build output
+solana/target/
+solana/tests-litesvm/target/
+*-keypair.json
