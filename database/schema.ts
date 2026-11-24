@@ -490,6 +490,68 @@ export const ledgerJobs = pgTable(
   (t) => [index("ledger_jobs_status_idx").on(t.status)],
 );
 
+/* ----------------------------- Solana escrows ------------------------------ */
+
+/** One Solana transaction sent for an escrow. Public: signatures only. */
+export type EscrowTxRecord = {
+  step:
+    | "create"
+    | "cash_in"
+    | "fund"
+    | "activate"
+    | "claim"
+    | "verify"
+    | "release"
+    | "refund";
+  /** Tranche index for claim / verify / release / refund. */
+  index?: 0 | 1;
+  signature: string;
+  at: string;
+};
+
+/**
+ * The BonaWork escrow on Solana devnet that holds the sandbox demo rand for a
+ * case. One per report. The chain is the source of truth for tranche states;
+ * this row keeps the addresses, the amounts as created and the signatures sent,
+ * and `watch` marks the escrows the Escrow Watchdog (keeper) still scans.
+ */
+export const escrowCases = pgTable(
+  "escrow_cases",
+  {
+    id: uuid("id").primaryKey(),
+    reportId: uuid("report_id")
+      .notNull()
+      .references(() => reports.id),
+    cluster: text("cluster").notNull().$type<"devnet">().default("devnet"),
+    escrowAddress: text("escrow_address").notNull(),
+    vaultAddress: text("vault_address").notNull(),
+    /** Hex SHA-256 of the case, as written into the escrow. */
+    caseHash: text("case_hash").notNull(),
+    termsHash: text("terms_hash").notNull(),
+    funderAddress: text("funder_address").notNull(),
+    /** `demo`: the server-held demo funder key. `wallet`: the funder's own wallet. */
+    funderKind: text("funder_kind").notNull().$type<"demo" | "wallet">(),
+    contractorAddress: text("contractor_address").notNull(),
+    schoolAddress: text("school_address").notNull(),
+    reviewerAddress: text("reviewer_address").notNull(),
+    /** Cents of sandbox demo rand per tranche, as strings: [materials, completion]. */
+    trancheAmounts: jsonb("tranche_amounts").notNull().$type<[string, string]>(),
+    challengeSeconds: integer("challenge_seconds").notNull(),
+    transactions: jsonb("transactions").notNull().$type<EscrowTxRecord[]>().default([]),
+    /** Scanned by `/api/cron/watchdog` until both tranches are settled. */
+    watch: boolean("watch").notNull().default(true),
+    createdBy: uuid("created_by").references(() => users.id),
+    createdAt: text("created_at").notNull(),
+    updatedAt: text("updated_at").notNull(),
+  },
+  (t) => [
+    uniqueIndex("escrow_cases_report_idx").on(t.reportId),
+    uniqueIndex("escrow_cases_escrow_idx").on(t.escrowAddress),
+    index("escrow_cases_watch_idx").on(t.watch),
+  ],
+);
+
+export type EscrowCaseRow = typeof escrowCases.$inferSelect;
 export type InstitutionRow = typeof institutions.$inferSelect;
 export type UserRow = typeof users.$inferSelect;
 export type ReportRow = typeof reports.$inferSelect;

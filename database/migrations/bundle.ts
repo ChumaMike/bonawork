@@ -98,5 +98,18 @@ export const migrations: BundledMigration[] = [
       "CREATE INDEX \"work_orders_supplier_idx\" ON \"work_orders\" USING btree (\"supplier_id\");",
       "CREATE UNIQUE INDEX \"users_supplier_ref_idx\" ON \"users\" USING btree (\"supplier_ref\");"
     ]
+  },
+  {
+    "tag": "0002_boring_mercury",
+    "when": 1795544271664,
+    "hash": "7d37a5fd2011bbec145a5c6381a1ced7aeca6d81cf50a9a6b08c90185add7835",
+    "statements": [
+      "CREATE TABLE \"escrow_cases\" (\n\t\"id\" uuid PRIMARY KEY NOT NULL,\n\t\"report_id\" uuid NOT NULL,\n\t\"cluster\" text DEFAULT 'devnet' NOT NULL,\n\t\"escrow_address\" text NOT NULL,\n\t\"vault_address\" text NOT NULL,\n\t\"case_hash\" text NOT NULL,\n\t\"terms_hash\" text NOT NULL,\n\t\"funder_address\" text NOT NULL,\n\t\"funder_kind\" text NOT NULL,\n\t\"contractor_address\" text NOT NULL,\n\t\"school_address\" text NOT NULL,\n\t\"reviewer_address\" text NOT NULL,\n\t\"tranche_amounts\" jsonb NOT NULL,\n\t\"challenge_seconds\" integer NOT NULL,\n\t\"transactions\" jsonb DEFAULT '[]'::jsonb NOT NULL,\n\t\"watch\" boolean DEFAULT true NOT NULL,\n\t\"created_by\" uuid,\n\t\"created_at\" text NOT NULL,\n\t\"updated_at\" text NOT NULL\n);",
+      "ALTER TABLE \"escrow_cases\" ADD CONSTRAINT \"escrow_cases_report_id_reports_id_fk\" FOREIGN KEY (\"report_id\") REFERENCES \"public\".\"reports\"(\"id\") ON DELETE no action ON UPDATE no action;",
+      "ALTER TABLE \"escrow_cases\" ADD CONSTRAINT \"escrow_cases_created_by_users_id_fk\" FOREIGN KEY (\"created_by\") REFERENCES \"public\".\"users\"(\"id\") ON DELETE no action ON UPDATE no action;",
+      "CREATE UNIQUE INDEX \"escrow_cases_report_idx\" ON \"escrow_cases\" USING btree (\"report_id\");",
+      "CREATE UNIQUE INDEX \"escrow_cases_escrow_idx\" ON \"escrow_cases\" USING btree (\"escrow_address\");",
+      "CREATE INDEX \"escrow_cases_watch_idx\" ON \"escrow_cases\" USING btree (\"watch\");"
+    ]
   }
 ];
