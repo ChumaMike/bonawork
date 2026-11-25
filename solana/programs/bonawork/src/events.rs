@@ -5,6 +5,7 @@ pub struct EscrowCreated {
     pub escrow: Pubkey,
     pub case_hash: [u8; 32],
     pub total_amount: u64,
+    pub payees: [Pubkey; 2],
 }
 
 #[event]
@@ -58,7 +59,7 @@ pub struct TrancheReleased {
     pub escrow: Pubkey,
     pub index: u8,
     pub amount: u64,
-    pub contractor: Pubkey,
+    pub payee: Pubkey,
     pub caller: Pubkey,
 }
 
@@ -67,4 +68,18 @@ pub struct TrancheRefunded {
     pub escrow: Pubkey,
     pub index: u8,
     pub amount: u64,
+}
+
+#[event]
+pub struct ReviewerReassigned {
+    pub escrow: Pubkey,
+    pub old_reviewer: Pubkey,
+    pub new_reviewer: Pubkey,
+}
+
+#[event]
+pub struct SurplusSwept {
+    pub escrow: Pubkey,
+    pub amount: u64,
+    pub caller: Pubkey,
 }

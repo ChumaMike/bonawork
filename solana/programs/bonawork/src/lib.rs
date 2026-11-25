@@ -1,12 +1,15 @@
 //! BonaWork: school repair money that only moves after an independent check.
 //!
 //! A funder's demo-rand tokens sit in a vault owned by the escrow account.
-//! Each of two tranches pays the contractor only after:
+//! Each of two tranches pays its fixed payee (the contractor, or e.g. a materials
+//! supplier for tranche 0) only after:
 //!   1. the contractor and the procurement match key both sign a claim,
 //!   2. the assigned independent reviewer signs that exact claim,
 //!   3. the challenge window passes with no open dispute.
 //! Then anyone may trigger the release, but the amount and recipient are fixed.
 //! Nobody, including the platform admin, can move escrowed tokens any other way.
+//! The only other outflows go back to the funder: refunds, cancellation, and
+//! `sweep_surplus`, which can only return tokens beyond what open tranches are owed.
 
 use anchor_lang::prelude::*;
 use anchor_spl::associated_token::AssociatedToken;
@@ -58,6 +61,10 @@ pub struct CreateEscrowArgs {
     pub verification_deadlines: [i64; 2],
     pub challenge_seconds: u32,
     pub dispute_seconds: u32,
+    /// Who each tranche pays on release. `Pubkey::default()` means the contractor.
+    /// A payee may be the contractor, but never the funder, school, reviewer,
+    /// funder challenger, a platform key, or the escrow itself.
+    pub payees: [Pubkey; 2],
 }
 
 #[derive(AnchorSerialize, AnchorDeserialize, Clone, Copy, PartialEq, Eq)]
@@ -163,6 +170,23 @@ pub mod bonawork {
         require!(args.dispute_seconds > 0, BonaError::InvalidDeadline);
 
         let escrow_key = ctx.accounts.escrow.key();
+
+        // Payee per tranche. A supplier paid directly for materials lets a contractor
+        // without working capital start; the default is the contractor.
+        let payees = args.payees.map(|p| if p == Pubkey::default() { args.contractor } else { p });
+        for payee in payees.iter() {
+            require!(
+                *payee != args.funder
+                    && *payee != args.school
+                    && *payee != args.reviewer
+                    && *payee != config.match_authority
+                    && *payee != config.dispute_authority
+                    && *payee != escrow_key
+                    && (args.funder_challenger == Pubkey::default() || *payee != args.funder_challenger),
+                BonaError::InvalidRoleAssignment
+            );
+        }
+
         let escrow = &mut ctx.accounts.escrow;
         escrow.case_hash = args.case_hash;
         escrow.terms_hash = args.terms_hash;
@@ -171,6 +195,7 @@ pub mod bonawork {
         escrow.contractor = args.contractor;
         escrow.school = args.school;
         escrow.reviewer = args.reviewer;
+        escrow.payees = payees;
         escrow.mint = config.mint;
         escrow.match_authority = config.match_authority;
         escrow.dispute_authority = config.dispute_authority;
@@ -189,7 +214,7 @@ pub mod bonawork {
         let t1 = &mut ctx.accounts.tranche1;
         set_up_tranche(t1, escrow_key, 1, args.amounts[1], args.verification_deadlines[1], args.milestone_hashes[1], ctx.bumps.tranche1);
 
-        emit!(EscrowCreated { escrow: escrow_key, case_hash: args.case_hash, total_amount: total });
+        emit!(EscrowCreated { escrow: escrow_key, case_hash: args.case_hash, total_amount: total, payees });
         Ok(())
     }
 
@@ -396,7 +421,8 @@ pub mod bonawork {
     }
 
     /// Anyone may release a verified tranche once its challenge window is over.
-    /// The amount and the recipient were fixed when the escrow was created.
+    /// The amount and the recipient (`escrow.payees[index]`) were fixed when the escrow
+    /// was created; the `payee` account is checked against it, so no caller can redirect it.
     pub fn release_tranche(ctx: Context<ReleaseTranche>) -> Result<()> {
         let now = Clock::get()?.unix_timestamp;
         let escrow = &ctx.accounts.escrow;
@@ -421,7 +447,7 @@ pub mod bonawork {
             escrow,
             ctx.accounts.vault.to_account_info(),
             ctx.accounts.mint.to_account_info(),
-            ctx.accounts.contractor_ata.to_account_info(),
+            ctx.accounts.payee_ata.to_account_info(),
             amount,
             ctx.accounts.mint.decimals,
         )?;
@@ -436,9 +462,77 @@ pub mod bonawork {
             escrow: escrow.key(),
             index,
             amount,
-            contractor: escrow.contractor,
+            payee: ctx.accounts.payee.key(),
             caller: ctx.accounts.caller.key(),
         });
+        Ok(())
+    }
+
+    /// Replaces the escrow's reviewer, e.g. when the assigned one was deactivated or
+    /// disappeared (otherwise verification is blocked until the deadline refund).
+    /// Needs BOTH the platform admin and the escrow's school to sign, so neither can
+    /// pick a friendly reviewer alone. Refused while any tranche is Verified (its
+    /// challenge window or release is pending) or Disputed, so a review already given
+    /// can never be swapped out from under a challenge. The new reviewer must be vetted
+    /// and active and must hold no other role in this escrow.
+    pub fn reassign_reviewer(ctx: Context<ReassignReviewer>, new_reviewer: Pubkey) -> Result<()> {
+        let escrow = &ctx.accounts.escrow;
+        // Two different people must agree; one wallet holding both roles is not enough.
+        require!(ctx.accounts.admin.key() != ctx.accounts.school.key(), BonaError::Unauthorized);
+        require!(!escrow.cancelled, BonaError::EscrowCancelled);
+        require!(ctx.accounts.new_reviewer_record.active, BonaError::ReviewerInactive);
+        for state in [ctx.accounts.tranche0.state, ctx.accounts.tranche1.state] {
+            require!(
+                matches!(
+                    state,
+                    TrancheState::Pending
+                        | TrancheState::Claimed
+                        | TrancheState::Released
+                        | TrancheState::Refunded
+                ),
+                BonaError::ReviewerChangeBlocked
+            );
+        }
+        require!(
+            new_reviewer != Pubkey::default()
+                && new_reviewer != escrow.funder
+                && new_reviewer != escrow.contractor
+                && new_reviewer != escrow.school
+                && new_reviewer != escrow.payees[0]
+                && new_reviewer != escrow.payees[1]
+                && new_reviewer != escrow.match_authority
+                && new_reviewer != escrow.dispute_authority
+                && (escrow.funder_challenger == Pubkey::default() || new_reviewer != escrow.funder_challenger),
+            BonaError::InvalidRoleAssignment
+        );
+
+        let old_reviewer = escrow.reviewer;
+        let escrow = &mut ctx.accounts.escrow;
+        escrow.reviewer = new_reviewer;
+        emit!(ReviewerReassigned { escrow: escrow.key(), old_reviewer, new_reviewer });
+        Ok(())
+    }
+
+    /// Anyone may return tokens the escrow does not owe to anyone: unsolicited, late or
+    /// excess deposits. Sends `vault balance - amount still owed to unsettled tranches`
+    /// to the funder. Money owed to a Pending/Claimed/Verified/Disputed tranche (or, before
+    /// funding, the full agreed total) always stays. Nothing to sweep is a harmless no-op.
+    pub fn sweep_surplus(ctx: Context<SweepSurplus>) -> Result<()> {
+        let escrow = &ctx.accounts.escrow;
+        let owed = escrow.amount_owed()?;
+        let surplus = ctx.accounts.vault.amount.saturating_sub(owed);
+        if surplus == 0 {
+            return Ok(());
+        }
+        pay_from_vault(
+            escrow,
+            ctx.accounts.vault.to_account_info(),
+            ctx.accounts.mint.to_account_info(),
+            ctx.accounts.funder_ata.to_account_info(),
+            surplus,
+            ctx.accounts.mint.decimals,
+        )?;
+        emit!(SurplusSwept { escrow: escrow.key(), amount: surplus, caller: ctx.accounts.caller.key() });
         Ok(())
     }
 
@@ -819,7 +913,7 @@ pub struct ResolveDispute<'info> {
 
 #[derive(Accounts)]
 pub struct ReleaseTranche<'info> {
-    /// Anyone. Pays the network fee (and the contractor's token account rent if needed).
+    /// Anyone. Pays the network fee (and the payee's token account rent if needed).
     #[account(mut)]
     pub caller: Signer<'info>,
     #[account(
@@ -844,17 +938,85 @@ pub struct ReleaseTranche<'info> {
     pub vault: Box<Account<'info, TokenAccount>>,
     #[account(address = escrow.mint @ BonaError::InvalidMint)]
     pub mint: Box<Account<'info, Mint>>,
-    /// CHECK: owner of the payout token account; bound to the escrow, so no caller can redirect it.
-    #[account(address = escrow.contractor @ BonaError::Unauthorized)]
-    pub contractor: UncheckedAccount<'info>,
+    /// CHECK: owner of the payout token account; must be this tranche's payee fixed in the
+    /// escrow at creation, so no caller can redirect it.
+    #[account(address = escrow.payee_for(tranche.index) @ BonaError::Unauthorized)]
+    pub payee: UncheckedAccount<'info>,
     #[account(
         init_if_needed,
         payer = caller,
         associated_token::mint = mint,
-        associated_token::authority = contractor,
+        associated_token::authority = payee,
         associated_token::token_program = token_program
     )]
-    pub contractor_ata: Box<Account<'info, TokenAccount>>,
+    pub payee_ata: Box<Account<'info, TokenAccount>>,
+    pub token_program: Program<'info, Token>,
+    pub associated_token_program: Program<'info, AssociatedToken>,
+    pub system_program: Program<'info, System>,
+}
+
+#[derive(Accounts)]
+#[instruction(new_reviewer: Pubkey)]
+pub struct ReassignReviewer<'info> {
+    /// The platform admin (config.admin). Signs together with the school.
+    pub admin: Signer<'info>,
+    #[account(seeds = [CONFIG_SEED], bump = config.bump, has_one = admin @ BonaError::Unauthorized)]
+    pub config: Box<Account<'info, Config>>,
+    /// This escrow's school. Signs together with the admin.
+    #[account(address = escrow.school @ BonaError::Unauthorized)]
+    pub school: Signer<'info>,
+    #[account(
+        mut,
+        seeds = [ESCROW_SEED, escrow.funder.as_ref(), escrow.case_hash.as_ref()],
+        bump = escrow.bump
+    )]
+    pub escrow: Box<Account<'info, Escrow>>,
+    #[account(
+        has_one = escrow @ BonaError::InvalidTranche,
+        seeds = [TRANCHE_SEED, escrow.key().as_ref(), &[0u8]],
+        bump = tranche0.bump
+    )]
+    pub tranche0: Box<Account<'info, Tranche>>,
+    #[account(
+        has_one = escrow @ BonaError::InvalidTranche,
+        seeds = [TRANCHE_SEED, escrow.key().as_ref(), &[1u8]],
+        bump = tranche1.bump
+    )]
+    pub tranche1: Box<Account<'info, Tranche>>,
+    #[account(seeds = [REVIEWER_SEED, new_reviewer.as_ref()], bump = new_reviewer_record.bump)]
+    pub new_reviewer_record: Box<Account<'info, ReviewerRecord>>,
+}
+
+#[derive(Accounts)]
+pub struct SweepSurplus<'info> {
+    /// Anyone. Pays the network fee (and the funder's token account rent if needed).
+    #[account(mut)]
+    pub caller: Signer<'info>,
+    #[account(
+        seeds = [ESCROW_SEED, escrow.funder.as_ref(), escrow.case_hash.as_ref()],
+        bump = escrow.bump
+    )]
+    pub escrow: Box<Account<'info, Escrow>>,
+    #[account(
+        mut,
+        associated_token::mint = mint,
+        associated_token::authority = escrow,
+        associated_token::token_program = token_program
+    )]
+    pub vault: Box<Account<'info, TokenAccount>>,
+    #[account(address = escrow.mint @ BonaError::InvalidMint)]
+    pub mint: Box<Account<'info, Mint>>,
+    /// CHECK: owner of the refund token account; bound to the escrow.
+    #[account(address = escrow.funder @ BonaError::Unauthorized)]
+    pub funder: UncheckedAccount<'info>,
+    #[account(
+        init_if_needed,
+        payer = caller,
+        associated_token::mint = mint,
+        associated_token::authority = funder,
+        associated_token::token_program = token_program
+    )]
+    pub funder_ata: Box<Account<'info, TokenAccount>>,
     pub token_program: Program<'info, Token>,
     pub associated_token_program: Program<'info, AssociatedToken>,
     pub system_program: Program<'info, System>,

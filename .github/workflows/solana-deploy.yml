@@ -62,6 +62,20 @@ jobs:
             echo "::error::Deployer needs at least 6 devnet SOL (program rent ~2.7 plus a temporary buffer of the same size). Fund $(solana address) at https://faucet.solana.com"
             exit 1
           fi
+      - name: Extend program space if the new build is larger
+        run: |
+          NEW=$(stat -c %s solana/target/deploy/bonawork.so)
+          if solana program show "$PROGRAM_ID" > show.txt 2>/dev/null; then
+            CUR=$(awk -F': *' '/Data Length/ {print $2}' show.txt | awk '{print $1}')
+            echo "Current data length: $CUR, new build: $NEW"
+            if [ -n "$CUR" ] && [ "$NEW" -gt "$CUR" ]; then
+              ADD=$(( NEW - CUR + 8192 ))
+              echo "Extending by $ADD bytes"
+              solana program extend "$PROGRAM_ID" "$ADD" --keypair "$RUNNER_TEMP/keys/deployer.json"
+            fi
+          else
+            echo "Program not deployed yet; no extension needed"
+          fi
       - name: Deploy or upgrade
         run: |
           solana program deploy solana/target/deploy/bonawork.so \

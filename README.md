@@ -30,7 +30,13 @@ BonaWork connects these needs through programmable escrow, not just a record of 
 3. The contractor and procurement match authority sign a milestone claim.
 4. The assigned independent reviewer signs that exact claim.
 5. A challenge window allows disputes; an immediate release attempt is rejected.
-6. Once the challenge window expires without an open dispute, anyone can trigger release to the predetermined contractor for the agreed amount. Deadline refunds and dispute resolution provide alternative paths.
+6. Once the challenge window expires without an open dispute, anyone can trigger release of the agreed amount to that milestone's predetermined payee. Deadline refunds and dispute resolution provide alternative paths.
+
+Each milestone has its own payee, fixed at creation (default: the contractor). The materials milestone can pay the supplier directly once the reviewer confirms the materials are on site, so a contractor without working capital can still start.
+
+If the assigned reviewer is deactivated or unavailable, `reassign_reviewer` replaces them, but only with both the platform admin's and the school's signatures, only while no milestone is verified or disputed, and only with an active vetted reviewer who holds no other role in the escrow. `sweep_surplus` (anyone may call it) returns tokens sent to the vault beyond what open milestones are owed to the funder; it can never touch money owed to an unsettled milestone.
+
+Program instructions: `initialize_config`, `set_paused`, `set_reviewer`, `create_escrow`, `activate_funding`, `cancel_unfunded`, `claim_tranche`, `verify_tranche`, `open_dispute`, `resolve_dispute`, `release_tranche`, `refund_expired`, `reassign_reviewer`, `sweep_surplus`.
 
 The program enforces the payment conditions; an AI model or web administrator does not decide whether escrow funds can move.
 

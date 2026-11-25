@@ -58,4 +58,7 @@ pub enum BonaError {
     AlreadySettled,
     #[msg("Arithmetic overflow")]
     ArithmeticOverflow,
+    // New variants go at the end so existing error numbers never change.
+    #[msg("The reviewer cannot be replaced while a tranche is verified or disputed")]
+    ReviewerChangeBlocked,
 }
