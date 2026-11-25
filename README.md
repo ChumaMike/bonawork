@@ -12,10 +12,14 @@ A community member reports a broken thing at a school. A funder puts money for
 the repair into an escrow. An independent reviewer, who does not work for the
 school, the funder or the contractor, makes two checks, one per payment part:
 
-| Check                          | What the reviewer confirms            | What it releases                              |
-| ------------------------------ | ------------------------------------- | --------------------------------------------- |
-| **Check 1: Materials on site** | The delivered items match the invoice | The materials part, paid on verified delivery |
-| **Check 2: Work done**         | The work is installed and working     | The rest                                      |
+| Check                          | What the reviewer confirms            | What it releases                              | Released to                          |
+| ------------------------------ | ------------------------------------- | --------------------------------------------- | ------------------------------------ |
+| **Check 1: Materials on site** | The delivered items match the invoice | The materials part, paid on verified delivery | The supplier, or else the contractor |
+| **Check 2: Work done**         | The work is installed and working     | The rest                                      | The contractor                       |
+
+Each check's payee is written into the escrow when it is made and cannot be
+changed afterwards; the program checks every release against it. So the
+materials money can go straight to the supplier who delivered them.
 
 The materials part is paid on verified delivery of materials, never as an
 upfront advance. For each check the contractor first claims it with
@@ -28,7 +32,8 @@ fingerprints go on chain. No learner photos are needed.
 
 **What is simulated, and labelled so on screen:** the money is **sandbox demo
 rand** (token `BDZAR`, 2 decimals, no real value); the funder, contractor and
-reviewer sign with **demo keys held by the server on devnet**; and the demo uses
+reviewer (and the supplier and school, where they appear) sign with or are
+**demo keys held by the server on devnet**; and the demo uses
 a **60-second challenge window** (real cases would use days). A release is a
 sandbox payout instruction carried out by the program, never a payment. AI
 never approves, verifies or signs anything.
@@ -63,16 +68,18 @@ window. Escrow
 ## How it fits together
 
 ```
-Anchor program bonawork (solana/ on branch solana/escrow, 24 LiteSVM tests)
-  create_escrow · activate_funding · claim_tranche · verify_tranche
-  release_tranche · refund_expired · open/resolve dispute
+Anchor program bonawork (solana/programs/bonawork, 34 LiteSVM tests)
+  create_escrow (with a payee per check) · activate_funding · claim_tranche
+  verify_tranche · release_tranche (to that check's payee) · refund_expired
+  open/resolve dispute · reassign_reviewer · sweep_surplus
         ▲
 src/solana/              client: instruction builders, account decoders, error names
 src/solana/guardian/     Bona Guardian: decodes a transaction, checks it against
                          what the case expects, describes it in plain lines
 src/server/solana/       escrow adapter (server keys, RPC, retries) + Escrow Watchdog (keeper)
 src/server/escrow/       ties a case to its escrow (table escrow_cases), each step, ReviewerSigner
-src/app/api/issues/[id]/escrow/   fund · claim · verify/prepare · verify/submit · release · refund · GET
+src/app/api/issues/[id]/escrow/   fund · claim · verify/prepare · verify/submit · release · refund
+                                  sweep · reviewer · GET
 src/app/api/cron/watchdog/        keeper run, behind CRON_SECRET
 src/features/escrow/     screens: /issues/:id/escrow and /issues/:id/escrow/review
 src/server/price-check/  invoice prices against South African shops (Firecrawl)
@@ -91,27 +98,30 @@ wallet seam ready (`prepareWalletFunding` + `confirmWalletFundingAndActivate` in
 key. Reviewer: the **Demo reviewer key (devnet)**, labelled as such on screen.
 Reviewer signing sits behind the `ReviewerSigner` interface
 (`src/server/escrow/reviewer-signer.ts`), so an embedded wallet can replace the
-demo key later. Release and refund: the keeper key, when the program allows it.
+demo key later. Release, refund and sweep: the keeper key, when the program
+allows it. Reviewer change: the platform admin key and the school key together
+(a demo school key on devnet), through `POST /api/issues/:id/escrow/reviewer`.
 
 ## Who can stop or delay each step
 
-Read from the program (`solana/programs/bonawork/src/lib.rs` on branch
-`solana/escrow`). "Stop" means a step cannot happen; the fallback says where the
+Read from the program (`solana/programs/bonawork/src/lib.rs`). "Stop" means a step cannot happen; the fallback says where the
 money goes then.
 
-| Key                                     | What it can do                                                                             | What it can stop or delay                                                            | Fallback                                                                                                          |
-| --------------------------------------- | ------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------- |
-| Admin (platform)                        | Creates escrows, pauses new escrows, adds or deactivates reviewers                         | New escrows (pause). Verification, by deactivating the assigned reviewer             | Unverified parts refund to the funder after the verification deadline                                             |
-| Match key (platform)                    | Co-signs every claim, after the invoice / order / delivery match                           | Claims: without its signature the contractor cannot claim                            | Refund to the funder after the verification deadline                                                              |
-| Reviewer                                | Verifies each check                                                                        | Release: nothing is released without the reviewer's verification                     | Refund to the funder after the verification deadline                                                              |
-| School (or the funder's challenger)     | Opens a dispute on a verified check during its challenge window                            | Release of that check while the dispute is open                                      | Dispute authority decides; if it does not, refund after the dispute timeout                                       |
-| Dispute authority (platform)            | Settles a dispute: refund that part, or send it back for a fresh check with a new deadline | Release of a disputed check                                                          | If it does nothing, anyone can refund after the dispute timeout                                                   |
-| Keeper (platform)                       | Sends release and refund transactions when the rules allow (Escrow Watchdog)               | Nothing: release and refund are open to any caller, and the screen has "Release now" | Anyone can send the same transaction                                                                              |
-| Upgrade key (program upgrade authority) | Can deploy a new version of the program on devnet                                          | Anything, in principle: a new version can change the rules                           | None on chain. This is a devnet build; a production release would need the authority locked or held by a multisig |
+| Key                                     | What it can do                                                                             | What it can stop or delay                                                | Fallback                                                                                                          |
+| --------------------------------------- | ------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------- |
+| Admin (platform)                        | Creates escrows, pauses new escrows, adds or deactivates reviewers                         | New escrows (pause). Verification, by deactivating the assigned reviewer | Unverified parts refund to the funder after the verification deadline                                             |
+| Admin + school, together                | Replace an escrow's reviewer with another listed, active reviewer                          | Nothing on their own; blocked while a check is verified or disputed      | Neither can do it alone                                                                                           |
+| Match key (platform)                    | Co-signs every claim, after the invoice / order / delivery match                           | Claims: without its signature the contractor cannot claim                | Refund to the funder after the verification deadline                                                              |
+| Reviewer                                | Verifies each check                                                                        | Release: nothing is released without the reviewer's verification         | Refund to the funder after the verification deadline                                                              |
+| School (or the funder's challenger)     | Opens a dispute on a verified check during its challenge window                            | Release of that check while the dispute is open                          | Dispute authority decides; if it does not, refund after the dispute timeout                                       |
+| Dispute authority (platform)            | Settles a dispute: refund that part, or send it back for a fresh check with a new deadline | Release of a disputed check                                              | If it does nothing, anyone can refund after the dispute timeout                                                   |
+| Keeper (platform)                       | Sends release, refund and sweep transactions when the rules allow (Escrow Watchdog)        | Nothing: these are open to any caller, and the screen has "Release now"  | Anyone can send the same transaction                                                                              |
+| Upgrade key (program upgrade authority) | Can deploy a new version of the program on devnet                                          | Anything, in principle: a new version can change the rules               | None on chain. This is a devnet build; a production release would need the authority locked or held by a multisig |
 
-The current program moves vault money in two ways only: release (to the
-contractor, after verification and the challenge window) and refund (to the
-funder). An upgrade of the program could change that, as the last row says.
+The current program moves vault money in three ways only: release (to the
+payee fixed in the escrow for that check, after verification and the challenge
+window), refund (to the funder), and sweep (only tokens beyond what the open
+checks are owed, to the funder). An upgrade of the program could change that, as the last row says.
 
 ## Run it
 
@@ -180,7 +190,7 @@ limit); call `/api/cron/watchdog` with the secret more often from any scheduler.
 | When               | What                                                                                                                                                                                                                |
 | ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Before (to 23 Nov) | The reporting and review app from Bona Chain / BonaBlock: reports, evidence, roles, school pages, work orders, invoices, three-way match, release gate, Bona AI explanations. That version wrote to Avalanche Fuji. |
-| From 24 Nov        | The Anchor program and its 24 LiteSVM tests, the Solana client, Bona Guardian, the invoice price check (Firecrawl), the escrow adapter and the Escrow Watchdog, devnet bootstrap and demo-journey scripts.          |
+| From 24 Nov        | The Anchor program and its 34 LiteSVM tests, the Solana client, Bona Guardian, the invoice price check (Firecrawl), the escrow adapter and the Escrow Watchdog, devnet bootstrap and demo-journey scripts.          |
 | 27 to 29 Nov       | Case escrows in the database, the escrow API and cron, the fund / claim / verify / release screens, honest Solana copy, and the agent, voice and wallet integrations.                                               |
 
 ## Prize tracks

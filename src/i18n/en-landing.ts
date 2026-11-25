@@ -249,7 +249,7 @@ export const landingPage = {
         body: "Run before every change is accepted.",
       },
       {
-        value: "24",
+        value: "34",
         title: "program tests",
         body: "On the Anchor program, including every refusal: the wrong signer, the early release, the mismatch.",
       },

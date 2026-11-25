@@ -3,15 +3,19 @@
  * adapter the app uses (src/server/solana). Sandbox demo rand only.
  *
  *   sandbox cash-in R5 000 to a demo funder
- *   -> create escrow (R3 000 materials + R2 000 completion, 60 s challenge window)
+ *   -> create escrow (Check 1: Materials on site R3 000, released to a demo
+ *      supplier; Check 2: Work done R2 000, released to the contractor; 60 s
+ *      challenge window)
  *   -> demo funder moves R5 000 into the vault (Pollar will replace this signer)
  *   -> activate funding -> claim materials (demo contractor + match key)
  *   -> prepare verify, Bona Guardian check, demo reviewer signs, feepayer pays
  *   -> release straight away: REFUSED, ChallengeWindowActive
- *   -> wait for the window -> Escrow Watchdog (keeper) releases materials
+ *   -> wait for the window -> Escrow Watchdog (keeper) releases Check 1 to the
+ *      supplier (the payee fixed in the escrow)
+ *   -> sweep_surplus: nothing beyond what Check 2 is owed, so nothing is sent
  *
- * Demo keys (funder, contractor, reviewer) are keypair files in
- * BONAWORK_KEYS_DIR; missing funder/contractor files are created. Run
+ * Demo keys (funder, contractor, supplier, reviewer) are keypair files in
+ * BONAWORK_KEYS_DIR; missing funder/contractor/supplier files are created. Run
  * bootstrap-devnet.ts first. Prints public keys and signatures only.
  *
  *   BONAWORK_KEYS_DIR=~/.bonawork/keys verifier/node_modules/.bin/tsx scripts/solana/demo-journey.ts
@@ -52,7 +56,7 @@ const nowSeconds = () => BigInt(Math.floor(Date.now() / 1000));
 async function main() {
   const dir = process.env.BONAWORK_KEYS_DIR;
   if (!dir) throw new Error("Set BONAWORK_KEYS_DIR.");
-  for (const role of ["demoFunder", "demoContractor"] as const) {
+  for (const role of ["demoFunder", "demoContractor", "demoSupplier"] as const) {
     const path = join(dir, KEY_FILES[role]);
     if (!existsSync(path)) writeNewKeypairFile(path, generateKeypairBytes());
   }
@@ -61,10 +65,12 @@ async function main() {
     "demoContractor",
     "demoFunder",
     "demoReviewer",
+    "demoSupplier",
   ]);
   const funder = signers.demoFunder!;
   const contractor = signers.demoContractor!;
   const reviewer = signers.demoReviewer!;
+  const supplier = signers.demoSupplier!;
   const school = (await signerFromBytes(generateKeypairBytes())).address;
 
   const network = devnetConfig();
@@ -78,6 +84,7 @@ async function main() {
   log("BonaWork demo journey (Solana devnet, sandbox demo rand)");
   log(`funder (demo)     ${funder.address}`);
   log(`contractor (demo) ${contractor.address}`);
+  log(`supplier (demo)   ${supplier.address}`);
   log(`reviewer (demo)   ${reviewer.address}`);
   log(`school            ${school}`);
   log();
@@ -105,6 +112,8 @@ async function main() {
     verificationDeadlines: [start + BigInt(3_600), start + BigInt(7_200)],
     challengeSeconds: 60,
     disputeSeconds: 3_600,
+    // Check 1 releases straight to the supplier; Check 2 to the contractor.
+    payees: [supplier.address, contractor.address],
   });
   if (created.alreadyExisted || !created.signature)
     throw new Error("escrow already existed");
@@ -186,13 +195,23 @@ async function main() {
     if (o.step) steps.push([`keeper release t${o.index}`, o.step.signature]);
   }
 
-  // 8. Balances.
+  // 8. Sweep: the vault holds exactly what Check 2 is owed, so nothing is sent.
+  const swept = await service.sweepSurplus(escrow);
+  log(
+    `sweep surplus     ${swept ? swept.explorerUrl : "nothing to return (no transaction)"}`,
+  );
+  if (swept) steps.push(["sweep surplus", swept.signature]);
+
+  // 9. Balances.
   const after = await service.getCaseOnChain(escrow);
   log();
   log(
     `tranche states    ${after.tranches.map((t) => `${t.index}:${t.state}`).join("  ")}`,
   );
   log(`vault             ${after.vault.label}`);
+  log(`paid to (Check 1) ${after.account.payees[0]} (supplier)`);
+  log(`paid to (Check 2) ${after.account.payees[1]} (contractor)`);
+  log(`supplier          ${formatRand(await service.walletBalance(supplier.address))}`);
   log(`contractor        ${formatRand(await service.walletBalance(contractor.address))}`);
   log(`funder            ${formatRand(await service.walletBalance(funder.address))}`);
   log(`early refused     ${earlyRefused}`);
