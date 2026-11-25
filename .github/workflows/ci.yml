@@ -2,8 +2,9 @@ name: CI
 
 on:
   push:
-    branches: [main, "integration/**"]
+    branches: [main, "integration/**", "solana/**"]
   pull_request:
+  workflow_dispatch:
 
 concurrency:
   group: ci-${{ github.ref }}
@@ -29,6 +30,46 @@ jobs:
         env:
           # The build must never need secrets. Runtime configuration is set on Vercel.
           NEXT_TELEMETRY_DISABLED: "1"
+
+  solana-program:
+    name: Solana program (build + LiteSVM tests)
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      SOLANA_VERSION: v4.1.2
+    steps:
+      - uses: actions/checkout@v4
+      - name: Cache Solana CLI and platform tools
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.local/share/solana
+            ~/.cache/solana
+          key: solana-${{ env.SOLANA_VERSION }}
+      - name: Install Solana CLI
+        run: |
+          if [ ! -x "$HOME/.local/share/solana/install/active_release/bin/cargo-build-sbf" ]; then
+            sh -c "$(curl -sSfL https://release.anza.xyz/${SOLANA_VERSION}/install)"
+          fi
+          echo "$HOME/.local/share/solana/install/active_release/bin" >> "$GITHUB_PATH"
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: |
+            solana
+            solana/tests-litesvm
+      - name: Build program with the test admin key
+        working-directory: solana
+        run: cargo build-sbf --manifest-path programs/bonawork/Cargo.toml --features localtest
+      - name: LiteSVM tests (fake clock, real program)
+        working-directory: solana/tests-litesvm
+        run: cargo test -- --test-threads=4
+      - name: Build program for devnet
+        working-directory: solana
+        run: cargo build-sbf --manifest-path programs/bonawork/Cargo.toml
+      - uses: actions/upload-artifact@v4
+        with:
+          name: bonawork-program
+          path: solana/target/deploy/bonawork.so
 
   contracts:
     name: BonaRegistry contract tests

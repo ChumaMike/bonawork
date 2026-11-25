@@ -144,6 +144,19 @@ verifies. Open a case, then **Repair money**.
 | `pnpm build`       | production build                                     |
 | `pnpm db:generate` | new SQL migration after editing `database/schema.ts` |
 
+### Program and its tests
+
+Rust, the Solana CLI with `cargo-build-sbf` (CI uses v4.1.2):
+
+```bash
+cargo build-sbf --manifest-path solana/programs/bonawork/Cargo.toml --features localtest
+(cd solana/tests-litesvm && cargo test -- --test-threads=4)
+```
+
+The `localtest` feature is for tests only; the
+[deployment workflow](.github/workflows/solana-deploy.yml) builds the devnet
+program without it.
+
 ### Environment for a deployment
 
 | Variable                                                                                            | Purpose                                                              |
@@ -182,6 +195,15 @@ limit); call `/api/cron/watchdog` with the secret more often from any scheduler.
 | Firecrawl          | Invoice line prices checked against South African shops                           | [`src/server/price-check/firecrawl.ts`](src/server/price-check/firecrawl.ts)                                                                                            |
 | ElevenLabs         | Voice                                                                             | [`src/server/voice/`](src/server/voice/), [`src/features/agent/`](src/features/agent/)                                                                                  |
 | Supabase           | Postgres through Drizzle; point `DATABASE_URL` at Supabase Postgres               | [`database/schema.ts`](database/schema.ts), [`src/server/db/`](src/server/db/)                                                                                          |
+
+## Limitations
+
+A hackathon prototype with synthetic school data and test tokens. The program
+checks signatures and payment conditions; it cannot tell on its own whether the
+physical work happened. Reviewer independence and evidence quality remain
+operational responsibilities. The program keeps an upgrade authority on devnet;
+it is not immutable or independently audited. No production funds or real
+school adoption are claimed.
 
 ## Repository map
 

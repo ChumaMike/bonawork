@@ -1,0 +1,88 @@
+name: Deploy Solana program (devnet)
+
+# Manual only: every deploy or upgrade needs ~6 devnet SOL (rent ~2.7 + a temporary buffer) in the deployer wallet.
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: solana-deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Build, test and deploy to devnet
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      SOLANA_VERSION: v4.1.2
+      PROGRAM_ID: 5LkegW1dBfTL1Xiw2n15Rt99ZVcG4uipCjDH9bMiyEGY
+    steps:
+      - uses: actions/checkout@v4
+      - name: Cache Solana CLI and platform tools
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.local/share/solana
+            ~/.cache/solana
+          key: solana-${{ env.SOLANA_VERSION }}
+      - name: Install Solana CLI
+        run: |
+          if [ ! -x "$HOME/.local/share/solana/install/active_release/bin/cargo-build-sbf" ]; then
+            sh -c "$(curl -sSfL https://release.anza.xyz/${SOLANA_VERSION}/install)"
+          fi
+          echo "$HOME/.local/share/solana/install/active_release/bin" >> "$GITHUB_PATH"
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: |
+            solana
+            solana/tests-litesvm
+      - name: Tests must pass before any deploy
+        run: |
+          cargo build-sbf --manifest-path solana/programs/bonawork/Cargo.toml --features localtest
+          (cd solana/tests-litesvm && cargo test -- --test-threads=4)
+      - name: Build the devnet program (real admin key)
+        run: cargo build-sbf --manifest-path solana/programs/bonawork/Cargo.toml
+      - name: Write keys to a private temp folder
+        env:
+          DEPLOYER: ${{ secrets.SOLANA_DEPLOYER_KEYPAIR }}
+          PROGRAM: ${{ secrets.SOLANA_PROGRAM_KEYPAIR }}
+        run: |
+          umask 077
+          mkdir -p "$RUNNER_TEMP/keys"
+          printf '%s' "$DEPLOYER" > "$RUNNER_TEMP/keys/deployer.json"
+          printf '%s' "$PROGRAM" > "$RUNNER_TEMP/keys/program.json"
+          test "$(solana-keygen pubkey "$RUNNER_TEMP/keys/program.json")" = "$PROGRAM_ID"
+      - name: Check deployer balance
+        run: |
+          solana config set -u devnet -k "$RUNNER_TEMP/keys/deployer.json" >/dev/null
+          echo "Deployer: $(solana address)"
+          solana balance
+          LAMPORTS=$(solana balance --lamports | awk '{print $1}')
+          if [ "$LAMPORTS" -lt 6000000000 ]; then
+            echo "::error::Deployer needs at least 6 devnet SOL (program rent ~2.7 plus a temporary buffer of the same size). Fund $(solana address) at https://faucet.solana.com"
+            exit 1
+          fi
+      - name: Extend program space if the new build is larger
+        run: |
+          NEW=$(stat -c %s solana/target/deploy/bonawork.so)
+          if solana program show "$PROGRAM_ID" > show.txt 2>/dev/null; then
+            CUR=$(awk -F': *' '/Data Length/ {print $2}' show.txt | awk '{print $1}')
+            echo "Current data length: $CUR, new build: $NEW"
+            if [ -n "$CUR" ] && [ "$NEW" -gt "$CUR" ]; then
+              ADD=$(( NEW - CUR + 8192 ))
+              echo "Extending by $ADD bytes"
+              solana program extend "$PROGRAM_ID" "$ADD" --keypair "$RUNNER_TEMP/keys/deployer.json"
+            fi
+          else
+            echo "Program not deployed yet; no extension needed"
+          fi
+      - name: Deploy or upgrade
+        run: |
+          solana program deploy solana/target/deploy/bonawork.so \
+            --program-id "$RUNNER_TEMP/keys/program.json" \
+            --upgrade-authority "$RUNNER_TEMP/keys/deployer.json" \
+            --with-compute-unit-price 1000
+          solana program show "$PROGRAM_ID"
+      - name: Remove keys
+        if: always()
+        run: rm -rf "$RUNNER_TEMP/keys"
