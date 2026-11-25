@@ -118,6 +118,13 @@ const EnvSchema = z
     /* Price check */
     /** Firecrawl key for the invoice price check. Without it every line is `unavailable`. */
     FIRECRAWL_API_KEY: z.string().min(1).optional(),
+
+    /* Bona Agent voice (ElevenLabs). Server only; without the key voice says "not set up". */
+    ELEVENLABS_API_KEY: z.string().min(1).optional(),
+    /** Voice for read-aloud. Default: a premade ElevenLabs voice. */
+    ELEVENLABS_VOICE_ID: z.string().min(1).optional(),
+    /** Text-to-speech model. Default: eleven_multilingual_v2. */
+    ELEVENLABS_TTS_MODEL: z.string().min(1).optional(),
   })
   .refine(
     (e) => {
