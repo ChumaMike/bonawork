@@ -47,7 +47,7 @@ const STATE_TEXT: Record<EscrowTranche["state"], string> = {
   Claimed: "Claimed. Waiting for the independent reviewer",
   Verified: "Verified. Challenge window open",
   Disputed: "Disputed",
-  Released: "Released to the contractor (sandbox payout)",
+  Released: "Released to the payee (sandbox payout)",
   Refunded: "Refunded to the funder",
 };
 
@@ -60,6 +60,8 @@ const STEP_TEXT: Record<EscrowTx["step"], string> = {
   verify: "Reviewer verified",
   release: "Released (sandbox payout)",
   refund: "Refunded to the funder",
+  sweep: "Extra money returned to the funder",
+  reassign_reviewer: "Reviewer replaced (admin and school)",
 };
 
 export function SandboxBadge() {
@@ -125,6 +127,9 @@ function FundForm({
   const [materials, setMaterials] = useState("3000");
   const [completion, setCompletion] = useState("2000");
   const [window, setWindow] = useState(60);
+  const [materialsPayee, setMaterialsPayee] = useState<"contractor" | "demo_supplier">(
+    "demo_supplier",
+  );
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<EscrowApiError | null>(null);
 
@@ -145,6 +150,7 @@ function FundForm({
           materials: a,
           completion: b,
           challengeSeconds: existing?.challengeSeconds ?? window,
+          materialsPayee,
         }),
       );
     } catch (e) {
@@ -178,6 +184,22 @@ function FundForm({
                 onChange={(e) => setMaterials(e.target.value)}
                 required
               />
+            </Field>
+            <Field
+              id="fund-materials-payee"
+              label="Check 1 is released to"
+              hint="Set when the escrow is made. The program checks every release against it."
+            >
+              <Select
+                id="fund-materials-payee"
+                value={materialsPayee}
+                onChange={(e) =>
+                  setMaterialsPayee(e.target.value as "contractor" | "demo_supplier")
+                }
+              >
+                <option value="demo_supplier">The supplier (demo key, devnet)</option>
+                <option value="contractor">The contractor</option>
+              </Select>
             </Field>
             <Field id="fund-completion" label="Check 2: Work done (sandbox rand)">
               <Input
@@ -399,6 +421,58 @@ function TrancheCard({
   );
 }
 
+// ------------------------------------------------------------------ sweep
+
+/** Shown when the vault holds more than the open checks are owed. */
+function SweepCard({
+  issueId,
+  escrow,
+  onDone,
+}: {
+  issueId: string;
+  escrow: PublicEscrow;
+  onDone: () => void;
+}) {
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<EscrowApiError | null>(null);
+  const [sent, setSent] = useState<string | null>(null);
+
+  async function sweep() {
+    setBusy(true);
+    setError(null);
+    try {
+      const result = await escrowApi.sweep(issueId);
+      setSent(result.sent?.explorerUrl ?? null);
+      onDone();
+    } catch (e) {
+      setError(e as EscrowApiError);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <Card className="flex flex-col gap-3" data-testid="escrow-surplus">
+      <p>
+        The vault holds {escrow.surplusLabel} more than the checks still need. Anyone can
+        send it back. The program only returns it to the funder.
+      </p>
+      <Button variant="secondary" onClick={sweep} loading={busy}>
+        Return extra money to funder
+      </Button>
+      <ErrorText error={error} />
+      {sent ? (
+        <p className="text-sm">
+          Sent.{" "}
+          <a href={sent} target="_blank" rel="noreferrer" className="underline">
+            See it on Solana Explorer
+          </a>
+        </p>
+      ) : null}
+    </Card>
+  );
+}
+
 // ----------------------------------------------------------------- screen
 
 export function EscrowView({
@@ -467,6 +541,10 @@ export function EscrowView({
 
       {escrow.funded === false && role === "buyer" ? (
         <FundForm issueId={issueId} onDone={setEscrow} existing={escrow} />
+      ) : null}
+
+      {escrow.surplus !== null && escrow.surplus !== "0" ? (
+        <SweepCard issueId={issueId} escrow={escrow} onDone={reload} />
       ) : null}
 
       {escrow.tranches?.map((t) => (

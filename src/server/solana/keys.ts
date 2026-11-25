@@ -28,7 +28,13 @@ export const PLATFORM_KEY_ROLES = [
   "keeper",
 ] as const;
 /** Stand-ins used until real people sign with their own wallets. Never real users. */
-export const DEMO_KEY_ROLES = ["demoContractor", "demoFunder", "demoReviewer"] as const;
+export const DEMO_KEY_ROLES = [
+  "demoContractor",
+  "demoFunder",
+  "demoReviewer",
+  "demoSupplier",
+  "demoSchool",
+] as const;
 
 export type PlatformKeyRole = (typeof PLATFORM_KEY_ROLES)[number];
 export type DemoKeyRole = (typeof DEMO_KEY_ROLES)[number];
@@ -44,6 +50,8 @@ export const KEY_ENV: Record<KeyRole, string> = {
   demoContractor: "BONAWORK_DEMO_CONTRACTOR_KEY",
   demoFunder: "BONAWORK_DEMO_FUNDER_KEY",
   demoReviewer: "BONAWORK_DEMO_REVIEWER_KEY",
+  demoSupplier: "BONAWORK_DEMO_SUPPLIER_KEY",
+  demoSchool: "BONAWORK_DEMO_SCHOOL_KEY",
 };
 
 export const KEY_FILES: Record<KeyRole, string> = {
@@ -56,6 +64,8 @@ export const KEY_FILES: Record<KeyRole, string> = {
   demoContractor: "bonawork-contractor-demo.json",
   demoFunder: "bonawork-funder-demo.json",
   demoReviewer: "bonawork-reviewer-demo.json",
+  demoSupplier: "bonawork-supplier-demo.json",
+  demoSchool: "bonawork-school-demo.json",
 };
 
 export class KeyFormatError extends Error {
@@ -158,6 +168,24 @@ export function resolveKeyBytes(
     }
   }
   return out;
+}
+
+/**
+ * Local development only: writes a new keypair file for a demo role when the
+ * role has no env key and no file yet. Never runs in production or on Vercel.
+ * Returns true when a file was created.
+ */
+export function ensureDemoKeyFile(
+  role: DemoKeyRole,
+  source: Record<string, string | undefined> = process.env,
+): boolean {
+  const dir = source.BONAWORK_KEYS_DIR;
+  if (!dir || !keyFilesAllowed(source)) return false;
+  if (source[KEY_ENV[role]]?.trim()) return false;
+  const path = join(dir, KEY_FILES[role]);
+  if (existsSync(path)) return false;
+  writeNewKeypairFile(path, generateKeypairBytes());
+  return true;
 }
 
 export type ServerSigners = Partial<Record<KeyRole, KeyPairSigner>>;

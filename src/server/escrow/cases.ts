@@ -10,7 +10,12 @@
  *     `confirmWalletFundingAndActivate`, the seam for a Pollar wallet).
  *   - claim: the DEMO contractor key + the match key.
  *   - verify: the reviewer, through `ReviewerSigner` (today the demo key).
- *   - release / refund: the keeper key, when the program's rules allow it.
+ *   - release / refund / sweep: the keeper key, when the program's rules allow it.
+ *   - reviewer change: the platform admin key and the DEMO school key together.
+ *
+ * Each tranche releases to the payee fixed in the escrow at creation: Check 1
+ * (materials) can go straight to a supplier, Check 2 (work done) goes to the
+ * contractor.
  */
 import { createHash, randomUUID } from "node:crypto";
 
@@ -35,6 +40,7 @@ import {
   EscrowStateError,
   GuardianRejectedError,
   MAX_SANDBOX_CASH_IN_CENTS,
+  ensureDemoKeyFile,
   getSolanaRpc,
   loadSigners,
   runEscrowWatchdog,
@@ -46,7 +52,11 @@ import {
 } from "@/server/solana";
 import { solanaTxUrl, solanaAddressUrl } from "@/lib/solana-explorer";
 
-import type { EscrowCaseRow, EscrowTxRecord } from "../../../database/schema";
+import type {
+  EscrowCaseRow,
+  EscrowPayee,
+  EscrowTxRecord,
+} from "../../../database/schema";
 import { schema, type Db } from "../db";
 import { HttpError } from "../http";
 import { requireReport } from "../reports/common";
@@ -127,16 +137,34 @@ async function recordTx(
 
 // --------------------------------------------------------------- demo keys
 
-async function demoKey(role: "demoFunder" | "demoContractor") {
+type DemoRole = "demoFunder" | "demoContractor" | "demoSupplier" | "demoSchool";
+const DEMO_ROLE_LABEL: Record<DemoRole, string> = {
+  demoFunder: "demo funder",
+  demoContractor: "demo contractor",
+  demoSupplier: "demo supplier",
+  demoSchool: "demo school",
+};
+
+async function demoKey(role: DemoRole) {
+  // Supplier and school keys are new; in local development create them on first use.
+  if (role === "demoSupplier" || role === "demoSchool") ensureDemoKeyFile(role);
   const signers = await loadSigners([role]);
   const key = signers[role];
   if (!key) {
     throw new HttpError(
       "ledger_unavailable",
-      `The ${role === "demoFunder" ? "demo funder" : "demo contractor"} key is not configured.`,
+      `The ${DEMO_ROLE_LABEL[role]} key is not configured.`,
     );
   }
   return key;
+}
+
+async function optionalDemoKey(role: DemoRole) {
+  try {
+    return await demoKey(role);
+  } catch {
+    return null;
+  }
 }
 
 /** The reviewer written into new escrows: a registered reviewer wallet, or the demo reviewer. */
@@ -145,10 +173,23 @@ export function escrowReviewerAddress(service: EscrowService): Address {
   return configured ? address(configured) : service.network.demoReviewer;
 }
 
-/** A stand-in school address derived from the institution id (the school holds no key here). */
-function schoolAddressFor(institutionId: string): Address {
-  return getAddressDecoder().decode(sha(`bonawork:school:${institutionId}`));
+/**
+ * The school written into new escrows: the DEMO school key when configured (it
+ * co-signs a reviewer change), otherwise a stand-in address derived from the
+ * institution id that holds no key.
+ */
+async function schoolAddressFor(institutionId: string): Promise<Address> {
+  const school = await optionalDemoKey("demoSchool");
+  return (
+    school?.address ?? getAddressDecoder().decode(sha(`bonawork:school:${institutionId}`))
+  );
 }
+
+/** Who Check 1 (materials) releases to. Check 2 always releases to the contractor. */
+export type MaterialsPayee =
+  | { kind: "contractor" }
+  | { kind: "demo_supplier" }
+  | { kind: "supplier"; address: Address };
 
 // ---------------------------------------------------------------- create
 
@@ -190,6 +231,8 @@ export async function createCaseEscrow(
     funderKind: "demo" | "wallet";
     terms: EscrowTerms;
     actorId: string | null;
+    /** Defaults to the contractor. */
+    materialsPayee?: MaterialsPayee;
   },
 ): Promise<EscrowCaseRow> {
   checkTerms(input.terms);
@@ -200,7 +243,23 @@ export async function createCaseEscrow(
   const { service } = deps;
   const contractor = (await demoKey("demoContractor")).address;
   const reviewer = escrowReviewerAddress(service);
-  const school = schoolAddressFor(report.institutionId);
+  const school = await schoolAddressFor(report.institutionId);
+  const materialsPayee = input.materialsPayee ?? { kind: "contractor" };
+  const supplier: EscrowPayee | null =
+    materialsPayee.kind === "demo_supplier"
+      ? { address: (await demoKey("demoSupplier")).address, role: "supplier", demo: true }
+      : materialsPayee.kind === "supplier"
+        ? { address: materialsPayee.address, role: "supplier", demo: false }
+        : null;
+  const contractorPayee: EscrowPayee = {
+    address: contractor,
+    role: "contractor",
+    demo: true,
+  };
+  const payees: [EscrowPayee, EscrowPayee] = [
+    supplier ?? contractorPayee,
+    contractorPayee,
+  ];
   const caseHash = sha(`bonawork:case:${report.id}:${report.commitment}`);
   const [materials, completion] = input.terms.amounts;
   const termsHash = sha(
@@ -210,6 +269,7 @@ export async function createCaseEscrow(
       title: report.title,
       amounts: [materials.toString(), completion.toString()],
       challengeSeconds: input.terms.challengeSeconds,
+      payees: payees.map((p) => p.address),
     }),
   );
   const start = nowSeconds();
@@ -229,6 +289,7 @@ export async function createCaseEscrow(
     verificationDeadlines: [start + BigInt(14 * DAY), start + BigInt(28 * DAY)],
     challengeSeconds: input.terms.challengeSeconds,
     disputeSeconds: 3 * DAY,
+    payees: [address(payees[0].address), address(payees[1].address)],
   });
 
   const at = nowIso();
@@ -245,6 +306,8 @@ export async function createCaseEscrow(
     contractorAddress: contractor,
     schoolAddress: school,
     reviewerAddress: reviewer,
+    payees,
+    layout: 2,
     trancheAmounts: [materials.toString(), completion.toString()],
     challengeSeconds: input.terms.challengeSeconds,
     transactions: created.signature
@@ -269,7 +332,12 @@ export async function createCaseEscrow(
  */
 export async function fundCaseWithDemoFunder(
   deps: EscrowDeps,
-  input: { reportIdOrReference: string; terms: EscrowTerms; actorId: string | null },
+  input: {
+    reportIdOrReference: string;
+    terms: EscrowTerms;
+    actorId: string | null;
+    materialsPayee?: MaterialsPayee;
+  },
 ): Promise<EscrowCaseRow> {
   const funder = await demoKey("demoFunder");
   const row = await createCaseEscrow(deps, {
@@ -564,14 +632,62 @@ export async function refundCaseTranche(
   return sent;
 }
 
+/**
+ * Returns sandbox rand in the vault beyond what the open checks are owed (for
+ * example an over-payment) to the funder. Anyone may ask; the keeper signs.
+ * Null when there is nothing to return.
+ */
+export async function sweepCaseSurplus(
+  deps: EscrowDeps,
+  input: { reportIdOrReference: string },
+): Promise<SentStep | null> {
+  const { row } = await requireEscrowCase(deps.db, input.reportIdOrReference);
+  const sent = await deps.service.sweepSurplus(address(row.escrowAddress));
+  if (sent) await recordTx(deps.db, row.id, "sweep", sent);
+  return sent;
+}
+
+/**
+ * Replaces the escrow's reviewer. The program needs the platform admin and the
+ * escrow's school to sign together; here the school is the DEMO school key.
+ * Blocked on chain while a check is verified or disputed.
+ */
+export async function reassignCaseReviewer(
+  deps: EscrowDeps,
+  input: { reportIdOrReference: string; newReviewer: Address },
+): Promise<SentStep> {
+  const { row } = await requireEscrowCase(deps.db, input.reportIdOrReference);
+  const school = await demoKey("demoSchool");
+  if (row.schoolAddress !== school.address) {
+    throw new HttpError(
+      "conflict",
+      "This escrow's school holds no demo key, so its reviewer cannot be changed here.",
+    );
+  }
+  const sent = await deps.service.reassignReviewer({
+    escrow: address(row.escrowAddress),
+    newReviewer: input.newReviewer,
+    school,
+  });
+  await recordTx(deps.db, row.id, "reassign_reviewer", sent);
+  await deps.db
+    .update(schema.escrowCases)
+    .set({ reviewerAddress: input.newReviewer, updatedAt: nowIso() })
+    .where(eq(schema.escrowCases.id, row.id));
+  return sent;
+}
+
 // ---------------------------------------------------------------- watchdog
 
 /** Runs the Escrow Watchdog over every escrow still being watched. */
 export async function runCaseWatchdog(deps: EscrowDeps) {
-  const rows = await deps.db
-    .select()
-    .from(schema.escrowCases)
-    .where(eq(schema.escrowCases.watch, true));
+  // Layout-1 escrows predate per-tranche payees and cannot be decoded: skip them.
+  const rows = (
+    await deps.db
+      .select()
+      .from(schema.escrowCases)
+      .where(eq(schema.escrowCases.watch, true))
+  ).filter((r) => r.layout >= 2);
   const byEscrow = new Map(rows.map((r) => [r.escrowAddress, r]));
   const outcomes = await runEscrowWatchdog(
     deps.service,
@@ -627,11 +743,8 @@ export type PublicEscrowTranche = {
   index: TrancheIndex;
   label: (typeof TRANCHE_CHECKS)[number]["label"];
   detail: string;
-  /**
-   * Who a release pays, read from the escrow. Today the program pays both
-   * stages to the escrow's contractor; a per-stage payee can replace this.
-   */
-  payee: { address: string; role: "contractor"; demo: boolean };
+  /** Who a release goes to, read from the escrow on chain (fixed at creation). */
+  payee: { address: string; role: "supplier" | "contractor"; demo: boolean };
   amount: string;
   amountLabel: string;
   state: keyof typeof TrancheState;
@@ -656,6 +769,11 @@ export type PublicEscrow = {
   total: string;
   totalLabel: string;
   challengeSeconds: number;
+  /** Vault tokens beyond what the open checks are owed, in cents; null when unknown. */
+  surplus: string | null;
+  surplusLabel: string | null;
+  /** True for an escrow made before per-tranche payees; this client cannot read it. */
+  legacy: boolean;
   funded: boolean | null;
   cancelled: boolean | null;
   tranches: PublicEscrowTranche[] | null;
@@ -674,6 +792,25 @@ export function publicEscrowView(
 ): PublicEscrow {
   const total = BigInt(row.trancheAmounts[0]) + BigInt(row.trancheAmounts[1]);
   const demoReviewer = service.network.demoReviewer;
+  let surplus: bigint | null = null;
+  if (onChain) {
+    const a = onChain.account;
+    const owed = a.cancelled
+      ? BigInt(0)
+      : a.totalAmount - a.releasedAmount - a.refundedAmount;
+    const extra = onChain.vault.amount - owed;
+    surplus = extra > BigInt(0) ? extra : BigInt(0);
+  }
+  const payeeView = (payee: string, index: TrancheIndex) => {
+    const stored = row.payees[index];
+    const role: "supplier" | "contractor" =
+      payee === onChain?.account.contractor ? "contractor" : "supplier";
+    return {
+      address: payee,
+      role,
+      demo: stored ? stored.address === payee && stored.demo : false,
+    };
+  };
   return {
     cluster: "devnet",
     sandbox: true,
@@ -695,6 +832,9 @@ export function publicEscrowView(
     total: total.toString(),
     totalLabel: formatRand(total),
     challengeSeconds: row.challengeSeconds,
+    surplus: surplus === null ? null : surplus.toString(),
+    surplusLabel: surplus === null ? null : formatRand(surplus),
+    legacy: row.layout < 2,
     funded: onChain ? onChain.account.funded : null,
     cancelled: onChain ? onChain.account.cancelled : null,
     tranches: onChain
@@ -702,11 +842,7 @@ export function publicEscrowView(
           index: t.index,
           label: TRANCHE_CHECKS[t.index].label,
           detail: TRANCHE_CHECKS[t.index].detail,
-          payee: {
-            address: onChain.account.contractor,
-            role: "contractor" as const,
-            demo: onChain.account.contractor === row.contractorAddress,
-          },
+          payee: payeeView(onChain.account.payees[t.index], t.index),
           amount: t.account.amount.toString(),
           amountLabel: formatRand(t.account.amount),
           state: t.state,
@@ -731,6 +867,14 @@ export async function loadPublicEscrow(
   const report = await requireReport(deps.db, reportIdOrReference);
   const row = await findEscrowCase(deps.db, report.id);
   if (!row) return null;
+  if (row.layout < 2) {
+    return publicEscrowView(
+      row,
+      deps.service,
+      null,
+      "This escrow was made with an earlier version of the program and can no longer be read here. Its transactions are listed below.",
+    );
+  }
   try {
     const onChain = await deps.service.getCaseOnChain(address(row.escrowAddress));
     return publicEscrowView(row, deps.service, onChain);

@@ -13,8 +13,8 @@ export type EscrowTranche = {
   /** "Check 1: Materials on site" or "Check 2: Work done". */
   label: string;
   detail: string;
-  /** Who a release pays, read from the escrow. */
-  payee: { address: string; role: "contractor"; demo: boolean };
+  /** Who a release goes to, read from the escrow on chain (fixed at creation). */
+  payee: { address: string; role: "supplier" | "contractor"; demo: boolean };
   amount: string;
   amountLabel: string;
   state: TrancheStateName;
@@ -34,7 +34,9 @@ export type EscrowTx = {
     | "claim"
     | "verify"
     | "release"
-    | "refund";
+    | "refund"
+    | "sweep"
+    | "reassign_reviewer";
   index?: 0 | 1;
   signature: string;
   at: string;
@@ -54,6 +56,11 @@ export type PublicEscrow = {
   total: string;
   totalLabel: string;
   challengeSeconds: number;
+  /** Vault tokens beyond what the open checks are owed, in cents. */
+  surplus: string | null;
+  surplusLabel: string | null;
+  /** Made with an earlier program version; it can no longer be read here. */
+  legacy: boolean;
   funded: boolean | null;
   cancelled: boolean | null;
   tranches: EscrowTranche[] | null;
@@ -126,7 +133,13 @@ export const escrowApi = {
   get: (issueId: string) => call<PublicEscrow | null>(base(issueId)),
   fund: (
     issueId: string,
-    body: { materials: string; completion: string; challengeSeconds: number },
+    body: {
+      materials: string;
+      completion: string;
+      challengeSeconds: number;
+      /** Who Check 1 releases to. Check 2 always releases to the contractor. */
+      materialsPayee: "contractor" | "demo_supplier";
+    },
   ) => call<PublicEscrow>(`${base(issueId)}/fund`, body),
   claim: (issueId: string, body: { index: 0 | 1; note: string }) =>
     call<SentStep>(`${base(issueId)}/claim`, body),
@@ -140,6 +153,11 @@ export const escrowApi = {
     call<SentStep>(`${base(issueId)}/release`, { index }),
   refund: (issueId: string, index: 0 | 1) =>
     call<SentStep>(`${base(issueId)}/refund`, { index }),
+  sweep: (issueId: string) =>
+    call<{ sent: SentStep | null; escrow: PublicEscrow | null }>(
+      `${base(issueId)}/sweep`,
+      {},
+    ),
 };
 
 /** "R1 234.50" from a rand amount typed by a person, as cents; null when it is not a number. */

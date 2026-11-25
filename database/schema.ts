@@ -502,11 +502,22 @@ export type EscrowTxRecord = {
     | "claim"
     | "verify"
     | "release"
-    | "refund";
+    | "refund"
+    | "sweep"
+    | "reassign_reviewer";
   /** Tranche index for claim / verify / release / refund. */
   index?: 0 | 1;
   signature: string;
   at: string;
+};
+
+/** Who a tranche releases to, as fixed in the escrow at creation. */
+export type EscrowPayee = {
+  address: string;
+  /** `supplier`: a materials supplier. `contractor`: the escrow's contractor. */
+  role: "supplier" | "contractor";
+  /** True when the address is a server-held demo key. */
+  demo: boolean;
 };
 
 /**
@@ -534,6 +545,13 @@ export const escrowCases = pgTable(
     contractorAddress: text("contractor_address").notNull(),
     schoolAddress: text("school_address").notNull(),
     reviewerAddress: text("reviewer_address").notNull(),
+    /** Payee per tranche: [Check 1, Check 2]. Empty on layout-1 (legacy) rows. */
+    payees: jsonb("payees").notNull().$type<EscrowPayee[]>().default([]),
+    /**
+     * Escrow account layout. 1: before per-tranche payees (403 bytes, no longer
+     * decodable by this client). 2: with payees (435 bytes).
+     */
+    layout: integer("layout").notNull().default(1),
     /** Cents of sandbox demo rand per tranche, as strings: [materials, completion]. */
     trancheAmounts: jsonb("tranche_amounts").notNull().$type<[string, string]>(),
     challengeSeconds: integer("challenge_seconds").notNull(),

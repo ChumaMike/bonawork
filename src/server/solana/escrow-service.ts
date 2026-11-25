@@ -35,7 +35,9 @@ import {
 import {
   DEFAULT_PUBKEY,
   TrancheState,
+  checkReassignReviewerTransaction,
   checkReleaseTransaction,
+  checkSweepTransaction,
   checkVerifyTransaction,
   decodeEscrow,
   decodeTranche,
@@ -50,8 +52,10 @@ import {
   getActivateFundingInstruction,
   getClaimTrancheInstruction,
   getCreateEscrowInstruction,
+  getReassignReviewerInstruction,
   getRefundExpiredInstruction,
   getReleaseTrancheInstruction,
+  getSweepSurplusInstruction,
   getVerifyTrancheInstruction,
   toHex,
   type Bytes32,
@@ -123,9 +127,14 @@ export type TrancheIndex = 0 | 1;
 
 export type SentStep = { signature: Signature; explorerUrl: string };
 
-export type CreateEscrowInput = Omit<CreateEscrowArgs, "funderChallenger"> & {
+export type CreateEscrowInput = Omit<CreateEscrowArgs, "funderChallenger" | "payees"> & {
   /** Optional challenge wallet of the funder. */
   funderChallenger?: Address;
+  /**
+   * Who each tranche pays on release, fixed at creation. Omitted or
+   * DEFAULT_PUBKEY means the contractor. Typically [supplier, contractor].
+   */
+  payees?: readonly [Address | undefined, Address | undefined];
 };
 
 export type OnChainTranche = {
@@ -290,7 +299,14 @@ export function createEscrowService({ rpc, network, signers }: EscrowServiceDeps
         ...addresses,
         mint,
       },
-      { ...input, funderChallenger: input.funderChallenger ?? DEFAULT_PUBKEY },
+      {
+        ...input,
+        funderChallenger: input.funderChallenger ?? DEFAULT_PUBKEY,
+        payees: [
+          input.payees?.[0] ?? DEFAULT_PUBKEY,
+          input.payees?.[1] ?? DEFAULT_PUBKEY,
+        ],
+      },
     );
     const signature = await buildSignSend(rpc, feepayer, [ix], [admin]);
     return { addresses, alreadyExisted: false as const, ...sent(signature) };
@@ -526,7 +542,7 @@ export function createEscrowService({ rpc, network, signers }: EscrowServiceDeps
     return sent(signature);
   }
 
-  /** Keeper: pays a verified stage to the contractor once the challenge window has ended. */
+  /** Keeper: releases a verified stage to its payee once the challenge window has ended. */
   async function releaseTranche(escrow: Address, index: TrancheIndex): Promise<SentStep> {
     const keeper = signer("keeper");
     const account = await readEscrow(escrow);
@@ -537,13 +553,13 @@ export function createEscrowService({ rpc, network, signers }: EscrowServiceDeps
       tranche,
       vault: await findVaultAddress(escrow, account.mint),
       mint: account.mint,
-      contractor: account.contractor,
-      contractorAta: await findAssociatedTokenAddress(account.contractor, account.mint),
+      payee: account.payees[index],
+      payeeAta: await findAssociatedTokenAddress(account.payees[index], account.mint),
     });
     const built = await buildTransaction(rpc, keeper.address, [ix]);
     const guardian = await checkReleaseTransaction(
       getBase64EncodedWireTransaction(built.transaction),
-      { feePayer: keeper.address, escrow, tranche, escrowAccount: account },
+      { feePayer: keeper.address, escrow, tranche, index, escrowAccount: account },
     );
     if (!guardian.ok) throw new GuardianRejectedError(guardian.findings);
     return sent(await signSimulateSend(built, keeper));
@@ -572,6 +588,86 @@ export function createEscrowService({ rpc, network, signers }: EscrowServiceDeps
     );
     if (!guardian.ok) throw new GuardianRejectedError(guardian.findings);
     return sent(await signSimulateSend(built, keeper));
+  }
+
+  /**
+   * Anyone may call it on chain; the keeper pays. Returns vault tokens beyond
+   * what the open tranches are owed to the funder. Null when there is nothing
+   * to return (nothing is sent then).
+   */
+  async function sweepSurplus(escrow: Address): Promise<SentStep | null> {
+    const keeper = signer("keeper");
+    const account = await readEscrow(escrow);
+    const vault = await findVaultAddress(escrow, account.mint);
+    const owed = account.cancelled
+      ? BigInt(0)
+      : account.totalAmount - account.releasedAmount - account.refundedAmount;
+    const balance = await tokenBalance(vault);
+    if (balance <= owed) return null;
+    const ix = getSweepSurplusInstruction({
+      caller: keeper.address,
+      escrow,
+      vault,
+      mint: account.mint,
+      funder: account.funder,
+      funderAta: await findAssociatedTokenAddress(account.funder, account.mint),
+    });
+    const built = await buildTransaction(rpc, keeper.address, [ix]);
+    const guardian = await checkSweepTransaction(
+      getBase64EncodedWireTransaction(built.transaction),
+      { feePayer: keeper.address, escrow, escrowAccount: account },
+    );
+    if (!guardian.ok) throw new GuardianRejectedError(guardian.findings);
+    return sent(await signSimulateSend(built, keeper));
+  }
+
+  /**
+   * Replaces the escrow's reviewer. The program needs the platform admin and
+   * the escrow's school to sign together; the feepayer pays.
+   */
+  async function reassignReviewer(input: {
+    escrow: Address;
+    newReviewer: Address;
+    school: KeyPairSigner;
+  }): Promise<SentStep> {
+    const admin = signer("admin");
+    const feepayer = signer("feepayer");
+    const account = await readEscrow(input.escrow);
+    if (account.school !== input.school.address) {
+      throw new EscrowStateError("This key is not the escrow's school.");
+    }
+    const ix = getReassignReviewerInstruction(
+      {
+        admin: admin.address,
+        config: await findConfigPda(),
+        school: input.school.address,
+        escrow: input.escrow,
+        tranche0: await findTranchePda(input.escrow, 0),
+        tranche1: await findTranchePda(input.escrow, 1),
+        newReviewerRecord: await findReviewerPda(input.newReviewer),
+      },
+      { newReviewer: input.newReviewer },
+    );
+    const built = await buildTransaction(rpc, feepayer.address, [ix]);
+    const guardian = await checkReassignReviewerTransaction(
+      getBase64EncodedWireTransaction(built.transaction),
+      {
+        feePayer: feepayer.address,
+        admin: admin.address,
+        school: input.school.address,
+        escrow: input.escrow,
+        newReviewer: input.newReviewer,
+      },
+    );
+    if (!guardian.ok) throw new GuardianRejectedError(guardian.findings);
+    const transaction = await signWith(built.transaction, [
+      feepayer,
+      admin,
+      input.school,
+    ]);
+    const sim = await simulate(rpc, transaction);
+    if (!sim.ok) throwSimulationFailure(sim);
+    return sent(await sendAndConfirm(rpc, { ...built, transaction }));
   }
 
   async function signSimulateSend(
@@ -625,6 +721,8 @@ export function createEscrowService({ rpc, network, signers }: EscrowServiceDeps
     submitSignedVerify,
     releaseTranche,
     refundExpired,
+    sweepSurplus,
+    reassignReviewer,
     getCaseOnChain,
     walletBalance,
   };

@@ -111,5 +111,14 @@ export const migrations: BundledMigration[] = [
       "CREATE UNIQUE INDEX \"escrow_cases_escrow_idx\" ON \"escrow_cases\" USING btree (\"escrow_address\");",
       "CREATE INDEX \"escrow_cases_watch_idx\" ON \"escrow_cases\" USING btree (\"watch\");"
     ]
+  },
+  {
+    "tag": "0003_smart_queen_noir",
+    "when": 1795643330349,
+    "hash": "32428de5cdcec6528e434ae1916aae50878f7ec2e6c0822e2c808fb415595a35",
+    "statements": [
+      "ALTER TABLE \"escrow_cases\" ADD COLUMN \"payees\" jsonb DEFAULT '[]'::jsonb NOT NULL;",
+      "ALTER TABLE \"escrow_cases\" ADD COLUMN \"layout\" integer DEFAULT 1 NOT NULL;"
+    ]
   }
 ];

@@ -28,6 +28,7 @@ import {
   encodeTranche,
   findAssociatedTokenAddress,
   findEscrowAddresses,
+  decodeTransaction,
   findReviewerPda,
   getVerifyTrancheInstruction,
   type EscrowAddresses,
@@ -49,12 +50,16 @@ const BLOCKHASH = blockhash(key(99));
 let feepayer: KeyPairSigner;
 let reviewer: KeyPairSigner;
 let attacker: KeyPairSigner;
+let keeper: KeyPairSigner;
 let ids: EscrowAddresses;
+/** Vault balance the fake RPC reports, in cents. */
+let vaultBalance = BigInt(500_000);
 let service: EscrowService;
 let sendTransaction: ReturnType<typeof vi.fn>;
 const mint = key(8);
 const funder = key(3);
 const contractor = key(4);
+const supplier = key(6);
 const evidenceHash = h(20);
 const matchHash = h(21);
 const reviewHash = h(50);
@@ -85,6 +90,10 @@ function mockRpc(accounts: Map<string, Uint8Array>) {
     getLatestBlockhash: () =>
       reply({ value: { blockhash: BLOCKHASH, lastValidBlockHeight: BigInt(1_000) } }),
     getBlockHeight: () => reply(BigInt(900)),
+    simulateTransaction: () =>
+      reply({ value: { err: null, logs: [], unitsConsumed: 1 } }),
+    getTokenAccountBalance: () =>
+      reply({ value: { amount: vaultBalance.toString(), decimals: 2 } }),
     sendTransaction,
     getSignatureStatuses: () =>
       reply({ value: [{ confirmationStatus: "confirmed", err: null }] }),
@@ -95,6 +104,7 @@ beforeAll(async () => {
   feepayer = await signerFromBytes(generateKeypairBytes());
   reviewer = await signerFromBytes(generateKeypairBytes());
   attacker = await signerFromBytes(generateKeypairBytes());
+  keeper = await signerFromBytes(generateKeypairBytes());
   ids = await findEscrowAddresses(funder, h(42), mint);
 
   const accounts = new Map<string, Uint8Array>();
@@ -109,6 +119,7 @@ beforeAll(async () => {
         contractor,
         school: key(5),
         reviewer: reviewer.address,
+        payees: [supplier, contractor],
         mint,
         matchAuthority: key(10),
         disputeAuthority: key(11),
@@ -164,13 +175,13 @@ beforeAll(async () => {
     dispute: key(11),
     feepayer: feepayer.address,
     treasury: key(13),
-    keeper: key(14),
+    keeper: keeper.address,
     demoReviewer: reviewer.address,
   };
   service = createEscrowService({
     rpc: mockRpc(accounts),
     network,
-    signers: { feepayer },
+    signers: { feepayer, keeper },
   });
 });
 
@@ -199,6 +210,53 @@ function compile(instructions: Instruction[]) {
     ),
   );
 }
+
+describe("release and sweep pay only the accounts fixed in the escrow", () => {
+  const sentInstruction = () => {
+    const tx = decode(sendTransaction.mock.calls.at(-1)![0] as string);
+    return tx;
+  };
+
+  it("releases Check 1 to the supplier's token account, signed by the keeper", async () => {
+    sendTransaction.mockClear();
+    await service.releaseTranche(ids.escrow, 0);
+    expect(sendTransaction).toHaveBeenCalledTimes(1);
+    const tx = sentInstruction();
+    expect(tx.signatures[keeper.address]).toBeTruthy();
+    const wire = getBase64EncodedWireTransaction(tx);
+    const supplierAta = await findAssociatedTokenAddress(supplier, mint);
+    const contractorAta = await findAssociatedTokenAddress(contractor, mint);
+    const accounts = decodeTransaction(wire).instructions[0].accounts;
+    expect(accounts.find((a) => a.name === "payee")?.address).toBe(supplier);
+    expect(accounts.find((a) => a.name === "payeeAta")?.address).toBe(supplierAta);
+    expect(accounts.some((a) => a.address === contractorAta)).toBe(false);
+  });
+
+  it("releases Check 2 to the contractor", async () => {
+    sendTransaction.mockClear();
+    await service.releaseTranche(ids.escrow, 1);
+    const wire = getBase64EncodedWireTransaction(sentInstruction());
+    const accounts = decodeTransaction(wire).instructions[0].accounts;
+    expect(accounts.find((a) => a.name === "payee")?.address).toBe(contractor);
+  });
+
+  it("sweeps only the surplus, to the funder, and sends nothing when there is none", async () => {
+    sendTransaction.mockClear();
+    vaultBalance = BigInt(500_000);
+    expect(await service.sweepSurplus(ids.escrow)).toBeNull();
+    expect(sendTransaction).not.toHaveBeenCalled();
+
+    vaultBalance = BigInt(500_123);
+    expect(await service.sweepSurplus(ids.escrow)).not.toBeNull();
+    const wire = getBase64EncodedWireTransaction(sentInstruction());
+    const [ix] = decodeTransaction(wire).instructions;
+    expect(ix.name).toBe("sweep_surplus");
+    expect(ix.accounts.find((a) => a.name === "funderAta")?.address).toBe(
+      await findAssociatedTokenAddress(funder, mint),
+    );
+    vaultBalance = BigInt(500_000);
+  });
+});
 
 describe("prepare and submit a reviewer's verify transaction", () => {
   it("prepares an unsigned transaction that passes Bona Guardian", async () => {

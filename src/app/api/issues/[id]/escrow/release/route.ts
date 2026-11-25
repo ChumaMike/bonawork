@@ -10,7 +10,7 @@ export const maxDuration = 60;
 /**
  * `POST /api/issues/:id/escrow/release` — anyone, no sign-in. Body `{ index }`.
  * The keeper key asks the program to release a verified stage as a sandbox
- * payout to the contractor. Before the challenge window ends the program
+ * payout to the payee fixed in the escrow for that check. Before the challenge window ends the program
  * refuses: 409 with `programError: "ChallengeWindowActive"`.
  */
 export const POST = escrowRoute<{ id: string }>(async (request, { id }) => {
