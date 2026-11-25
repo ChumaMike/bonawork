@@ -1,10 +1,9 @@
 "use client";
 
 import { useParams, useSearchParams } from "next/navigation";
-import { useState, type FormEvent } from "react";
+import { useState } from "react";
 import { Button, ButtonLink } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Field, Textarea } from "@/components/ui/field";
 import { Icon } from "@/components/ui/icon";
 import {
   Container,
@@ -13,14 +12,17 @@ import {
   PageHero,
   PageLoading,
 } from "@/components/ui/page";
+import { getApi } from "@/data/api";
 import { useAudience } from "@/data/audience";
 import { useQuery } from "@/data/use-query";
+import type { CopilotInvoiceLine, ReviewRecord } from "@/features/agent/contracts";
+import { ReviewerCopilot } from "@/features/agent/reviewer-copilot";
 import {
   EscrowApiError,
   escrowApi,
   type EscrowTranche,
   type PreparedVerify,
-  type SentStep,
+  type VerifySent,
 } from "./api";
 import { SandboxBadge } from "./escrow-screen";
 
@@ -72,15 +74,36 @@ function GuardianResult({ prepared }: { prepared: PreparedVerify }) {
   );
 }
 
+/** Why a finished checklist cannot be signed yet; null when it can. */
+function reviewBlocker(review: ReviewRecord | null): string | null {
+  if (!review) return "Finish the checklist first.";
+  const open = review.items.filter((i) => i.result === "not_checked").length;
+  if (open > 0) return `${open} checks are still marked not checked.`;
+  if (review.items.some((i) => i.result === "fail")) {
+    return "A check failed, so this cannot be verified. Raise it with the school and the contractor.";
+  }
+  return null;
+}
+
 /** The reviewer's verify screen: `/issues/:id/escrow/review?stage=0|1`. */
 export function EscrowReviewScreen() {
   const { issueId } = useParams<{ issueId: string }>();
   const search = useSearchParams();
   const audience = useAudience();
   const escrow = useQuery(`escrow:${issueId}`, () => escrowApi.get(issueId));
-  const [note, setNote] = useState("");
+  const issue = useQuery(`issue:${issueId}`, () => getApi().getIssue(issueId));
+  const isReviewer =
+    audience.status === "ready" && audience.role === "independent_reviewer";
+  const trail = useQuery(`trail:${issueId}:${isReviewer}`, () =>
+    isReviewer
+      ? getApi()
+          .getMoneyTrail(issueId)
+          .catch(() => null)
+      : Promise.resolve(null),
+  );
+  const [review, setReview] = useState<ReviewRecord | null>(null);
   const [prepared, setPrepared] = useState<PreparedVerify | null>(null);
-  const [sent, setSent] = useState<SentStep | null>(null);
+  const [sent, setSent] = useState<VerifySent | null>(null);
   const [busy, setBusy] = useState<"prepare" | "sign" | null>(null);
   const [error, setError] = useState<EscrowApiError | null>(null);
 
@@ -88,21 +111,30 @@ export function EscrowReviewScreen() {
   if (escrow.data === undefined || audience.status === "loading") return <PageLoading />;
 
   const back = { href: `/issues/${issueId}/escrow`, label: "Escrow" };
-  const isReviewer =
-    audience.status === "ready" && audience.role === "independent_reviewer";
   const asked = search.get("stage") === "1" ? 1 : search.get("stage") === "0" ? 0 : null;
   const claimed: EscrowTranche | undefined = escrow.data?.tranches?.find(
     (t) => t.state === "Claimed" && (asked === null || t.index === asked),
   );
+  const invoice = trail.data?.invoices.at(-1);
+  const lines: CopilotInvoiceLine[] = (invoice?.lines ?? [])
+    .filter((l) => l.quantity > 0)
+    .map((l) => ({
+      lineId: l.sku,
+      description: l.description,
+      quantity: l.quantity,
+      unitPriceCents: l.unitPriceCents ?? 0,
+    }));
+  const blocker = reviewBlocker(review);
 
-  async function prepare(event: FormEvent) {
-    event.preventDefault();
-    if (!claimed) return;
+  async function prepare() {
+    if (!claimed || !review || blocker) return;
     setBusy("prepare");
     setError(null);
     setPrepared(null);
     try {
-      setPrepared(await escrowApi.prepareVerify(issueId, { index: claimed.index, note }));
+      setPrepared(
+        await escrowApi.prepareVerify(issueId, { index: claimed.index, review }),
+      );
     } catch (e) {
       setError(e as EscrowApiError);
     } finally {
@@ -111,7 +143,7 @@ export function EscrowReviewScreen() {
   }
 
   async function sign() {
-    if (!claimed || !prepared) return;
+    if (!claimed || !prepared || !review) return;
     setBusy("sign");
     setError(null);
     try {
@@ -119,7 +151,7 @@ export function EscrowReviewScreen() {
         await escrowApi.submitVerify(issueId, {
           index: claimed.index,
           transaction: prepared.transaction,
-          reviewHash: prepared.reviewHash,
+          review,
         }),
       );
     } catch (e) {
@@ -142,6 +174,15 @@ export function EscrowReviewScreen() {
         <p>
           The challenge window has started. After it ends, anyone can release this part.
         </p>
+        {sent.caseStatus.changed ? (
+          <p className="mt-2" data-testid="case-status-sync">
+            The case is now marked verified.
+          </p>
+        ) : claimed?.index === 1 ? (
+          <p className="mt-2 text-sm" data-testid="case-status-sync">
+            The case status was not changed: {sent.caseStatus.reason}
+          </p>
+        ) : null}
         <p className="mt-2">
           <a
             href={sent.explorerUrl}
@@ -163,6 +204,8 @@ export function EscrowReviewScreen() {
         <p>There is no claim waiting for a check.</p>
       </Notice>
     );
+  } else if (!issue.data || trail.data === undefined) {
+    body = <PageLoading />;
   } else {
     body = (
       <div className="flex flex-col gap-5">
@@ -172,36 +215,42 @@ export function EscrowReviewScreen() {
           </p>
           <p className="text-sm text-muted">{claimed.detail}</p>
         </Card>
-        <form onSubmit={prepare} className="flex flex-col gap-3">
-          <Field
-            id="review-note"
-            label={
-              claimed.index === 0
-                ? "Do the delivered items match the invoice?"
-                : "Is the work installed and working?"
-            }
-            hint="Its fingerprint is written into the escrow. The text stays off-chain."
-          >
-            <Textarea
-              id="review-note"
-              rows={3}
-              value={note}
-              onChange={(e) => {
-                setNote(e.target.value);
-                setPrepared(null);
-              }}
-              required
-            />
-          </Field>
+
+        <ReviewerCopilot
+          caseRef={issue.data.reference}
+          caseOpenedAt={issue.data.createdAt}
+          request={{
+            milestone: claimed.detail,
+            stage: claimed.index === 0 ? "materials" : "completion",
+            lines,
+            priceFlags: [],
+          }}
+          onFinish={(finished) => {
+            setReview(finished.record);
+            setPrepared(null);
+          }}
+        />
+
+        <div className="flex flex-col gap-2">
           <Button
-            type="submit"
+            onClick={prepare}
             variant={prepared ? "secondary" : "primary"}
             loading={busy === "prepare"}
-            disabled={!note.trim()}
+            disabled={blocker !== null}
           >
             Check the transaction
           </Button>
-        </form>
+          {blocker ? (
+            <p className="text-sm text-muted" data-testid="review-blocker">
+              {blocker}
+            </p>
+          ) : (
+            <p className="text-sm text-muted">
+              The checklist&apos;s fingerprint is written into the escrow. The checklist
+              stays off-chain.
+            </p>
+          )}
+        </div>
 
         {prepared ? (
           <>
@@ -217,7 +266,7 @@ export function EscrowReviewScreen() {
               <Button
                 onClick={sign}
                 loading={busy === "sign"}
-                disabled={!prepared.guardian.ok}
+                disabled={!prepared.guardian.ok || blocker !== null}
               >
                 Sign and verify {claimed.index === 0 ? "Check 1" : "Check 2"}
               </Button>
@@ -234,7 +283,7 @@ export function EscrowReviewScreen() {
         back={back}
         eyebrow="Independent review"
         title="Verify a check"
-        intro="Read what the transaction does, then sign it. Only you can verify."
+        intro="Work through the checklist, read what the transaction does, then sign. Only you can verify."
       />
       <Container size="narrow" className="flex flex-col gap-5">
         <SandboxBadge />

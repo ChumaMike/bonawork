@@ -5,6 +5,8 @@
  * cents of sandbox demo rand and times are unix seconds, both as strings.
  */
 
+import type { ReviewRecord } from "@/features/agent/contracts";
+
 export type TrancheStateName =
   "Pending" | "Claimed" | "Verified" | "Disputed" | "Released" | "Refunded";
 
@@ -69,6 +71,20 @@ export type PublicEscrow = {
   chainError: string | null;
 };
 
+/** The repair budget the school confirmed with Repair Scout. Cents as numbers. */
+export type RepairBudget = {
+  totalCents: number;
+  materialsCents: number;
+  completionCents: number;
+  lines: {
+    description: string;
+    quantity: number;
+    kind: "material" | "service";
+    unitPriceCents: number;
+  }[];
+  confirmedAt: string;
+};
+
 export type Finding = { code: string; severity: "error" | "warning"; message: string };
 
 export type PreparedVerify = {
@@ -80,6 +96,32 @@ export type PreparedVerify = {
 };
 
 export type SentStep = { signature: string; explorerUrl: string };
+
+/** What happened to the case status after a verify (only Check 2 moves it). */
+export type CaseStatusSync =
+  | { changed: true; status: "verified" }
+  | { changed: false; status: string; reason: string };
+
+export type VerifySent = SentStep & { caseStatus: CaseStatusSync };
+
+/** Where a funder's own wallet sends the sandbox rand. */
+export type WalletFundingPlan = {
+  escrow: string;
+  vault: string;
+  mint: string;
+  decimals: number;
+  /** Cents of sandbox rand. */
+  amount: string;
+  amountLabel: string;
+};
+
+export type FundTerms = {
+  materials: string;
+  completion: string;
+  challengeSeconds: number;
+  /** Who Check 1 releases to. Check 2 always releases to the contractor. */
+  materialsPayee: "contractor" | "demo_supplier";
+};
 
 /** An error from the escrow API, with the program's own refusal when there is one. */
 export class EscrowApiError extends Error {
@@ -131,28 +173,31 @@ const base = (issueId: string) => `/api/issues/${encodeURIComponent(issueId)}/es
 
 export const escrowApi = {
   get: (issueId: string) => call<PublicEscrow | null>(base(issueId)),
-  fund: (
-    issueId: string,
-    body: {
-      materials: string;
-      completion: string;
-      challengeSeconds: number;
-      /** Who Check 1 releases to. Check 2 always releases to the contractor. */
-      materialsPayee: "contractor" | "demo_supplier";
-    },
-  ) => call<PublicEscrow>(`${base(issueId)}/fund`, body),
+  fund: (issueId: string, body: FundTerms) =>
+    call<PublicEscrow>(`${base(issueId)}/fund`, body),
+  /** Funding from the funder's own wallet (Pollar), step 1: create the escrow. */
+  prepareWalletFunding: (issueId: string, body: FundTerms & { funderWallet: string }) =>
+    call<WalletFundingPlan>(`${base(issueId)}/fund/wallet`, body),
+  /** Step 2: the server reads the transfer back from Solana, then activates. */
+  confirmWalletFunding: (issueId: string, signature: string) =>
+    call<PublicEscrow>(`${base(issueId)}/fund/wallet/confirm`, { signature }),
   claim: (issueId: string, body: { index: 0 | 1; note: string }) =>
     call<SentStep>(`${base(issueId)}/claim`, body),
-  prepareVerify: (issueId: string, body: { index: 0 | 1; note: string }) =>
+  prepareVerify: (issueId: string, body: { index: 0 | 1; review: ReviewRecord }) =>
     call<PreparedVerify>(`${base(issueId)}/verify/prepare`, body),
   submitVerify: (
     issueId: string,
-    body: { index: 0 | 1; transaction: string; reviewHash: string },
-  ) => call<SentStep>(`${base(issueId)}/verify/submit`, body),
+    body: { index: 0 | 1; transaction: string; review: ReviewRecord },
+  ) => call<VerifySent>(`${base(issueId)}/verify/submit`, body),
   release: (issueId: string, index: 0 | 1) =>
     call<SentStep>(`${base(issueId)}/release`, { index }),
   refund: (issueId: string, index: 0 | 1) =>
     call<SentStep>(`${base(issueId)}/refund`, { index }),
+  /** The school's confirmed Repair Scout budget, or null. */
+  budget: (issueId: string) =>
+    call<RepairBudget | null>(`/api/issues/${encodeURIComponent(issueId)}/budget`),
+  confirmBudget: (issueId: string, body: { lines: RepairBudget["lines"] }) =>
+    call<RepairBudget>(`/api/issues/${encodeURIComponent(issueId)}/budget`, body),
   sweep: (issueId: string) =>
     call<{ sent: SentStep | null; escrow: PublicEscrow | null }>(
       `${base(issueId)}/sweep`,
@@ -166,6 +211,14 @@ export function randToCents(text: string): string | null {
   if (!/^\d{1,7}(\.\d{1,2})?$/.test(clean)) return null;
   const [rands, cents = ""] = clean.split(".");
   return (BigInt(rands) * BigInt(100) + BigInt(cents.padEnd(2, "0") || "0")).toString();
+}
+
+/** 500000 -> "R5 000.00". */
+export function formatCents(cents: number): string {
+  const rands = Math.floor(cents / 100)
+    .toString()
+    .replace(/\B(?=(\d{3})+(?!\d))/g, " ");
+  return `R${rands}.${String(cents % 100).padStart(2, "0")}`;
 }
 
 /** "4 min 05 s" style countdown text. */

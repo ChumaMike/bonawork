@@ -25,6 +25,7 @@ const MENU: [string, string][] = [
 /** Every page this site has that the public may open. */
 const PUBLIC_ROUTES = [
   "/",
+  "/agent",
   "/assistant",
   "/issues",
   "/report",

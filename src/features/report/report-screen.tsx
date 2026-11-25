@@ -9,6 +9,7 @@ import { IssueCard } from "@/components/issue-card";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/components/ui/cn";
 import { Checkbox, Field, Input, Textarea } from "@/components/ui/field";
+import { SpeakToReport } from "@/features/agent/voice";
 import { Icon } from "@/components/ui/icon";
 import { EmptyState, Loading, Notice, PageShell } from "@/components/ui/page";
 import { Stepper } from "@/components/ui/stepper";
@@ -328,6 +329,16 @@ export function ReportScreen() {
                 onChange={(event) => update({ description: event.target.value })}
               />
             </Field>
+            <SpeakToReport
+              onText={(text) =>
+                update({
+                  description: (draft.description
+                    ? `${draft.description} ${text}`
+                    : text
+                  ).slice(0, 5000),
+                })
+              }
+            />
           </div>
         </details>
       </div>

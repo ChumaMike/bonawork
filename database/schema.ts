@@ -569,6 +569,32 @@ export const escrowCases = pgTable(
   ],
 );
 
+/** One confirmed line of a Repair Scout budget. Public: parts and prices only. */
+export type RepairBudgetLine = {
+  description: string;
+  quantity: number;
+  kind: "material" | "service";
+  unitPriceCents: number;
+};
+
+/**
+ * The repair budget the school confirmed with Repair Scout. It only prefills
+ * the funder's escrow terms (total and the 40/60 split); the escrow itself is
+ * what binds. One per report; confirming again replaces it.
+ */
+export const repairBudgets = pgTable("repair_budgets", {
+  reportId: uuid("report_id")
+    .primaryKey()
+    .references(() => reports.id),
+  totalCents: integer("total_cents").notNull(),
+  materialsCents: integer("materials_cents").notNull(),
+  completionCents: integer("completion_cents").notNull(),
+  lines: jsonb("lines").notNull().$type<RepairBudgetLine[]>(),
+  confirmedBy: uuid("confirmed_by").references(() => users.id),
+  confirmedAt: text("confirmed_at").notNull(),
+});
+
+export type RepairBudgetRow = typeof repairBudgets.$inferSelect;
 export type EscrowCaseRow = typeof escrowCases.$inferSelect;
 export type InstitutionRow = typeof institutions.$inferSelect;
 export type UserRow = typeof users.$inferSelect;

@@ -174,17 +174,30 @@ program without it.
 
 ### Environment for a deployment
 
-| Variable                                                                                            | Purpose                                                              |
-| --------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------- |
-| `DATABASE_URL`                                                                                      | Postgres (Neon or Supabase). Without it Vercel uses in-memory PGlite |
-| `AUTH_SECRET`                                                                                       | Session cookies, 32+ characters. Required in production              |
-| `CRON_SECRET`                                                                                       | Guards `/api/cron/watchdog` and `/api/ledger/retry`                  |
-| `SOLANA_RPC_URL`                                                                                    | Devnet RPC (default: public devnet endpoint, rate limited)           |
-| `BONAWORK_ADMIN_KEY`, `_MATCH_KEY`, `_DISPUTE_KEY`, `_FEEPAYER_KEY`, `_TREASURY_KEY`, `_KEEPER_KEY` | Platform keys, base58 or JSON array. One per role, server-side only  |
-| `BONAWORK_DEMO_FUNDER_KEY`, `BONAWORK_DEMO_CONTRACTOR_KEY`, `BONAWORK_DEMO_REVIEWER_KEY`            | Demo stand-ins until people sign with their own wallets              |
-| `BONAWORK_REVIEWER_ADDRESS`                                                                         | Optional registered reviewer wallet to name in new escrows           |
-| `NEXT_PUBLIC_API_SOURCE=live`                                                                       | Screens call the real API                                            |
-| `FIRECRAWL_API_KEY`                                                                                 | Invoice price check                                                  |
+| Variable                                                                                            | Purpose                                                                                                                              |
+| --------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| `DATABASE_URL`                                                                                      | Postgres (Neon or Supabase). Without it Vercel uses in-memory PGlite                                                                 |
+| `AUTH_SECRET`                                                                                       | Session cookies, 32+ characters. Required in production                                                                              |
+| `CRON_SECRET`                                                                                       | Guards `/api/cron/watchdog` and `/api/ledger/retry`                                                                                  |
+| `SOLANA_RPC_URL`                                                                                    | Devnet RPC (default: public devnet endpoint, rate limited)                                                                           |
+| `BONAWORK_ADMIN_KEY`, `_MATCH_KEY`, `_DISPUTE_KEY`, `_FEEPAYER_KEY`, `_TREASURY_KEY`, `_KEEPER_KEY` | Platform keys, base58 or JSON array. One per role, server-side only                                                                  |
+| `BONAWORK_DEMO_FUNDER_KEY`, `BONAWORK_DEMO_CONTRACTOR_KEY`, `BONAWORK_DEMO_REVIEWER_KEY`            | Demo stand-ins until people sign with their own wallets                                                                              |
+| `BONAWORK_REVIEWER_ADDRESS`                                                                         | Optional registered reviewer wallet to name in new escrows                                                                           |
+| `BONAWORK_DEMO_SUPPLIER_KEY`, `BONAWORK_DEMO_SCHOOL_KEY`                                            | Demo supplier (Check 1 payee) and demo school (co-signs a reviewer change). On Vercel they must be set; key files are not read there |
+| `NEXT_PUBLIC_POLLAR_API_KEY`                                                                        | Pollar publishable key (test mode = devnet). Without it the funder sees only "Demo funder (devnet)"                                  |
+| `ELEVENLABS_API_KEY` (+ optional `ELEVENLABS_VOICE_ID`, `ELEVENLABS_TTS_MODEL`)                     | "Speak to report" and read-aloud. Without it typing still works                                                                      |
+| `AI_GATEWAY_API_KEY`                                                                                | Bona AI suggestions (Repair Scout parts, extra reviewer checks). Without it the rules-only drafts are used                           |
+| `NEXT_PUBLIC_API_SOURCE=live`                                                                       | Screens call the real API                                                                                                            |
+| `FIRECRAWL_API_KEY`                                                                                 | Invoice price check                                                                                                                  |
+
+Funding with Pollar: `POST /api/issues/:id/escrow/fund/wallet` creates the
+escrow with the funder's Pollar wallet as funder; after the wallet sends,
+`.../fund/wallet/confirm` reads the transfer back from Solana
+(`verifyPollarFunding`) and only then activates. The reviewer's finished
+checklist (Reviewer Copilot) is hashed by the server into `review_hash`, and
+Bona Guardian checks the verify transaction against that hash. After Check 2
+is verified, a case in `repair_claimed` becomes `verified`; nothing else
+changes the case status.
 
 Key files in `BONAWORK_KEYS_DIR` are read only outside production and outside
 Vercel. Never commit keys. The Vercel cron runs the watchdog once a day (Hobby

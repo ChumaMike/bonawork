@@ -120,5 +120,15 @@ export const migrations: BundledMigration[] = [
       "ALTER TABLE \"escrow_cases\" ADD COLUMN \"payees\" jsonb DEFAULT '[]'::jsonb NOT NULL;",
       "ALTER TABLE \"escrow_cases\" ADD COLUMN \"layout\" integer DEFAULT 1 NOT NULL;"
     ]
+  },
+  {
+    "tag": "0004_majestic_white_queen",
+    "when": 1795646676997,
+    "hash": "2e8cce64667a4890052bfb902595c7b345a80845dab5a1423583613ee295e59e",
+    "statements": [
+      "CREATE TABLE \"repair_budgets\" (\n\t\"report_id\" uuid PRIMARY KEY NOT NULL,\n\t\"total_cents\" integer NOT NULL,\n\t\"materials_cents\" integer NOT NULL,\n\t\"completion_cents\" integer NOT NULL,\n\t\"lines\" jsonb NOT NULL,\n\t\"confirmed_by\" uuid,\n\t\"confirmed_at\" text NOT NULL\n);",
+      "ALTER TABLE \"repair_budgets\" ADD CONSTRAINT \"repair_budgets_report_id_reports_id_fk\" FOREIGN KEY (\"report_id\") REFERENCES \"public\".\"reports\"(\"id\") ON DELETE no action ON UPDATE no action;",
+      "ALTER TABLE \"repair_budgets\" ADD CONSTRAINT \"repair_budgets_confirmed_by_users_id_fk\" FOREIGN KEY (\"confirmed_by\") REFERENCES \"public\".\"users\"(\"id\") ON DELETE no action ON UPDATE no action;"
+    ]
   }
 ];

@@ -395,6 +395,7 @@ export const landingPage = {
         links: [
           { label: "Check a file", href: "/verify" },
           { label: "Bona AI", href: "/assistant" },
+          { label: "Bona Agent demo", href: "/agent" },
           { label: "Sign in", href: "/sign-in" },
         ],
       },

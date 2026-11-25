@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import { Button, ButtonLink } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Field, Input, Select, Textarea } from "@/components/ui/field";
@@ -18,12 +18,19 @@ import { getApi } from "@/data/api";
 import { useAudience } from "@/data/audience";
 import { useQuery } from "@/data/use-query";
 import { solanaAddressUrl } from "@/lib/solana-explorer";
+import { PollarFund, type PollarFunded } from "@/features/agent/pollar-fund";
+import { RepairScout, type ConfirmedBudget } from "@/features/agent/repair-scout";
+import { ReadAloud } from "@/features/agent/voice";
+import { WhereMoney } from "@/features/agent/where-money";
 import {
   EscrowApiError,
   escrowApi,
+  formatCents,
   formatWait,
   randToCents,
   shortKey,
+  type FundTerms,
+  type RepairBudget,
   type EscrowTranche,
   type EscrowTx,
   type PublicEscrow,
@@ -115,50 +122,141 @@ const WINDOWS = [
   { seconds: 86_400, label: "1 day" },
 ];
 
+/** Pollar is offered only when its publishable key is set (inlined at build time). */
+const POLLAR_ENABLED = Boolean(process.env.NEXT_PUBLIC_POLLAR_API_KEY);
+
+const centsToRand = (cents: number) => (cents / 100).toFixed(2);
+
+type FundMethod = "pollar" | "demo";
+
 function FundForm({
   issueId,
   onDone,
   existing,
+  budget,
 }: {
   issueId: string;
   onDone: (escrow: PublicEscrow) => void;
   existing: PublicEscrow | null;
+  /** The school's confirmed Repair Scout budget, used to prefill the amounts. */
+  budget: RepairBudget | null;
 }) {
-  const [materials, setMaterials] = useState("3000");
-  const [completion, setCompletion] = useState("2000");
+  const [materials, setMaterials] = useState(
+    budget ? centsToRand(budget.materialsCents) : "3000",
+  );
+  const [completion, setCompletion] = useState(
+    budget ? centsToRand(budget.completionCents) : "2000",
+  );
   const [window, setWindow] = useState(60);
   const [materialsPayee, setMaterialsPayee] = useState<"contractor" | "demo_supplier">(
     "demo_supplier",
   );
+  // An unfunded escrow keeps the funding route it was made with.
+  const [method, setMethod] = useState<FundMethod>(
+    existing
+      ? existing.funder.kind === "wallet"
+        ? "pollar"
+        : "demo"
+      : POLLAR_ENABLED
+        ? "pollar"
+        : "demo",
+  );
+  /** Pollar: the escrow made for the funder's wallet, once known. */
+  const [walletEscrow, setWalletEscrow] = useState<string | null>(
+    existing?.funder.kind === "wallet" ? existing.escrow.address : null,
+  );
+  const [pollarStarted, setPollarStarted] = useState(Boolean(walletEscrow));
+  const preparedFor = useRef<string | null>(
+    existing?.funder.kind === "wallet" ? existing.funder.address : null,
+  );
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<EscrowApiError | null>(null);
 
-  async function submit(event: FormEvent) {
-    event.preventDefault();
+  function terms(): FundTerms | null {
     const tranches = existing?.tranches;
     const a = tranches ? tranches[0].amount : randToCents(materials);
     const b = tranches ? tranches[1].amount : randToCents(completion);
     if (!a || !b) {
       setError(new EscrowApiError("Enter both amounts in rand, for example 3000.", 422));
-      return;
+      return null;
     }
+    return {
+      materials: a,
+      completion: b,
+      challengeSeconds: existing?.challengeSeconds ?? window,
+      materialsPayee,
+    };
+  }
+
+  async function submitDemo(event: FormEvent) {
+    event.preventDefault();
+    const t = terms();
+    if (!t) return;
     setBusy(true);
     setError(null);
     try {
-      onDone(
-        await escrowApi.fund(issueId, {
-          materials: a,
-          completion: b,
-          challengeSeconds: existing?.challengeSeconds ?? window,
-          materialsPayee,
-        }),
-      );
+      onDone(await escrowApi.fund(issueId, t));
     } catch (e) {
       setError(e as EscrowApiError);
     } finally {
       setBusy(false);
     }
   }
+
+  function startPollar(event: FormEvent) {
+    event.preventDefault();
+    if (!terms()) return;
+    setError(null);
+    setPollarStarted(true);
+  }
+
+  /** Pollar knows the funder's wallet: make the escrow with it as funder. */
+  async function onWallet(wallet: string) {
+    if (preparedFor.current === wallet) return;
+    if (existing?.funder.kind === "wallet" && existing.funder.address !== wallet) {
+      setError(
+        new EscrowApiError(
+          "This escrow was made for another wallet. Sign in with that one.",
+          409,
+        ),
+      );
+      return;
+    }
+    const t = terms();
+    if (!t) return;
+    preparedFor.current = wallet;
+    setError(null);
+    try {
+      const plan = await escrowApi.prepareWalletFunding(issueId, {
+        ...t,
+        funderWallet: wallet,
+      });
+      setWalletEscrow(plan.escrow);
+    } catch (e) {
+      preparedFor.current = null;
+      setError(e as EscrowApiError);
+    }
+  }
+
+  /** The server checked the transfer; now it checks again and activates. */
+  async function onFunded(funded: PollarFunded) {
+    setBusy(true);
+    setError(null);
+    try {
+      onDone(await escrowApi.confirmWalletFunding(issueId, funded.signature));
+    } catch (e) {
+      setError(e as EscrowApiError);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  const amountCents = (() => {
+    if (existing) return Number(existing.total);
+    const a = randToCents(materials);
+    const b = randToCents(completion);
+    return a && b ? Number(a) + Number(b) : 0;
+  })();
 
   return (
     <Card data-testid="fund-escrow" className="flex flex-col gap-4">
@@ -169,19 +267,29 @@ function FundForm({
         checks. Each check releases its part: materials are paid on verified delivery, the
         rest when the work is done.
       </p>
-      <form onSubmit={submit} className="flex flex-col gap-4">
+      <form
+        onSubmit={method === "pollar" ? startPollar : submitDemo}
+        className="flex flex-col gap-4"
+      >
         {existing ? (
           <p className="text-sm">
             The escrow exists but is not funded yet. Total {existing.totalLabel}.
           </p>
         ) : (
           <>
+            {budget ? (
+              <p className="text-sm" data-testid="fund-from-budget">
+                Amounts from the school&apos;s confirmed budget (
+                {formatCents(budget.totalCents)}, split 40/60). You can change them.
+              </p>
+            ) : null}
             <Field id="fund-materials" label="Check 1: Materials on site (sandbox rand)">
               <Input
                 id="fund-materials"
                 inputMode="decimal"
                 value={materials}
                 onChange={(e) => setMaterials(e.target.value)}
+                disabled={pollarStarted}
                 required
               />
             </Field>
@@ -193,6 +301,7 @@ function FundForm({
               <Select
                 id="fund-materials-payee"
                 value={materialsPayee}
+                disabled={pollarStarted}
                 onChange={(e) =>
                   setMaterialsPayee(e.target.value as "contractor" | "demo_supplier")
                 }
@@ -207,6 +316,7 @@ function FundForm({
                 inputMode="decimal"
                 value={completion}
                 onChange={(e) => setCompletion(e.target.value)}
+                disabled={pollarStarted}
                 required
               />
             </Field>
@@ -218,6 +328,7 @@ function FundForm({
               <Select
                 id="fund-window"
                 value={window}
+                disabled={pollarStarted}
                 onChange={(e) => setWindow(Number(e.target.value))}
               >
                 {WINDOWS.map((w) => (
@@ -229,15 +340,117 @@ function FundForm({
             </Field>
           </>
         )}
+
+        {!existing && POLLAR_ENABLED ? (
+          <Field id="fund-method" label="Pay with">
+            <Select
+              id="fund-method"
+              value={method}
+              disabled={pollarStarted}
+              onChange={(e) => setMethod(e.target.value as FundMethod)}
+            >
+              <option value="pollar">Pollar (your email, a devnet wallet)</option>
+              <option value="demo">Demo funder (devnet)</option>
+            </Select>
+          </Field>
+        ) : null}
+
         <ErrorText error={error} />
-        <Button type="submit" loading={busy} className="w-full">
-          {existing ? "Finish funding" : "Fund with sandbox rand"}
-        </Button>
-        <p className="text-sm text-muted">
-          A demo funder key (devnet) signs the transfer. This takes up to a minute.
-        </p>
+
+        {method === "demo" ? (
+          <>
+            <Button type="submit" loading={busy} className="w-full">
+              {existing ? "Finish funding" : "Fund with sandbox rand"}
+            </Button>
+            <p className="text-sm text-muted">
+              Demo funder (devnet): a key held by the server signs the transfer. This
+              takes up to a minute.
+            </p>
+          </>
+        ) : !pollarStarted ? (
+          <Button type="submit" className="w-full">
+            Pay with Pollar
+          </Button>
+        ) : null}
       </form>
+
+      {method === "pollar" && pollarStarted ? (
+        <div className="flex flex-col gap-2" data-testid="pollar-fund">
+          <PollarFund
+            escrow={walletEscrow}
+            amountCents={amountCents}
+            onWallet={onWallet}
+            onFunded={onFunded}
+          />
+          {busy ? (
+            <p className="text-sm">Checking the transfer and activating the escrow…</p>
+          ) : null}
+        </div>
+      ) : null}
     </Card>
+  );
+}
+
+// ------------------------------------------------------------- school budget
+
+/**
+ * The school confirms what the repair needs with Repair Scout. The confirmed
+ * budget prefills the funder's amounts; it does not create or fund anything.
+ */
+function SchoolBudget({
+  issueId,
+  issueText,
+  budget,
+  onSaved,
+}: {
+  issueId: string;
+  issueText: string;
+  budget: RepairBudget | null;
+  onSaved: () => void;
+}) {
+  const [error, setError] = useState<EscrowApiError | null>(null);
+  const [saved, setSaved] = useState(false);
+
+  async function confirm(confirmed: ConfirmedBudget) {
+    setError(null);
+    setSaved(false);
+    if (confirmed.budget.unpriced > 0) {
+      setError(new EscrowApiError("Give every part a price before you confirm.", 422));
+      return;
+    }
+    try {
+      await escrowApi.confirmBudget(issueId, {
+        lines: confirmed.lines.map((l) => ({
+          description: l.description,
+          quantity: l.quantity,
+          kind: l.kind,
+          unitPriceCents: l.unitPriceCents ?? 0,
+        })),
+      });
+      setSaved(true);
+      onSaved();
+    } catch (e) {
+      setError(e as EscrowApiError);
+    }
+  }
+
+  return (
+    <div className="flex flex-col gap-4" data-testid="school-budget">
+      {budget ? (
+        <Notice icon="info" title="Budget confirmed">
+          <p>
+            {formatCents(budget.totalCents)}: Check 1 {formatCents(budget.materialsCents)}
+            , Check 2 {formatCents(budget.completionCents)}. The funder sees these
+            amounts.
+          </p>
+        </Notice>
+      ) : null}
+      <RepairScout initialReport={issueText} demo onConfirm={confirm} />
+      <ErrorText error={error} />
+      {saved ? (
+        <p className="text-sm">Saved. The funder&apos;s form now uses this budget.</p>
+      ) : null}
+    </div>
   );
 }
 
@@ -475,25 +688,66 @@ function SweepCard({
 
 // ----------------------------------------------------------------- screen
 
+/** One plain paragraph for read-aloud: where the money is, check by check. */
+function spokenSummary(escrow: PublicEscrow): string {
+  const parts = [
+    `This repair has ${escrow.totalLabel} of sandbox rand in escrow on Solana devnet.`,
+    `The vault holds ${escrow.vault.label ?? "an unknown amount"} now.`,
+  ];
+  for (const t of escrow.tranches ?? []) {
+    parts.push(
+      `${t.label}, ${t.amountLabel}: ${STATE_TEXT[t.state]}. It goes to the ${t.payee.role}.`,
+    );
+  }
+  return parts.join(" ");
+}
+
 export function EscrowView({
   issueId,
   escrow,
   role,
   reload,
   setEscrow,
+  budget = null,
+  reloadBudget = () => {},
+  issueText = "",
 }: {
   issueId: string;
   escrow: PublicEscrow | null;
   role: string | null;
   reload: () => void;
   setEscrow: (e: PublicEscrow) => void;
+  /** The school's confirmed Repair Scout budget, if any. */
+  budget?: RepairBudget | null;
+  reloadBudget?: () => void;
+  /** The case's own words, the starting point for Repair Scout. */
+  issueText?: string;
 }) {
   const now = useLocalClock();
 
   if (!escrow) {
-    return role === "buyer" ? (
-      <FundForm issueId={issueId} onDone={setEscrow} existing={null} />
-    ) : (
+    if (role === "buyer") {
+      return (
+        <FundForm
+          key={budget?.confirmedAt ?? "no-budget"}
+          issueId={issueId}
+          onDone={setEscrow}
+          existing={null}
+          budget={budget}
+        />
+      );
+    }
+    if (role === "school_admin") {
+      return (
+        <SchoolBudget
+          issueId={issueId}
+          issueText={issueText}
+          budget={budget}
+          onSaved={reloadBudget}
+        />
+      );
+    }
+    return (
       <Notice icon="info" title="No escrow yet">
         <p>No one has funded this repair yet.</p>
         {role === null ? (
@@ -517,6 +771,7 @@ export function EscrowView({
           <p>{escrow.chainError}</p>
         </Notice>
       ) : null}
+      {escrow.tranches ? <ReadAloud text={spokenSummary(escrow)} /> : null}
 
       <dl className="grid grid-cols-2 gap-3 rounded-2xl border border-line bg-surface p-4 shadow-card">
         <div>
@@ -540,7 +795,7 @@ export function EscrowView({
       </dl>
 
       {escrow.funded === false && role === "buyer" ? (
-        <FundForm issueId={issueId} onDone={setEscrow} existing={escrow} />
+        <FundForm issueId={issueId} onDone={setEscrow} existing={escrow} budget={null} />
       ) : null}
 
       {escrow.surplus !== null && escrow.surplus !== "0" ? (
@@ -563,6 +818,8 @@ export function EscrowView({
         <Icon name="clock" className="size-4" />
         Read the chain again
       </Button>
+
+      {!escrow.legacy ? <WhereMoney escrow={escrow.escrow.address} /> : null}
 
       <Card className="flex flex-col gap-3">
         <h2 className="text-lg">Transactions</h2>
@@ -640,9 +897,12 @@ export function EscrowScreen() {
   const role = audience.status === "ready" ? audience.role : null;
   const issue = useQuery(`issue:${issueId}`, () => getApi().getIssue(issueId));
   const escrow = useQuery(`escrow:${issueId}`, () => escrowApi.get(issueId));
+  const budget = useQuery(`budget:${issueId}`, () =>
+    escrowApi.budget(issueId).catch(() => null),
+  );
 
   if (escrow.error) return <PageError onRetry={escrow.reload} />;
-  if (escrow.data === undefined) return <PageLoading />;
+  if (escrow.data === undefined || budget.data === undefined) return <PageLoading />;
 
   return (
     <>
@@ -662,6 +922,9 @@ export function EscrowScreen() {
           role={role}
           reload={escrow.reload}
           setEscrow={escrow.setData}
+          budget={budget.data}
+          reloadBudget={budget.reload}
+          issueText={issue.data ? `${issue.data.title}. ${issue.data.description}` : ""}
         />
       </Container>
     </>

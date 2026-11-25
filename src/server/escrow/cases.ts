@@ -27,6 +27,8 @@ import {
 } from "@solana/kit";
 import { desc, eq, sql } from "drizzle-orm";
 
+import type { LedgerPort } from "@/shared";
+
 import {
   TrancheState,
   checkVerifyTransaction,
@@ -41,10 +43,8 @@ import {
   GuardianRejectedError,
   MAX_SANDBOX_CASH_IN_CENTS,
   ensureDemoKeyFile,
-  getSolanaRpc,
   loadSigners,
   runEscrowWatchdog,
-  withRetry,
   type EscrowService,
   type OnChainCase,
   type SentStep,
@@ -59,14 +59,27 @@ import type {
 } from "../../../database/schema";
 import { schema, type Db } from "../db";
 import { HttpError } from "../http";
-import { requireReport } from "../reports/common";
+import type { EvidenceStore } from "../evidence/store";
+import { requireReport, type Actor } from "../reports/common";
+import { submitVerification } from "../reports/review";
+import { ReviewRecordSchema, type ReviewRecord } from "@/features/agent/contracts";
+import { reviewHash as reviewRecordHash } from "@/features/agent/review-hash";
+import {
+  jsonRpcFundingRpc,
+  verifyPollarFunding,
+  type FundingRpc,
+} from "../agent/pollar-funding";
 import type { ReviewerSigner } from "./reviewer-signer";
 
-export type EscrowDeps = { db: Db; service: EscrowService };
+export type EscrowDeps = {
+  db: Db;
+  service: EscrowService;
+  /** Reads a funder's wallet transfer back from Solana. Defaults to JSON-RPC. */
+  fundingRpc?: FundingRpc;
+};
 
 const sha = (text: string): Bytes32 =>
   Uint8Array.from(createHash("sha256").update(text).digest());
-const fromHex = (hex: string): Bytes32 => Uint8Array.from(Buffer.from(hex, "hex"));
 const nowIso = () => new Date().toISOString();
 const nowSeconds = () => BigInt(Math.floor(Date.now() / 1000));
 
@@ -390,6 +403,7 @@ export async function prepareWalletFunding(
     funderWallet: Address;
     terms: EscrowTerms;
     actorId: string | null;
+    materialsPayee?: MaterialsPayee;
   },
 ) {
   const row = await createCaseEscrow(deps, {
@@ -398,6 +412,7 @@ export async function prepareWalletFunding(
     funderKind: "wallet",
     terms: input.terms,
     actorId: input.actorId,
+    materialsPayee: input.materialsPayee,
   });
   if (row.funderAddress !== input.funderWallet) {
     throw new HttpError(
@@ -427,24 +442,26 @@ export async function confirmWalletFundingAndActivate(
   input: { reportIdOrReference: string; transferSignature: string },
 ): Promise<EscrowCaseRow> {
   const { row } = await requireEscrowCase(deps.db, input.reportIdOrReference);
-  const sig = toSignature(input.transferSignature);
-  const { value } = await withRetry(() =>
-    getSolanaRpc().getSignatureStatuses([sig]).send(),
-  );
-  const status = value[0];
-  if (!status || status.err || !status.confirmationStatus) {
-    throw new HttpError(
-      "conflict",
-      "That transfer is not confirmed on Solana devnet, or it failed.",
-    );
+  if (row.funderKind !== "wallet") {
+    throw new HttpError("conflict", "This escrow is funded by the demo funder key.");
   }
+  const sig = toSignature(input.transferSignature);
   const escrow = address(row.escrowAddress);
   const onChain = await deps.service.getCaseOnChain(escrow);
   if (onChain.account.funded) return row;
-  if (onChain.vault.amount < onChain.account.totalAmount) {
+  // Read the transfer back from Solana: exactly the escrow's total, in BDZAR,
+  // from the funder's own wallet to this escrow's vault. Only then activate.
+  const check = await verifyPollarFunding(deps.fundingRpc ?? jsonRpcFundingRpc(), {
+    signature: sig,
+    funderWallet: onChain.account.funder,
+    escrow: row.escrowAddress,
+    mint: onChain.account.mint,
+    amount: onChain.account.totalAmount,
+  });
+  if (!check.ok) {
     throw new HttpError(
-      "conflict",
-      `The vault holds ${onChain.vault.label}; it needs ${formatRand(onChain.account.totalAmount)}.`,
+      check.reason === "network" ? "ledger_unavailable" : "conflict",
+      check.message,
     );
   }
   if (!row.transactions.some((t) => t.signature === sig)) {
@@ -514,13 +531,43 @@ export type PreparedCaseVerify = {
   signer: { kind: ReviewerSigner["kind"]; label: string; address: string };
 };
 
-function reviewHashFor(
-  reportId: string,
+const STAGE_FOR_INDEX = ["materials", "completion"] as const;
+
+/**
+ * The review hash written into the escrow: SHA-256 of the canonical record of
+ * the reviewer's finished checklist for this check. The checklist must be
+ * complete (nothing left "not checked") and must have no failed check: a
+ * failed check is a reason to dispute, not to verify.
+ */
+export async function reviewHashForCheck(
+  report: { reference: string },
   index: TrancheIndex,
-  note: string,
-  actorId: string,
-) {
-  return sha(JSON.stringify({ reportId, index, note, reviewer: actorId }));
+  review: ReviewRecord,
+): Promise<Bytes32> {
+  const parsed = ReviewRecordSchema.safeParse(review);
+  if (!parsed.success) {
+    throw new HttpError("invalid_input", "The review checklist is not complete.");
+  }
+  const record = parsed.data;
+  if (record.stage !== STAGE_FOR_INDEX[index]) {
+    throw new HttpError("invalid_input", "This checklist is for the other check.");
+  }
+  if (record.caseRef.trim() !== report.reference) {
+    throw new HttpError("invalid_input", "This checklist is for another case.");
+  }
+  if (record.items.some((item) => item.result === "not_checked")) {
+    throw new HttpError(
+      "invalid_input",
+      "Finish the checklist first: some checks are still marked not checked.",
+    );
+  }
+  if (record.items.some((item) => item.result === "fail")) {
+    throw new HttpError(
+      "invalid_input",
+      "A check failed, so this cannot be verified. Raise it with the school and the contractor.",
+    );
+  }
+  return reviewRecordHash(review);
 }
 
 /** Builds the verify transaction and Bona Guardian's reading of it. Nothing is signed. */
@@ -529,8 +576,8 @@ export async function prepareCaseVerify(
   input: {
     reportIdOrReference: string;
     index: TrancheIndex;
-    note: string;
-    actorId: string;
+    /** The reviewer's finished checklist for this check (Reviewer Copilot). */
+    review: ReviewRecord;
     signer: ReviewerSigner;
   },
 ): Promise<PreparedCaseVerify> {
@@ -541,7 +588,7 @@ export async function prepareCaseVerify(
       "The reviewer key on this server is not the reviewer named in this escrow.",
     );
   }
-  const reviewHash = reviewHashFor(report.id, input.index, input.note, input.actorId);
+  const reviewHash = await reviewHashForCheck(report, input.index, input.review);
   const prepared = await deps.service.prepareVerifyTransaction({
     escrow: address(row.escrowAddress),
     index: input.index,
@@ -572,13 +619,15 @@ export async function signAndSubmitCaseVerify(
     reportIdOrReference: string;
     index: TrancheIndex;
     transaction: string;
-    reviewHash: string;
+    /** The same finished checklist that `prepareCaseVerify` hashed. */
+    review: ReviewRecord;
     signer: ReviewerSigner;
   },
 ): Promise<SentStep> {
-  const { row } = await requireEscrowCase(deps.db, input.reportIdOrReference);
+  const { report, row } = await requireEscrowCase(deps.db, input.reportIdOrReference);
   const escrow = address(row.escrowAddress);
-  const reviewHash = fromHex(input.reviewHash);
+  // Recomputed here, never taken from the browser: Guardian binds it below.
+  const reviewHash = await reviewHashForCheck(report, input.index, input.review);
   const onChain = await deps.service.getCaseOnChain(escrow);
   const tranche = onChain.tranches[input.index];
   if (tranche.account.state !== TrancheState.Claimed) {
@@ -607,6 +656,69 @@ export async function signAndSubmitCaseVerify(
   });
   await recordTx(deps.db, row.id, "verify", sent, input.index);
   return sent;
+}
+
+// ------------------------------------------------------------ case status
+
+export type CaseStatusSync =
+  | { changed: true; status: "verified" }
+  | { changed: false; status: string; reason: string };
+
+/**
+ * After the reviewer verified a check on chain, bring the case status along.
+ * Only Check 2 (work done) moves a case, and only from `repair_claimed` to
+ * `verified`, through the normal independent-review path (review record,
+ * timeline event, ledger anchor). Check 1 and releases never change the case
+ * status. A failure here does not undo the on-chain verification; it is
+ * returned so the screen can say so.
+ */
+export async function syncCaseStatusAfterVerify(
+  deps: { db: Db; ledger: LedgerPort; store: EvidenceStore },
+  input: {
+    reportIdOrReference: string;
+    index: TrancheIndex;
+    actor: Actor;
+    sent: SentStep;
+    review: ReviewRecord;
+  },
+): Promise<CaseStatusSync> {
+  const report = await requireReport(deps.db, input.reportIdOrReference);
+  if (input.index !== 1) {
+    return {
+      changed: false,
+      status: report.status,
+      reason: "Check 1 does not change the case status.",
+    };
+  }
+  if (report.status !== "repair_claimed") {
+    return {
+      changed: false,
+      status: report.status,
+      reason:
+        "The case has no repair claim from the school, so its status stays as it is.",
+    };
+  }
+  const passed = input.review.items.length;
+  try {
+    await submitVerification(deps, {
+      reportIdOrReference: report.id,
+      actor: input.actor,
+      outcome: "verified",
+      note:
+        `Check 2: Work done verified on Solana devnet (${passed} checks passed). ` +
+        `Transaction ${input.sent.signature}.`,
+      uploads: [],
+      anchorMode: "defer",
+    });
+    return { changed: true, status: "verified" };
+  } catch (error) {
+    return {
+      changed: false,
+      status: report.status,
+      reason:
+        error instanceof Error ? error.message : "The case status could not be updated.",
+    };
+  }
 }
 
 // ------------------------------------------------------ release and refund

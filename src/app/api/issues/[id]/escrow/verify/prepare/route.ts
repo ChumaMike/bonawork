@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { ReviewRecordSchema } from "@/features/agent/contracts";
 import { requirePermission, requireSession } from "@/server/auth/session";
 import {
   escrowDeps,
@@ -12,20 +13,23 @@ import { begin } from "@/server/request";
 
 const Body = z.object({
   index: TrancheIndexSchema,
-  note: z.string().trim().min(1).max(2000),
+  /** The reviewer's finished checklist for this check. Its hash is the review_hash. */
+  review: ReviewRecordSchema,
 });
 
 export const maxDuration = 60;
 
 /**
  * `POST /api/issues/:id/escrow/verify/prepare` — reviewer (`repair:verify`).
- * Body `{ index, note }`. Returns the unsigned verify transaction (base64),
- * the review fingerprint, Bona Guardian's findings, plain description lines,
- * and which key will sign. Nothing is signed or sent.
+ * Body `{ index, review }`: the finished checklist for that check. The server
+ * hashes it (the review_hash), then returns the unsigned verify transaction
+ * (base64), Bona Guardian's findings (which bind that hash), plain description
+ * lines, and which key will sign. Nothing is signed or sent. A checklist with
+ * an unchecked or failed item is refused.
  */
 export const POST = escrowRoute<{ id: string }>(async (request, { id }) => {
   const scope = await begin(request);
-  const session = requirePermission(requireSession(scope.session), "repair:verify");
+  requirePermission(requireSession(scope.session), "repair:verify");
   const body = await parseJson(request, Body);
   const signer = await getReviewerSigner();
   if (!signer)
@@ -34,8 +38,7 @@ export const POST = escrowRoute<{ id: string }>(async (request, { id }) => {
     await prepareCaseVerify(await escrowDeps(), {
       reportIdOrReference: id,
       index: body.index,
-      note: body.note,
-      actorId: session.actor.id,
+      review: body.review,
       signer,
     }),
   );
