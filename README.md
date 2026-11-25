@@ -46,22 +46,27 @@ never approves, verifies or signs anything.
 | Sandbox demo rand mint `BDZAR` | [`5AHRPsVABhZESFmPMXX9jeYb6krkz9XUAsLy1LiWXud3`](https://explorer.solana.com/address/5AHRPsVABhZESFmPMXX9jeYb6krkz9XUAsLy1LiWXud3?cluster=devnet) |
 | All public addresses           | [`config/solana-devnet.json`](config/solana-devnet.json) (admin, match, dispute, feepayer, treasury, keeper, demo reviewer)                       |
 
-### One case through the app's API (24 Nov 2026)
+### One case through the app's API (26 Nov 2026, upgraded program)
 
-Case `BB-2026-000051`, R3 000 materials + R2 000 completion, 60-second challenge
-window. Escrow
-[`HW7ymY4c…LZ3U`](https://explorer.solana.com/address/HW7ymY4c3UJqCVTNoNWxskw2NA6qKuWUYDRTJvqyLZ3U?cluster=devnet).
+Case `BB-2026-000118`, Check 1 R3 000 released to the demo supplier
+([`AttB…523c`](https://explorer.solana.com/address/AttBDv1oG7aqrhBeMZB57DAum8esaH32CRepdMKY523c?cluster=devnet)),
+Check 2 R2 000 to the demo contractor, 60-second challenge window. Escrow
+[`DY5uH39z…tqrS`](https://explorer.solana.com/address/DY5uH39zkQkduKAfsYnZJoifmW2sUDChvw7e5doytqrS?cluster=devnet).
 
-| Step                                        | Transaction                                                                                                                                            |
-| ------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Create escrow                               | [3Vurm…kpZmc](https://explorer.solana.com/tx/3VurmVARqNzuM2dDSJt2TrUYMxdKkoKMFEmyLi2q64VkEAAbzwbsT16Ea8n9ic3CnLeeFoQLhwYDcuV93QkkZpmc?cluster=devnet)  |
-| Sandbox cash-in R5 000 to the demo funder   | [24oaN…5mLzrv](https://explorer.solana.com/tx/24oaN3bDZHb5BqknHfvuoU6zZNPLecRRv1P6bkxDU73EahdGiZg2Ee788SMZAAnzubDj2PFncNiZmY7Hpu5mLzrv?cluster=devnet) |
-| Demo funder moves R5 000 into the vault     | [3VN56…qeR21P](https://explorer.solana.com/tx/3VN56orGmRiNNtqvHSywL3H4qxSM5VQjWKaiw1KLuxjGmruB8rTtwTpzFqujNn6iYQCVnBKFSh4SeXXR5gqeR21P?cluster=devnet) |
-| Activate funding                            | [47VhC…kw71cr](https://explorer.solana.com/tx/47VhCE4KFe52Fk8gxdH9DnPg755mzC6qnDTPqpfRCP8YGYC1KTCWuGUpxVa7jocqZMG7torbjnYqoi7iq4kw71cr?cluster=devnet) |
-| Contractor claims Check 1                   | [noucU…1vzGS](https://explorer.solana.com/tx/noucUuvwem6tEDC1JKX3kzJ3QiNWDvHnuqhEQjhzLjPZXR7NcgPadD7AWEFgBfPNF9j2kjnFWosPhsTTsF1vzGS?cluster=devnet)   |
-| Reviewer verifies (Guardian: no findings)   | [Noi9A…D7yUiM](https://explorer.solana.com/tx/Noi9ADnqWF6fPTDNtnFNyJQ2uEyE7ZYVDQs8tVPDAEmYtwgh77ELAJcste2E1La338h5WoAD693DsHuYGD7yUiM?cluster=devnet)  |
-| Release straight away                       | Refused by the program: `ChallengeWindowActive`, "The money is locked until the challenge window ends." (HTTP 409)                                     |
-| Escrow Watchdog releases Check 1 after 60 s | [iaWaj…A9Upu8](https://explorer.solana.com/tx/iaWaj3B94SupCnA4W89QwSqMEddkdJxSWUSctGgCyjYoBerwpicxTf9RkueA3XRBaeoKR6CSsZtWocHdSA9Upu8?cluster=devnet)  |
+| Step                                                               | Transaction                                                                                                                                            |
+| ------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Create escrow (Check 1 to the supplier, Check 2 to the contractor) | [2Rn1k…o1y4AP](https://explorer.solana.com/tx/2Rn1kQxQi8GssSZ6U58EU2QDARaVNxcfoyJTapQv3Mbja7WwsozWgaET1DmnZWeiF6dfhbTRxGDcK8XZhHo1y4AP?cluster=devnet) |
+| Sandbox cash-in to the demo funder                                 | [4oEkA…UQS2UJ](https://explorer.solana.com/tx/4oEkARyFmfKhzG9AyUUQNeFxGQjeeQxDMoah8dur6FEjbEbe6uCN3agZZyaxGUTvcrDJSVv2eBQrokHayUQS2UJ?cluster=devnet)  |
+| Demo funder moves R5 000 into the vault                            | [5UMhx…YpxhJh](https://explorer.solana.com/tx/5UMhxyNLryFusgkW4BQJarzZyGHQCJhM2VZQdM8mELxeRVwkHRY3R69PrXodzBxxhigV8yucDyF4H5tNvyYpxhJh?cluster=devnet) |
+| Activate funding                                                   | [5qZoB…D8jaEu](https://explorer.solana.com/tx/5qZoBamRXekFDUHdkUSrnjpCiphhtcSfgBrXfC17qCo4vqyG2q9KdGrWHuoz7U7TwDhwfHpj87UXi4bmYnD8jaEu?cluster=devnet) |
+| Contractor claims Check 1                                          | [3J9M1…tErGFm](https://explorer.solana.com/tx/3J9M1ceB8ADBHAbCiG2CwwK3tC4Vr72g9dpCDjqKVrEbEcswgATtLxqw5WjqSBFHtV81G81JGYrAcLuf8GtErGFm?cluster=devnet) |
+| Reviewer verifies (Guardian: no findings)                          | [5FP3f…vqQ7FJ](https://explorer.solana.com/tx/5FP3fFV4vKRuHD3CCitRPaj31534HVf55VSewYweFbQUYAeidXXLc5auscErsNvP6Wyh7ZNm1SFHYfMRBWvqQ7FJ?cluster=devnet) |
+| Release straight away                                              | Refused by the program: `ChallengeWindowActive`, "The money is locked until the challenge window ends." (HTTP 409)                                     |
+| Escrow Watchdog releases Check 1 to the supplier after 60 s        | [4DaWc…uz2iMC](https://explorer.solana.com/tx/4DaWcu4Ho6a936twZvAnP8Gn9eG6DyJtppNNESDXhkeE7y3ZobwY9jHEmG4ycx7QLnxFbZmtrLFZqxrkxDuz2iMC?cluster=devnet) |
+
+Escrows made before the 26 Nov program upgrade (for example `HW7ymY4c…LZ3U`)
+use the older account layout. The app lists their transactions but no longer
+reads their state.
 
 `scripts/solana/demo-journey.ts` runs the same journey from the command line.
 
