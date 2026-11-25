@@ -102,6 +102,12 @@ export function computeBudget(
 
 /* ----------------------------- Reviewer Copilot ---------------------------- */
 
+/** One check per payment stage. Each has its own canonical record and its own review hash. */
+export const CHECK_TITLES = {
+  materials: "Check 1: Materials on site",
+  completion: "Check 2: Work done",
+} as const;
+
 export const CopilotInvoiceLineSchema = z.object({
   lineId: z.string().min(1).max(64),
   description: z.string().min(1).max(200),

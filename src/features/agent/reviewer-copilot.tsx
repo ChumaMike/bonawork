@@ -6,13 +6,14 @@ import { Button } from "@/components/ui/button";
 import { Badge, Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/field";
 import { AgentRequestError, postJson } from "./client";
-import type {
-  ChecklistDraft,
-  ChecklistItem,
-  ChecklistRequest,
-  PhotoWarning,
-  ReviewRecord,
-  ReviewedItem,
+import {
+  CHECK_TITLES,
+  type ChecklistDraft,
+  type ChecklistItem,
+  type ChecklistRequest,
+  type PhotoWarning,
+  type ReviewRecord,
+  type ReviewedItem,
 } from "./contracts";
 import { fingerprintFile } from "./fingerprint";
 import { reviewHash, reviewHashHex } from "./review-hash";
@@ -148,7 +149,7 @@ export function ReviewerCopilot({
   return (
     <Card className="flex flex-col gap-5">
       <div className="flex flex-col gap-1">
-        <h2 className="text-xl font-semibold">Reviewer checklist</h2>
+        <h2 className="text-xl font-semibold">{CHECK_TITLES[request.stage]}</h2>
         <p className="text-sm text-muted">
           You decide each check. Suggestions are things to look at, not answers.
         </p>
@@ -280,5 +281,40 @@ export function ReviewerCopilot({
         </>
       ) : null}
     </Card>
+  );
+}
+
+/**
+ * Both checks for one case, one per payment stage: "Check 1: Materials on
+ * site" and "Check 2: Work done". Each gives its own record and its own
+ * review hash through `onFinish`. Neither releases anything.
+ */
+export function ReviewerChecks({
+  caseRef,
+  caseOpenedAt,
+  milestone,
+  lines,
+  priceFlags = [],
+  onFinish,
+}: {
+  caseRef: string;
+  caseOpenedAt: string;
+  milestone: string;
+  lines: ChecklistRequest["lines"];
+  priceFlags?: ChecklistRequest["priceFlags"];
+  onFinish?: (stage: "materials" | "completion", review: FinishedReview) => void;
+}) {
+  return (
+    <div className="flex flex-col gap-6">
+      {(["materials", "completion"] as const).map((stage) => (
+        <ReviewerCopilot
+          key={stage}
+          caseRef={caseRef}
+          caseOpenedAt={caseOpenedAt}
+          request={{ milestone, stage, lines, priceFlags }}
+          onFinish={(review) => onFinish?.(stage, review)}
+        />
+      ))}
+    </div>
   );
 }

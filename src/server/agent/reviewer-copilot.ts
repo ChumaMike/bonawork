@@ -2,7 +2,9 @@
  * Reviewer Copilot: a checklist for the independent reviewer.
  *
  * - The base checks are written in code for the stage (materials or completion).
- * - Every price-check flag of `check` or `high` becomes a question to ask.
+ * - Two checks, one per payment stage: "Check 1: Materials on site" and
+ *   "Check 2: Work done". At Check 1 every price-check flag of `check` or
+ *   `high` becomes "Ask for a breakdown": a question, never an accusation.
  * - A model may add up to 8 extra checks, each tied to an invoice line. The
  *   invoice and milestone text are DATA. A check that names an unknown line,
  *   carries a number the invoice does not, or uses a word of decision is
@@ -12,6 +14,7 @@
  */
 import { z } from "zod";
 import {
+  CHECK_TITLES,
   type ChecklistDraft,
   type ChecklistItem,
   type ChecklistRequest,
@@ -30,18 +33,22 @@ import type { AiDeps } from "../ai/provider";
 
 export const MAX_AI_CHECKS = 8;
 
+/** The two checks, one per payment stage. Each gets its own record and its own review hash. */
+export { CHECK_TITLES };
+
 const TEMPLATE: Record<"materials" | "completion", string[]> = {
   materials: [
-    "The materials on site are the items on the invoice.",
-    "A delivery note or till slip is photographed with the materials.",
-    "The materials are new and unused.",
-    "The materials are stored safely at the school.",
+    "Every item on the invoice is on site.",
+    "Models and sizes match the invoice lines.",
+    "Quantities match the invoice.",
+    "Labels and packaging match what was invoiced.",
+    "Photo of the delivery, with the delivery note or till slip in the picture.",
   ],
   completion: [
-    "The repair works when tested in front of you.",
+    "The parts are installed, not only delivered.",
+    "Each repair works when tested in front of you (flush it, open the tap, switch it on).",
+    "The old or broken part is removed from the site.",
     "Before and after photos are taken from the same spot.",
-    "Old parts and rubble are removed and the area is clean.",
-    "A school representative was present and saw the repair.",
   ],
 };
 
@@ -82,12 +89,14 @@ export function baseChecklist(input: ChecklistRequest): ChecklistItem[] {
     req.lines.slice(0, 12).forEach((line, i) => {
       items.push({
         id: `l-${i + 1}`,
-        text: `Count ${line.quantity} x ${line.description.slice(0, 120)} on site.`,
+        text: `Count ${line.quantity} x ${line.description.slice(0, 120)} and check the model.`,
         lineId: line.lineId,
         origin: "template",
       });
     });
   }
+  // Price questions belong to Check 1, when the invoice and the goods are in front of the reviewer.
+  if (req.stage !== "materials") return items;
   const byId = new Map(req.lines.map((l) => [l.lineId, l]));
   req.priceFlags
     .filter((f) => f.level === "high" || f.level === "check")
@@ -97,7 +106,7 @@ export function baseChecklist(input: ChecklistRequest): ChecklistItem[] {
       const gap = flag.percentAbove !== null ? `${flag.percentAbove}% above` : "above";
       items.push({
         id: `p-${i + 1}`,
-        text: `Ask why ${line.description.slice(0, 120)} costs ${gap} shop prices. Note the answer.`,
+        text: `Ask for a breakdown: ${line.description.slice(0, 120)} is ${gap} shop prices. Note the answer.`,
         lineId: flag.lineId,
         origin: "price_flag",
       });

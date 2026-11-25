@@ -33,19 +33,26 @@ const model = (reply: unknown): AiDeps => ({
 });
 
 describe("Reviewer Copilot checklist", () => {
-  it("always has the code-written checks and one question per high or check price flag", () => {
-    const items = baseChecklist(REQUEST);
-    expect(items.filter((i) => i.origin === "template")).toHaveLength(4);
+  it("Check 1 has the code-written checks, a count per line and one breakdown question per flag", () => {
+    const items = baseChecklist({ ...REQUEST, stage: "materials" });
+    expect(items.filter((i) => i.origin === "template")).toHaveLength(5 + REQUEST.lines.length);
     const flags = items.filter((i) => i.origin === "price_flag");
     expect(flags).toHaveLength(1);
     expect(flags[0]).toMatchObject({ lineId: "CIST-9L" });
-    expect(flags[0].text).toContain("95% above");
+    expect(flags[0].text).toMatch(/^Ask for a breakdown: .*95% above/);
+    expect(flags[0].text).not.toMatch(/fraud|overcharg|inflat/i);
+  });
+
+  it("Check 2 is about the work done and asks no price questions", () => {
+    const items = baseChecklist(REQUEST);
+    expect(items.every((i) => i.origin === "template")).toBe(true);
+    expect(items.map((i) => i.text).join(" ")).toMatch(/installed/);
   });
 
   it("counts each line on site at the materials stage", () => {
     const items = baseChecklist({ ...REQUEST, stage: "materials" });
     expect(items.find((i) => i.lineId === "FLUSH-DUAL" && i.origin === "template")?.text).toBe(
-      "Count 2 x Dual flush valve on site.",
+      "Count 2 x Dual flush valve and check the model.",
     );
   });
 
@@ -236,7 +243,8 @@ describe("photo checks", () => {
       ["before.jpg", "taken_before_case"],
       ["nodate.jpg", "no_date"],
     ]);
-    expect(warnings[0].text).toContain("BW-1");
+    expect(warnings[0].text).toBe("Photo also used in case BW-1 (same.jpg).");
+    expect(warnings.map((w) => w.text).join(" ")).not.toMatch(/fraud|fake/i);
   });
 
   it("does not warn about a photo seen before on the same case", async () => {

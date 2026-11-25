@@ -67,7 +67,7 @@ export async function checkPhotos(
       warnings.push({
         photo: photo.name,
         kind: "same_file_other_case",
-        text: `${photo.name} is the same file as a photo on case ${same.caseRef}.`,
+        text: `Photo also used in case ${same.caseRef} (${photo.name}).`,
       });
     } else if (photo.dhash) {
       const similar = earlier.find(
@@ -77,7 +77,7 @@ export async function checkPhotos(
         warnings.push({
           photo: photo.name,
           kind: "similar_photo_other_case",
-          text: `${photo.name} looks very like a photo on case ${similar.caseRef}. Compare them.`,
+          text: `Photo looks like one used in case ${similar.caseRef} (${photo.name}). Compare them.`,
         });
       }
     }
@@ -86,13 +86,13 @@ export async function checkPhotos(
       warnings.push({
         photo: photo.name,
         kind: "no_date",
-        text: `${photo.name} has no date in the file. Ask when it was taken.`,
+        text: `No date in ${photo.name}. Ask when it was taken.`,
       });
     } else if (Number.isFinite(opened) && Date.parse(photo.takenAt) < opened) {
       warnings.push({
         photo: photo.name,
         kind: "taken_before_case",
-        text: `${photo.name} was taken on ${photo.takenAt.slice(0, 10)}, before this case was opened.`,
+        text: `${photo.name} is dated ${photo.takenAt.slice(0, 10)}, before this case was opened. Ask about it.`,
       });
     }
   }

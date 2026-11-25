@@ -7,7 +7,7 @@ import { DEMO_REVIEW_REQUEST } from "./demo-data";
 import { FundingMandate } from "./funding-mandate";
 import { PollarFund } from "./pollar-fund";
 import { RepairScout } from "./repair-scout";
-import { ReviewerCopilot } from "./reviewer-copilot";
+import { ReviewerChecks } from "./reviewer-copilot";
 import { WhereMoney } from "./where-money";
 
 const SECTIONS = [
@@ -53,8 +53,14 @@ export function AgentDemo() {
         </section>
 
         <section id="reviewer" className="flex flex-col gap-3 scroll-mt-24">
-          <h2 className="text-2xl tracking-tight">Reviewer: checklist (sample case)</h2>
-          <ReviewerCopilot caseRef="SAMPLE-BW-0001" caseOpenedAt="2026-11-01T00:00:00Z" request={DEMO_REVIEW_REQUEST} />
+          <h2 className="text-2xl tracking-tight">Reviewer: two checks (sample case)</h2>
+          <ReviewerChecks
+            caseRef="SAMPLE-BW-0001"
+            caseOpenedAt="2026-11-01T00:00:00Z"
+            milestone={DEMO_REVIEW_REQUEST.milestone}
+            lines={DEMO_REVIEW_REQUEST.lines}
+            priceFlags={DEMO_REVIEW_REQUEST.priceFlags}
+          />
         </section>
 
         <section id="public" className="flex flex-col gap-3 scroll-mt-24">

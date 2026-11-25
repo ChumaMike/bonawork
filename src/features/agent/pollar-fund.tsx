@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useId, useRef, useState } from "react";
-import type { PollarClient } from "@pollar/core";
+import type { PendingConfirmation, PollarClient } from "@pollar/core";
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Badge, Card } from "@/components/ui/card";
@@ -58,6 +58,8 @@ export function PollarFund({
   const [code, setCode] = useState("");
   const [wallet, setWallet] = useState<string | null>(null);
   const [signature, setSignature] = useState<string | null>(null);
+  /** Pollar asks before it signs; we show that question here, on our page. */
+  const [pending, setPending] = useState<PendingConfirmation | null>(null);
   const [error, setError] = useState<string | null>(null);
   const onWalletRef = useRef(onWallet);
   useEffect(() => {
@@ -67,12 +69,14 @@ export function PollarFund({
   useEffect(() => {
     if (!POLLAR_KEY) return;
     let unsubscribe: (() => void) | undefined;
+    let unsubscribeConfirm: (() => void) | undefined;
     let cancelled = false;
     void (async () => {
       const { PollarClient: Client } = await import("@pollar/core");
       if (cancelled) return;
       const c = new Client({ apiKey: POLLAR_KEY });
       client.current = c;
+      unsubscribeConfirm = c.onConfirmationRequest((list) => setPending(list[0] ?? null));
       unsubscribe = c.onAuthStateChange((state) => {
         switch (state.step) {
           case "sending_email":
@@ -110,6 +114,7 @@ export function PollarFund({
     return () => {
       cancelled = true;
       unsubscribe?.();
+      unsubscribeConfirm?.();
     };
   }, []);
 
@@ -276,6 +281,23 @@ export function PollarFund({
             ) : (
               <p className="text-sm text-muted">The escrow is being set up for this wallet.</p>
             )
+          ) : null}
+          {pending ? (
+            <div className="flex flex-col gap-2 rounded-xl border border-line p-3" role="alertdialog" aria-label="Confirm the transfer">
+              <p className="font-medium">Confirm this transfer</p>
+              <p className="text-sm">
+                Send {formatRand(amountCents)} BDZAR (sandbox rand) from your Pollar wallet to escrow{" "}
+                <span className="font-mono break-all">{escrow}</span> on Solana devnet.
+              </p>
+              <div className="flex gap-2">
+                <Button size="sm" onClick={() => pending.confirm()}>
+                  Confirm and send
+                </Button>
+                <Button size="sm" variant="secondary" onClick={() => pending.reject()}>
+                  Cancel
+                </Button>
+              </div>
+            </div>
           ) : null}
           {step === "checking" ? (
             <p className="text-sm text-muted" role="status">
