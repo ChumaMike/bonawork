@@ -43,6 +43,8 @@ export type EscrowAccount = {
   contractor: Address;
   school: Address;
   reviewer: Address;
+  /** Who each tranche pays on release, fixed at creation: typically [supplier, contractor]. */
+  payees: [Address, Address];
   mint: Address;
   matchAuthority: Address;
   disputeAuthority: Address;
@@ -146,6 +148,7 @@ export function decodeEscrow(data: ArrayLike<number>): EscrowAccount {
     contractor: r.address(),
     school: r.address(),
     reviewer: r.address(),
+    payees: [r.address(), r.address()],
     mint: r.address(),
     matchAuthority: r.address(),
     disputeAuthority: r.address(),
@@ -170,6 +173,8 @@ export function encodeEscrow(a: EscrowAccount): Uint8Array {
     .address(a.contractor)
     .address(a.school)
     .address(a.reviewer)
+    .address(a.payees[0])
+    .address(a.payees[1])
     .address(a.mint)
     .address(a.matchAuthority)
     .address(a.disputeAuthority)
@@ -241,6 +246,6 @@ export function encodeTranche(a: TrancheAccount): Uint8Array {
 export const ACCOUNT_SIZES = {
   Config: 146,
   ReviewerRecord: 74,
-  Escrow: 371,
+  Escrow: 435,
   Tranche: 295,
 } as const;

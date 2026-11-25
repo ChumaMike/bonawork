@@ -1,6 +1,11 @@
 import { createHash } from "node:crypto";
 
-import { AccountRole, getAddressDecoder, type Address } from "@solana/kit";
+import {
+  AccountRole,
+  getAddressDecoder,
+  getAddressEncoder,
+  type Address,
+} from "@solana/kit";
 import { findAssociatedTokenPda } from "@solana-program/token";
 import { describe, expect, it } from "vitest";
 
@@ -40,8 +45,10 @@ import {
   getCreateEscrowInstruction,
   getInitializeConfigInstruction,
   getOpenDisputeInstruction,
+  getReassignReviewerInstruction,
   getRefundExpiredInstruction,
   getReleaseTrancheInstruction,
+  getSweepSurplusInstruction,
   getResolveDisputeInstruction,
   getSetPausedInstruction,
   getSetReviewerInstruction,
@@ -61,8 +68,8 @@ const h = (n: number) => new Uint8Array(32).fill(n);
 const key = (n: number): Address => getAddressDecoder().decode(h(n));
 
 describe("discriminators", () => {
-  it("match sha256('global:<name>') for all 12 instructions", () => {
-    expect(INSTRUCTION_NAMES).toHaveLength(12);
+  it("match sha256('global:<name>') for all 14 instructions", () => {
+    expect(INSTRUCTION_NAMES).toHaveLength(14);
     for (const name of INSTRUCTION_NAMES) {
       expect(Array.from(INSTRUCTION_DISCRIMINATORS[name]), name).toEqual(
         sha8(`global:${name}`),
@@ -160,8 +167,8 @@ describe("discriminators", () => {
         tranche: key(3),
         vault: key(4),
         mint: key(5),
-        contractor: key(6),
-        contractorAta: key(7),
+        payee: key(6),
+        payeeAta: key(7),
       }).data,
       refund_expired: getRefundExpiredInstruction({
         caller: key(1),
@@ -171,6 +178,26 @@ describe("discriminators", () => {
         mint: key(5),
         funder: key(6),
         funderAta: key(7),
+      }).data,
+      reassign_reviewer: getReassignReviewerInstruction(
+        {
+          admin: key(1),
+          config: key(2),
+          school: key(3),
+          escrow: key(4),
+          tranche0: key(5),
+          tranche1: key(6),
+          newReviewerRecord: key(7),
+        },
+        { newReviewer: key(8) },
+      ).data,
+      sweep_surplus: getSweepSurplusInstruction({
+        caller: key(1),
+        escrow: key(2),
+        vault: key(3),
+        mint: key(4),
+        funder: key(5),
+        funderAta: key(6),
       }).data,
     };
     for (const name of INSTRUCTION_NAMES) {
@@ -228,6 +255,7 @@ function sampleCreateArgs(): BonaInstructionArgs["create_escrow"] {
     verificationDeadlines: [BigInt(1_800_604_800), BigInt(1_801_209_600)],
     challengeSeconds: 60,
     disputeSeconds: 86_400,
+    payees: [key(26), DEFAULT_PUBKEY],
   };
 }
 
@@ -259,6 +287,8 @@ describe("instruction args", () => {
     },
     release_tranche: {},
     refund_expired: {},
+    reassign_reviewer: { newReviewer: key(27) },
+    sweep_surplus: {},
   };
 
   it("round-trip through encode and decode for every instruction", () => {
@@ -274,13 +304,23 @@ describe("instruction args", () => {
     expect(size("initialize_config")).toBe(32 + 32 + 4 + 4);
     expect(size("set_reviewer")).toBe(32 + 32 + 1);
     expect(size("create_escrow")).toBe(
-      32 * 2 + 32 * 5 + 8 * 2 + 32 * 2 + 8 + 8 * 2 + 4 + 4,
+      32 * 2 + 32 * 5 + 8 * 2 + 32 * 2 + 8 + 8 * 2 + 4 + 4 + 32 * 2,
     );
     expect(size("claim_tranche")).toBe(4 + 32 + 32);
     expect(size("verify_tranche")).toBe(4 + 32 * 3);
     expect(size("open_dispute")).toBe(4 + 32);
     expect(size("resolve_dispute")).toBe(1 + 32 + 8);
     expect(size("release_tranche")).toBe(0);
+    expect(size("reassign_reviewer")).toBe(32);
+    expect(size("sweep_surplus")).toBe(0);
+  });
+
+  it("appends the two payees at the end of create_escrow", () => {
+    const data = encodeInstructionData("create_escrow", sampleCreateArgs());
+    expect(Array.from(data.subarray(data.length - 64, data.length - 32))).toEqual(
+      Array.from(h(26)),
+    );
+    expect(Array.from(data.subarray(data.length - 32))).toEqual(Array(32).fill(0));
   });
 
   it("encodes integers little-endian, as in the LiteSVM test", () => {
@@ -369,9 +409,11 @@ describe("account metas", () => {
       tranche: key(3),
       vault: key(4),
       mint: key(5),
-      contractor: key(6),
-      contractorAta: key(7),
+      payee: key(6),
+      payeeAta: key(7),
     });
+    expect(ix.accounts[5].address).toBe(key(6));
+    expect(ix.accounts[6].address).toBe(key(7));
     expect(ix.accounts.map((a) => a.role)).toEqual([
       AccountRole.WRITABLE_SIGNER,
       AccountRole.WRITABLE,
@@ -388,6 +430,54 @@ describe("account metas", () => {
     expect(ix.accounts[9].address).toBe(SYSTEM_PROGRAM_ADDRESS);
     expect(ACCOUNT_LAYOUTS.refund_expired).toHaveLength(11);
     expect(ACCOUNT_LAYOUTS.create_escrow).toHaveLength(11);
+  });
+
+  it("reassign_reviewer needs the admin and the school to sign, and writes only the escrow", () => {
+    const ix = getReassignReviewerInstruction(
+      {
+        admin: key(1),
+        config: key(2),
+        school: key(3),
+        escrow: key(4),
+        tranche0: key(5),
+        tranche1: key(6),
+        newReviewerRecord: key(7),
+      },
+      { newReviewer: key(8) },
+    );
+    expect(ix.accounts.map((a) => a.role)).toEqual([
+      AccountRole.READONLY_SIGNER,
+      AccountRole.READONLY,
+      AccountRole.READONLY_SIGNER,
+      AccountRole.WRITABLE,
+      AccountRole.READONLY,
+      AccountRole.READONLY,
+      AccountRole.READONLY,
+    ]);
+  });
+
+  it("sweep_surplus lists the funder's token account and the fixed programs", () => {
+    const ix = getSweepSurplusInstruction({
+      caller: key(1),
+      escrow: key(2),
+      vault: key(3),
+      mint: key(4),
+      funder: key(5),
+      funderAta: key(6),
+    });
+    expect(ix.accounts.map((a) => a.role)).toEqual([
+      AccountRole.WRITABLE_SIGNER,
+      AccountRole.READONLY,
+      AccountRole.WRITABLE,
+      AccountRole.READONLY,
+      AccountRole.READONLY,
+      AccountRole.WRITABLE,
+      AccountRole.READONLY,
+      AccountRole.READONLY,
+      AccountRole.READONLY,
+    ]);
+    expect(ix.accounts[6].address).toBe(TOKEN_PROGRAM_ADDRESS);
+    expect(ix.accounts[8].address).toBe(SYSTEM_PROGRAM_ADDRESS);
   });
 
   it("throws when a required account is missing", () => {
@@ -409,6 +499,7 @@ describe("accounts", () => {
     contractor: key(21),
     school: key(22),
     reviewer: key(23),
+    payees: [key(26), key(21)],
     mint: key(8),
     matchAuthority: key(24),
     disputeAuthority: key(25),
@@ -465,6 +556,18 @@ describe("accounts", () => {
     expect(encodeTranche(tranche)).toHaveLength(ACCOUNT_SIZES.Tranche);
   });
 
+  it("lay the escrow out at the program's byte offsets (435 bytes)", () => {
+    const bytes = encodeEscrow(escrow);
+    expect(ACCOUNT_SIZES.Escrow).toBe(435);
+    const at = (offset: number) => Array.from(bytes.subarray(offset, offset + 32));
+    expect(at(136)).toEqual(Array.from(getAddressEncoder().encode(key(21)))); // contractor
+    expect(at(232)).toEqual(Array.from(h(26))); // payees[0]
+    expect(at(264)).toEqual(Array.from(getAddressEncoder().encode(key(21)))); // payees[1]
+    expect(at(296)).toEqual(Array.from(h(8))); // mint
+    expect(bytes[432]).toBe(1); // funded
+    expect(bytes[434]).toBe(254); // bump
+  });
+
   it("refuse data from a different account type", () => {
     expect(() => decodeTranche(encodeEscrow(escrow))).toThrow(/Tranche/);
   });
@@ -472,14 +575,15 @@ describe("accounts", () => {
 
 describe("errors and formatting", () => {
   it("maps Anchor codes from 6000 in errors.rs order", () => {
-    expect(BONA_ERRORS).toHaveLength(28);
+    expect(BONA_ERRORS).toHaveLength(29);
+    expect(getBonaError(6028)?.name).toBe("ReviewerChangeBlocked");
     expect(getBonaError(6000)?.name).toBe("Unauthorized");
     expect(getBonaErrorCode("ChallengeWindowActive")).toBe(6022);
     expect(bonaErrorMessage(6022)).toBe(
       "The money is locked until the challenge window ends.",
     );
     expect(getBonaError(6027)?.name).toBe("ArithmeticOverflow");
-    expect(getBonaError(6028)).toBeNull();
+    expect(getBonaError(6029)).toBeNull();
     expect(bonaErrorMessage(1)).toMatch(/code 1/);
   });
 

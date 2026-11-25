@@ -28,11 +28,14 @@ import { TrancheState, type EscrowAccount, type TrancheAccount } from "../accoun
 import {
   DEFAULT_PUBKEY,
   findAssociatedTokenAddress,
+  findConfigPda,
   findEscrowAddresses,
   findReviewerPda,
   getClaimTrancheInstruction,
+  getReassignReviewerInstruction,
   getRefundExpiredInstruction,
   getReleaseTrancheInstruction,
+  getSweepSurplusInstruction,
   getVerifyTrancheInstruction,
   type EscrowAddresses,
   type VerifyTrancheArgs,
@@ -44,7 +47,9 @@ import {
 import { decodeTransaction } from "./decode";
 import { describeTransaction } from "./describe";
 import {
+  checkReassignReviewerTransaction,
   checkReleaseTransaction,
+  checkSweepTransaction,
   checkVerifyTransaction,
   type VerifyExpectation,
 } from "./policy";
@@ -56,6 +61,9 @@ const feePayer = key(1);
 const reviewer = key(2);
 const funder = key(3);
 const contractor = key(4);
+const supplier = key(7);
+const school = key(9);
+const admin = key(10);
 const attacker = key(66);
 const mint = key(8);
 const caseHash = h(42);
@@ -328,30 +336,28 @@ describe("checkVerifyTransaction", () => {
 
 describe("checkReleaseTransaction", () => {
   const keeper = key(5);
-  const escrowAccount = { contractor, mint };
+  const escrowAccount = { payees: [supplier, contractor] as [Address, Address], mint };
 
-  async function releaseIx(
-    overrides: { contractorAta?: Address; contractor?: Address } = {},
-  ) {
+  async function releaseIx(overrides: { payeeAta?: Address; payee?: Address } = {}) {
     return getReleaseTrancheInstruction({
       caller: keeper,
       escrow: ids.escrow,
       tranche: ids.tranche0,
       vault: ids.vault,
       mint,
-      contractor: overrides.contractor ?? contractor,
-      contractorAta:
-        overrides.contractorAta ?? (await findAssociatedTokenAddress(contractor, mint)),
+      payee: overrides.payee ?? supplier,
+      payeeAta: overrides.payeeAta ?? (await findAssociatedTokenAddress(supplier, mint)),
     });
   }
   const exp = () => ({
     feePayer: keeper,
     escrow: ids.escrow,
     tranche: ids.tranche0,
+    index: 0 as const,
     escrowAccount,
   });
 
-  it("accepts a release to the contractor's canonical token account", async () => {
+  it("accepts a Check 1 release to the supplier's canonical token account", async () => {
     const result = await checkReleaseTransaction(
       wire(keeper, [await releaseIx()]),
       exp(),
@@ -362,17 +368,139 @@ describe("checkReleaseTransaction", () => {
 
   it("REJECTS a payout redirected to another token account", async () => {
     const redirected = await releaseIx({
-      contractorAta: await findAssociatedTokenAddress(attacker, mint),
+      payeeAta: await findAssociatedTokenAddress(attacker, mint),
     });
     const result = await checkReleaseTransaction(wire(keeper, [redirected]), exp());
     expect(result.ok).toBe(false);
     expect(codes(result)).toContain("WRONG_RECIPIENT");
   });
 
+  it("REJECTS a Check 1 release sent to the contractor instead of the supplier", async () => {
+    const swapped = await releaseIx({
+      payee: contractor,
+      payeeAta: await findAssociatedTokenAddress(contractor, mint),
+    });
+    const result = await checkReleaseTransaction(wire(keeper, [swapped]), exp());
+    expect(result.ok).toBe(false);
+    expect(codes(result)).toContain("WRONG_RECIPIENT");
+  });
+
+  it("checks Check 2 against the second payee", async () => {
+    const ix = getReleaseTrancheInstruction({
+      caller: keeper,
+      escrow: ids.escrow,
+      tranche: ids.tranche1,
+      vault: ids.vault,
+      mint,
+      payee: contractor,
+      payeeAta: await findAssociatedTokenAddress(contractor, mint),
+    });
+    const result = await checkReleaseTransaction(wire(keeper, [ix]), {
+      ...exp(),
+      tranche: ids.tranche1,
+      index: 1,
+    });
+    expect(result.findings).toEqual([]);
+  });
+
   it("REJECTS any instruction other than release_tranche", async () => {
     const result = await checkReleaseTransaction(wire(keeper, [verifyIx()]), exp());
     expect(result.ok).toBe(false);
     expect(codes(result)).toContain("WRONG_INSTRUCTION");
+  });
+});
+
+describe("checkSweepTransaction", () => {
+  const keeper = key(5);
+  const escrowAccount = { funder, mint };
+  const sweep = async (tokenOwner: Address, extra: Instruction[] = []) =>
+    wire(keeper, [
+      getSweepSurplusInstruction({
+        caller: keeper,
+        escrow: ids.escrow,
+        vault: ids.vault,
+        mint,
+        funder,
+        funderAta: await findAssociatedTokenAddress(tokenOwner, mint),
+      }),
+      ...extra,
+    ]);
+  const exp = () => ({ feePayer: keeper, escrow: ids.escrow, escrowAccount });
+
+  it("accepts a sweep to the funder's own token account", async () => {
+    const result = await checkSweepTransaction(await sweep(funder), exp());
+    expect(result.findings).toEqual([]);
+  });
+
+  it("REJECTS a sweep to any other token account", async () => {
+    const result = await checkSweepTransaction(await sweep(attacker), exp());
+    expect(result.ok).toBe(false);
+    expect(codes(result)).toContain("WRONG_RECIPIENT");
+  });
+
+  it("REJECTS a sweep with a hidden token transfer", async () => {
+    const theft = getTransferCheckedInstruction({
+      source: await findAssociatedTokenAddress(keeper, mint),
+      mint,
+      destination: await findAssociatedTokenAddress(attacker, mint),
+      authority: keeper,
+      amount: BigInt(1),
+      decimals: 2,
+    });
+    const result = await checkSweepTransaction(await sweep(funder, [theft]), exp());
+    expect(result.ok).toBe(false);
+    expect(codes(result)).toContain("TOKEN_PROGRAM_CALLED");
+  });
+});
+
+describe("checkReassignReviewerTransaction", () => {
+  const newReviewer = key(12);
+  const build = async (named: Address, record: Address) =>
+    wire(feePayer, [
+      getReassignReviewerInstruction(
+        {
+          admin,
+          config: await findConfigPda(),
+          school,
+          escrow: ids.escrow,
+          tranche0: ids.tranche0,
+          tranche1: ids.tranche1,
+          newReviewerRecord: await findReviewerPda(record),
+        },
+        { newReviewer: named },
+      ),
+    ]);
+  const exp = () => ({
+    feePayer,
+    admin,
+    school,
+    escrow: ids.escrow,
+    newReviewer,
+  });
+
+  it("accepts the admin and the school naming the agreed reviewer", async () => {
+    const result = await checkReassignReviewerTransaction(
+      await build(newReviewer, newReviewer),
+      exp(),
+    );
+    expect(result.findings).toEqual([]);
+  });
+
+  it("REJECTS a different reviewer than the one agreed", async () => {
+    const result = await checkReassignReviewerTransaction(
+      await build(attacker, attacker),
+      exp(),
+    );
+    expect(result.ok).toBe(false);
+    expect(codes(result)).toContain("WRONG_ACCOUNT");
+  });
+
+  it("REJECTS a transaction without the school's signature slot", async () => {
+    const result = await checkReassignReviewerTransaction(
+      await build(newReviewer, newReviewer),
+      { ...exp(), school: attacker },
+    );
+    expect(result.ok).toBe(false);
   });
 });
 
@@ -423,7 +551,7 @@ describe("decodeTransaction and describeTransaction", () => {
     });
     expect(lines).toHaveLength(2);
     expect(lines[0]).toMatch(
-      /^No money moves now\. This starts a 60-second challenge window for tranche 2 \(R3 000\.00\)\./,
+      /^No money moves now\. This starts a 60-second challenge window for Check 2: Work done \(R3 000\.00\)\./,
     );
     expect(lines[1]).toBe("No priority fee is set. Only the base network fee applies.");
   });
@@ -471,7 +599,18 @@ describe("decodeTransaction and describeTransaction", () => {
     expect(lines[1]).toMatch(/^Moves R3 000\.00 from .+ to .+\.$/);
   });
 
-  const fullEscrow = { challengeSeconds: 60, contractor, funder, mint } as EscrowAccount;
+  const fullEscrow = {
+    challengeSeconds: 60,
+    contractor,
+    funder,
+    mint,
+    payees: [supplier, contractor],
+  } as EscrowAccount;
+  const tranche0 = { ...tranche1, index: 0, amount: BigInt(200_000) } as TrancheAccount;
+  const releaseCtx = () => ({
+    escrows: { [ids.escrow]: fullEscrow },
+    tranches: { [ids.tranche0]: tranche0 },
+  });
 
   async function release(owner: Address, tokenOwner: Address) {
     return getReleaseTrancheInstruction({
@@ -480,42 +619,44 @@ describe("decodeTransaction and describeTransaction", () => {
       tranche: ids.tranche0,
       vault: ids.vault,
       mint,
-      contractor: owner,
-      contractorAta: await findAssociatedTokenAddress(tokenOwner, mint),
+      payee: owner,
+      payeeAta: await findAssociatedTokenAddress(tokenOwner, mint),
     });
   }
 
-  it("release: confirms the contractor's own token account", async () => {
+  it("release: confirms Check 1 goes to the payee fixed in the escrow", async () => {
     const [line] = await describeTransaction(
-      wire(feePayer, [await release(contractor, contractor)]),
-      { escrows: { [ids.escrow]: fullEscrow } },
+      wire(feePayer, [await release(supplier, supplier)]),
+      releaseCtx(),
     );
-    expect(line).toMatch(/^Pays the payment stage at .+ from the escrow vault\./);
-    expect(line).toMatch(/That is the contractor's own token account\./);
+    expect(line).toMatch(
+      /^Releases Check 1: Materials on site \(R2 000\.00\) from the escrow vault as a sandbox payout\./,
+    );
+    expect(line).toMatch(/That is the payee's own token account\./);
     expect(line).toMatch(/The program checks the recipient against the escrow\./);
     expect(line).not.toMatch(/WARNING|Nobody can change/);
   });
 
-  it("release: warns when the token account is not the contractor's", async () => {
+  it("release: warns when the token account is not the payee's", async () => {
     const [redirected] = await describeTransaction(
-      wire(feePayer, [await release(contractor, attacker)]),
-      { escrows: { [ids.escrow]: fullEscrow } },
+      wire(feePayer, [await release(supplier, attacker)]),
+      releaseCtx(),
     );
     expect(redirected).toMatch(
-      /WARNING: This sends money to an account that is NOT the contractor's/,
+      /WARNING: This sends money to an account that is NOT the payee's/,
     );
     const [wrongOwner] = await describeTransaction(
-      wire(feePayer, [await release(attacker, attacker)]),
-      { escrows: { [ids.escrow]: fullEscrow } },
+      wire(feePayer, [await release(contractor, contractor)]),
+      releaseCtx(),
     );
-    expect(wrongOwner).toMatch(/NOT the contractor's/);
+    expect(wrongOwner).toMatch(/NOT the payee's/);
   });
 
   it("release without escrow data says it could not compare", async () => {
     const [line] = await describeTransaction(
       wire(feePayer, [await release(contractor, contractor)]),
     );
-    expect(line).toMatch(/could not be compared with the escrow's contractor/);
+    expect(line).toMatch(/could not be compared with the escrow's payee/);
     expect(DEFAULT_PUBKEY).toBe("11111111111111111111111111111111");
   });
 

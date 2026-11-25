@@ -10,6 +10,7 @@ import {
 
 import type { EscrowAccount, TrancheAccount } from "../accounts";
 import {
+  DEFAULT_PUBKEY,
   DisputeOutcome,
   findAssociatedTokenAddress,
   formatRand,
@@ -91,7 +92,15 @@ function trancheLabel(ix: DecodedInstruction, ctx: DescribeContext): string {
   const data = address ? ctx.tranches?.[address] : undefined;
   if (!data)
     return address ? `the payment stage at ${short(address)}` : "a payment stage";
-  return `tranche ${data.index + 1} (${formatRand(data.amount)})`;
+  return `${CHECK_NAMES[data.index] ?? `payment stage ${data.index + 1}`} (${formatRand(data.amount)})`;
+}
+
+/** The two reviewer checks, one per tranche. */
+export const CHECK_NAMES = ["Check 1: Materials on site", "Check 2: Work done"] as const;
+
+function trancheIndex(ix: DecodedInstruction, ctx: DescribeContext): number | undefined {
+  const address = account(ix, "tranche");
+  return address ? ctx.tranches?.[address]?.index : undefined;
 }
 
 async function describeBona(
@@ -131,7 +140,22 @@ async function describeBona(
       return `Returns ${tranche} from the escrow vault. ${await describeRecipient(ix, escrow, "funder")}`;
     }
     case "release_tranche":
-      return `Pays ${tranche} from the escrow vault. ${await describeRecipient(ix, escrow, "contractor")}`;
+      return (
+        `Releases ${tranche} from the escrow vault as a sandbox payout. ` +
+        (await describeRecipient(ix, escrow, "payee", trancheIndex(ix, ctx)))
+      );
+    case "sweep_surplus":
+      return (
+        "Returns tokens in the vault beyond what the open checks are owed. " +
+        (await describeRecipient(ix, escrow, "funder"))
+      );
+    case "reassign_reviewer": {
+      const args = ix.args as BonaInstructionArgs["reassign_reviewer"];
+      return (
+        `No money moves. Replaces this escrow's reviewer with ${short(args.newReviewer)}. ` +
+        "The platform admin and the school must both sign."
+      );
+    }
     case "refund_expired":
       return `Returns ${tranche} from the escrow vault. ${await describeRecipient(ix, escrow, "funder")}`;
     case "cancel_unfunded":
@@ -144,9 +168,12 @@ async function describeBona(
     case "create_escrow": {
       const args = ix.args as BonaInstructionArgs["create_escrow"];
       const [a, b] = args.amounts;
+      const payee = (p: Address) =>
+        p === DEFAULT_PUBKEY || p === args.contractor ? "the contractor" : short(p);
       return (
-        `Creates an escrow for ${formatRand(a + b)} in two payments: ${formatRand(a)} for materials ` +
-        `and ${formatRand(b)} for completion. No money moves yet.`
+        `Creates an escrow for ${formatRand(a + b)}: ${formatRand(a)} for ${CHECK_NAMES[0]}, ` +
+        `released to ${payee(args.payees[0])}, and ${formatRand(b)} for ${CHECK_NAMES[1]}, ` +
+        `released to ${payee(args.payees[1])}. No money moves yet.`
       );
     }
     case "set_reviewer": {
@@ -166,12 +193,13 @@ async function describeBona(
 
 /**
  * Names the token account the instruction actually pays and compares it with the
- * canonical token account of the escrow's contractor or funder for the escrow's mint.
+ * canonical token account of the escrow's payee for that check, or of the funder for the escrow's mint.
  */
 async function describeRecipient(
   ix: DecodedInstruction,
   escrow: EscrowAccount | undefined,
-  role: "contractor" | "funder",
+  role: "payee" | "funder",
+  index?: number,
 ): Promise<string> {
   const owner = account(ix, role);
   const tokenAccount = account(ix, `${role}Ata`);
@@ -185,7 +213,13 @@ async function describeRecipient(
       `the escrow's ${role}. The program checks the recipient against the escrow.`
     );
   }
-  const expectedOwner = role === "contractor" ? escrow.contractor : escrow.funder;
+  if (role === "payee" && index !== 0 && index !== 1) {
+    return (
+      `${sentence} The payment stage data was not provided, so this could not be compared ` +
+      "with the payee fixed in the escrow. The program checks the recipient against the escrow."
+    );
+  }
+  const expectedOwner = role === "payee" ? escrow.payees[index as 0 | 1] : escrow.funder;
   const expectedAccount = await findAssociatedTokenAddress(expectedOwner, escrow.mint);
   if (
     owner !== expectedOwner ||

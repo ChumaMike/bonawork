@@ -12,7 +12,7 @@ export const BONA_ERRORS = [
   ["InvalidState", "This step does not fit where the payment stage is now."],
   [
     "InvalidRoleAssignment",
-    "The funder, contractor, school and reviewer must be four different people.",
+    "Each role in this escrow must be a different person. Only the contractor may also be a payee.",
   ],
   ["ReviewerInactive", "This reviewer is not active."],
   ["ReviewerMismatch", "Only the reviewer assigned to this repair can verify it."],
@@ -42,8 +42,12 @@ export const BONA_ERRORS = [
     "The dispute can still be settled, so it cannot be refunded yet.",
   ],
   ["RefundNotEligible", "This payment stage cannot be refunded yet."],
-  ["AlreadySettled", "This payment stage has already been paid out or refunded."],
+  ["AlreadySettled", "This payment stage has already been released or refunded."],
   ["ArithmeticOverflow", "A number was too large to handle."],
+  [
+    "ReviewerChangeBlocked",
+    "The reviewer cannot be replaced while a check is verified or disputed.",
+  ],
 ] as const;
 
 export type BonaErrorName = (typeof BONA_ERRORS)[number][0];

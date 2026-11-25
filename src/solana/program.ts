@@ -62,6 +62,8 @@ export const INSTRUCTION_NAMES = [
   "resolve_dispute",
   "release_tranche",
   "refund_expired",
+  "reassign_reviewer",
+  "sweep_surplus",
 ] as const;
 export type BonaInstructionName = (typeof INSTRUCTION_NAMES)[number];
 
@@ -79,6 +81,8 @@ export const INSTRUCTION_DISCRIMINATORS: Record<BonaInstructionName, Uint8Array>
   resolve_dispute: Uint8Array.of(231, 6, 202, 6, 96, 103, 12, 230),
   release_tranche: Uint8Array.of(156, 137, 159, 5, 80, 38, 133, 227),
   refund_expired: Uint8Array.of(118, 153, 164, 244, 40, 128, 242, 250),
+  reassign_reviewer: Uint8Array.of(65, 88, 224, 43, 21, 155, 57, 186),
+  sweep_surplus: Uint8Array.of(144, 67, 197, 177, 218, 200, 50, 24),
 };
 
 /** sha256("account:<StructName>")[0..8]. */
@@ -199,7 +203,13 @@ export type CreateEscrowArgs = {
   verificationDeadlines: readonly [bigint, bigint];
   challengeSeconds: number;
   disputeSeconds: number;
+  /**
+   * Who each tranche pays on release, fixed at creation. DEFAULT_PUBKEY means
+   * the contractor. Typically [supplier, contractor].
+   */
+  payees: readonly [Address, Address];
 };
+export type ReassignReviewerArgs = { newReviewer: Address };
 export type ClaimTrancheArgs = {
   expectedRevision: number;
   evidenceHash: Bytes32;
@@ -233,6 +243,8 @@ export type BonaInstructionArgs = {
   resolve_dispute: ResolveDisputeArgs;
   release_tranche: NoArgs;
   refund_expired: NoArgs;
+  reassign_reviewer: ReassignReviewerArgs;
+  sweep_surplus: NoArgs;
 };
 
 type ArgsCodec<T> = {
@@ -279,7 +291,9 @@ const ARGS_CODECS: { [K in BonaInstructionName]: ArgsCodec<BonaInstructionArgs[K
         .i64(a.verificationDeadlines[0])
         .i64(a.verificationDeadlines[1])
         .u32(a.challengeSeconds)
-        .u32(a.disputeSeconds),
+        .u32(a.disputeSeconds)
+        .address(a.payees[0])
+        .address(a.payees[1]),
     read: (r) => ({
       caseHash: r.bytes32(),
       termsHash: r.bytes32(),
@@ -294,6 +308,7 @@ const ARGS_CODECS: { [K in BonaInstructionName]: ArgsCodec<BonaInstructionArgs[K
       verificationDeadlines: [r.i64(), r.i64()],
       challengeSeconds: r.u32(),
       disputeSeconds: r.u32(),
+      payees: [r.address(), r.address()],
     }),
   },
   activate_funding: noArgs,
@@ -342,6 +357,11 @@ const ARGS_CODECS: { [K in BonaInstructionName]: ArgsCodec<BonaInstructionArgs[K
   },
   release_tranche: noArgs,
   refund_expired: noArgs,
+  reassign_reviewer: {
+    write: (w, a) => w.address(a.newReviewer),
+    read: (r) => ({ newReviewer: r.address() }),
+  },
+  sweep_surplus: noArgs,
 };
 
 /** Discriminator + Borsh args. */
@@ -473,8 +493,8 @@ export const ACCOUNT_LAYOUTS: Record<BonaInstructionName, readonly AccountSpec[]
     rw("tranche"),
     rw("vault"),
     ro("mint"),
-    ro("contractor"),
-    rw("contractorAta"),
+    ro("payee"),
+    rw("payeeAta"),
     tokenProgram,
     ataProgram,
     systemProgram,
@@ -484,6 +504,26 @@ export const ACCOUNT_LAYOUTS: Record<BonaInstructionName, readonly AccountSpec[]
     rw("escrow"),
     rw("tranche"),
     optional("priorTranche"),
+    rw("vault"),
+    ro("mint"),
+    ro("funder"),
+    rw("funderAta"),
+    tokenProgram,
+    ataProgram,
+    systemProgram,
+  ],
+  reassign_reviewer: [
+    ros("admin"),
+    ro("config"),
+    ros("school"),
+    rw("escrow"),
+    ro("tranche0"),
+    ro("tranche1"),
+    ro("newReviewerRecord"),
+  ],
+  sweep_surplus: [
+    rws("caller"),
+    ro("escrow"),
     rw("vault"),
     ro("mint"),
     ro("funder"),
@@ -631,8 +671,9 @@ export function getReleaseTrancheInstruction(accounts: {
   tranche: Address;
   vault: Address;
   mint: Address;
-  contractor: Address;
-  contractorAta: Address;
+  /** Must be escrow.payees[tranche.index]. */
+  payee: Address;
+  payeeAta: Address;
 }): BonaInstruction {
   return buildInstruction("release_tranche", accounts, {});
 }
@@ -649,6 +690,34 @@ export function getRefundExpiredInstruction(accounts: {
   funderAta: Address;
 }): BonaInstruction {
   return buildInstruction("refund_expired", accounts, {});
+}
+
+/** Admin and the escrow's school together replace the reviewer. */
+export function getReassignReviewerInstruction(
+  accounts: {
+    admin: Address;
+    config: Address;
+    school: Address;
+    escrow: Address;
+    tranche0: Address;
+    tranche1: Address;
+    newReviewerRecord: Address;
+  },
+  args: ReassignReviewerArgs,
+): BonaInstruction {
+  return buildInstruction("reassign_reviewer", accounts, args);
+}
+
+/** Anyone: returns vault tokens beyond what open tranches are owed to the funder. */
+export function getSweepSurplusInstruction(accounts: {
+  caller: Address;
+  escrow: Address;
+  vault: Address;
+  mint: Address;
+  funder: Address;
+  funderAta: Address;
+}): BonaInstruction {
+  return buildInstruction("sweep_surplus", accounts, {});
 }
 
 // -------------------------------------------------------------------- helpers

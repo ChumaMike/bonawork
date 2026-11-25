@@ -12,7 +12,10 @@ import {
   findAssociatedTokenAddress,
   findReviewerPda,
   findVaultAddress,
+  findConfigPda,
+  findTranchePda,
   type BonaInstructionName,
+  type ReassignReviewerArgs,
   type VerifyTrancheArgs,
 } from "../program";
 import {
@@ -83,8 +86,26 @@ export type ReleaseExpectation = {
   feePayer: Address;
   escrow: Address;
   tranche: Address;
-  /** On-chain escrow data, read by the caller. Fixes the mint and the contractor. */
-  escrowAccount: Pick<EscrowAccount, "contractor" | "mint">;
+  /** The tranche's index: picks its payee from the escrow. */
+  index: 0 | 1;
+  /** On-chain escrow data, read by the caller. Fixes the mint and the payee. */
+  escrowAccount: Pick<EscrowAccount, "payees" | "mint">;
+};
+
+export type SweepExpectation = {
+  /** The wallet that pays the fee and is the `caller` account. */
+  feePayer: Address;
+  escrow: Address;
+  /** On-chain escrow data. Fixes the mint and the funder who gets the surplus. */
+  escrowAccount: Pick<EscrowAccount, "funder" | "mint">;
+};
+
+export type ReassignExpectation = {
+  feePayer: Address;
+  admin: Address;
+  school: Address;
+  escrow: Address;
+  newReviewer: Address;
 };
 
 /** At most one limit and one price, both under the caps, and no other budget instruction. */
@@ -145,10 +166,11 @@ export async function checkReleaseTransaction(
   tx: TransactionInput | DecodedTransaction,
   expected: ReleaseExpectation,
 ): Promise<GuardianResult> {
-  const { contractor, mint } = expected.escrowAccount;
-  const [vault, contractorAta] = await Promise.all([
+  const { mint } = expected.escrowAccount;
+  const payee = expected.escrowAccount.payees[expected.index];
+  const [vault, payeeAta] = await Promise.all([
     findVaultAddress(expected.escrow, mint),
-    findAssociatedTokenAddress(contractor, mint),
+    findAssociatedTokenAddress(payee, mint),
   ]);
   return checkSingleInstruction(tx, {
     instruction: "release_tranche",
@@ -159,8 +181,67 @@ export async function checkReleaseTransaction(
       tranche: expected.tranche,
       vault,
       mint,
-      contractor,
-      contractorAta,
+      payee,
+      payeeAta,
+    },
+  });
+}
+
+/** Checks a sweep_surplus transaction: the surplus may only go to the escrow's funder. */
+export async function checkSweepTransaction(
+  tx: TransactionInput | DecodedTransaction,
+  expected: SweepExpectation,
+): Promise<GuardianResult> {
+  const { funder, mint } = expected.escrowAccount;
+  const [vault, funderAta] = await Promise.all([
+    findVaultAddress(expected.escrow, mint),
+    findAssociatedTokenAddress(funder, mint),
+  ]);
+  return checkSingleInstruction(tx, {
+    instruction: "sweep_surplus",
+    feePayer: expected.feePayer,
+    accounts: {
+      caller: expected.feePayer,
+      escrow: expected.escrow,
+      vault,
+      mint,
+      funder,
+      funderAta,
+    },
+  });
+}
+
+/** Checks a reassign_reviewer transaction: admin and school sign, for exactly this reviewer. */
+export async function checkReassignReviewerTransaction(
+  tx: TransactionInput | DecodedTransaction,
+  expected: ReassignExpectation,
+): Promise<GuardianResult> {
+  const [config, tranche0, tranche1, newReviewerRecord] = await Promise.all([
+    findConfigPda(),
+    findTranchePda(expected.escrow, 0),
+    findTranchePda(expected.escrow, 1),
+    findReviewerPda(expected.newReviewer),
+  ]);
+  return checkSingleInstruction(tx, {
+    instruction: "reassign_reviewer",
+    feePayer: expected.feePayer,
+    accounts: {
+      admin: expected.admin,
+      config,
+      school: expected.school,
+      escrow: expected.escrow,
+      tranche0,
+      tranche1,
+      newReviewerRecord,
+    },
+    checkArgs: (args, findings) => {
+      if ((args as ReassignReviewerArgs).newReviewer !== expected.newReviewer) {
+        findings.push({
+          code: "WRONG_ACCOUNT",
+          severity: "error",
+          message: `This names reviewer ${short((args as ReassignReviewerArgs).newReviewer)}, not ${short(expected.newReviewer)}.`,
+        });
+      }
     },
   });
 }
@@ -178,8 +259,10 @@ type SingleInstructionRule = {
 const ACCOUNT_LABELS: Record<string, { code: FindingCode; label: string }> = {
   tranche: { code: "WRONG_TRANCHE", label: "the payment stage (tranche)" },
   escrow: { code: "WRONG_ESCROW", label: "the escrow" },
-  contractor: { code: "WRONG_RECIPIENT", label: "the contractor" },
-  contractorAta: { code: "WRONG_RECIPIENT", label: "the contractor's token account" },
+  payee: { code: "WRONG_RECIPIENT", label: "this check's payee" },
+  payeeAta: { code: "WRONG_RECIPIENT", label: "the payee's token account" },
+  funder: { code: "WRONG_RECIPIENT", label: "the funder" },
+  funderAta: { code: "WRONG_RECIPIENT", label: "the funder's token account" },
   vault: { code: "WRONG_ACCOUNT", label: "the escrow vault" },
   reviewer: { code: "WRONG_ACCOUNT", label: "the reviewer" },
   reviewerRecord: { code: "WRONG_ACCOUNT", label: "the reviewer record" },
