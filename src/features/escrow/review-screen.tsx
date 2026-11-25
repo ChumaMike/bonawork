@@ -140,7 +140,7 @@ export function EscrowReviewScreen() {
     body = (
       <Notice tone="success" icon="shieldCheck" title="Verified on Solana devnet">
         <p>
-          The challenge window has started. After it ends, anyone can release this stage.
+          The challenge window has started. After it ends, anyone can release this part.
         </p>
         <p className="mt-2">
           <a
@@ -160,22 +160,26 @@ export function EscrowReviewScreen() {
   } else if (!claimed) {
     body = (
       <Notice icon="info" title="Nothing to review">
-        <p>There is no claimed stage waiting for review.</p>
+        <p>There is no claim waiting for a check.</p>
       </Notice>
     );
   } else {
     body = (
       <div className="flex flex-col gap-5">
         <Card className="flex flex-col gap-1">
-          <p className="text-sm text-muted">Stage {claimed.index + 1}</p>
           <p className="text-lg font-medium">
             {claimed.label} · <span className="font-mono">{claimed.amountLabel}</span>
           </p>
+          <p className="text-sm text-muted">{claimed.detail}</p>
         </Card>
         <form onSubmit={prepare} className="flex flex-col gap-3">
           <Field
             id="review-note"
-            label="What did you check?"
+            label={
+              claimed.index === 0
+                ? "Do the delivered items match the invoice?"
+                : "Is the work installed and working?"
+            }
             hint="Its fingerprint is written into the escrow. The text stays off-chain."
           >
             <Textarea
@@ -215,7 +219,7 @@ export function EscrowReviewScreen() {
                 loading={busy === "sign"}
                 disabled={!prepared.guardian.ok}
               >
-                Sign and verify this stage
+                Sign and verify {claimed.index === 0 ? "Check 1" : "Check 2"}
               </Button>
             </Card>
           </>
@@ -229,7 +233,7 @@ export function EscrowReviewScreen() {
       <PageHero
         back={back}
         eyebrow="Independent review"
-        title="Verify a claimed stage"
+        title="Verify a check"
         intro="Read what the transaction does, then sign it. Only you can verify."
       />
       <Container size="narrow" className="flex flex-col gap-5">

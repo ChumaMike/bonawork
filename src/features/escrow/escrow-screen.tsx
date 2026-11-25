@@ -56,10 +56,10 @@ const STEP_TEXT: Record<EscrowTx["step"], string> = {
   cash_in: "Sandbox cash-in to the demo funder",
   fund: "Sandbox rand moved into the vault",
   activate: "Escrow marked funded",
-  claim: "Stage claimed",
-  verify: "Stage verified by the reviewer",
-  release: "Stage released (sandbox payout)",
-  refund: "Stage refunded",
+  claim: "Contractor claimed",
+  verify: "Reviewer verified",
+  release: "Released (sandbox payout)",
+  refund: "Refunded to the funder",
 };
 
 export function SandboxBadge() {
@@ -107,7 +107,7 @@ function TxLink({ url, signature }: { url: string; signature: string }) {
 // ------------------------------------------------------------------ fund
 
 const WINDOWS = [
-  { seconds: 60, label: "1 minute (demo)" },
+  { seconds: 60, label: "60 seconds (demo window)" },
   { seconds: 600, label: "10 minutes" },
   { seconds: 3_600, label: "1 hour" },
   { seconds: 86_400, label: "1 day" },
@@ -159,8 +159,9 @@ function FundForm({
       <h2 className="text-xl">Fund this repair</h2>
       <SandboxBadge />
       <p className="text-[0.95rem] text-muted">
-        The money waits in an escrow on Solana devnet. It is released in two stages, each
-        only after an independent reviewer checks the work.
+        The money waits in an escrow on Solana devnet. The independent reviewer makes two
+        checks. Each check releases its part: materials are paid on verified delivery, the
+        rest when the work is done.
       </p>
       <form onSubmit={submit} className="flex flex-col gap-4">
         {existing ? (
@@ -169,7 +170,7 @@ function FundForm({
           </p>
         ) : (
           <>
-            <Field id="fund-materials" label="Stage 1: materials (sandbox rand)">
+            <Field id="fund-materials" label="Check 1: Materials on site (sandbox rand)">
               <Input
                 id="fund-materials"
                 inputMode="decimal"
@@ -178,7 +179,7 @@ function FundForm({
                 required
               />
             </Field>
-            <Field id="fund-completion" label="Stage 2: completion (sandbox rand)">
+            <Field id="fund-completion" label="Check 2: Work done (sandbox rand)">
               <Input
                 id="fund-completion"
                 inputMode="decimal"
@@ -211,7 +212,7 @@ function FundForm({
           {existing ? "Finish funding" : "Fund with sandbox rand"}
         </Button>
         <p className="text-sm text-muted">
-          A demo funder key signs the transfer on devnet. This takes up to a minute.
+          A demo funder key (devnet) signs the transfer. This takes up to a minute.
         </p>
       </form>
     </Card>
@@ -250,7 +251,14 @@ function ClaimForm({
 
   return (
     <form onSubmit={submit} className="flex flex-col gap-3" data-testid="claim-form">
-      <Field id={id} label="What was done for this stage?">
+      <Field
+        id={id}
+        label={
+          tranche.index === 0
+            ? "What was delivered? List it as on the invoice."
+            : "What was installed, and is it working?"
+        }
+      >
         <Textarea
           id={id}
           rows={3}
@@ -261,7 +269,7 @@ function ClaimForm({
       </Field>
       <ErrorText error={error} />
       <Button type="submit" loading={busy} disabled={!note.trim()}>
-        Claim {tranche.label.toLowerCase()} stage
+        Ask for {tranche.index === 0 ? "Check 1" : "Check 2"}
       </Button>
       <p className="text-sm text-muted">Signed with the demo contractor key (devnet).</p>
     </form>
@@ -317,13 +325,24 @@ function TrancheCard({
       data-state={tranche.state}
     >
       <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <h3 className="text-lg">
-          Stage {tranche.index + 1}: {tranche.label}
-        </h3>
+        <h3 className="text-lg">{tranche.label}</h3>
         <p className="font-mono text-lg font-medium">{tranche.amountLabel}</p>
       </div>
       <p className="font-medium" data-testid={`tranche-${tranche.index}-state`}>
         {STATE_TEXT[tranche.state]}
+      </p>
+      <p className="text-sm text-muted">{tranche.detail}</p>
+      <p className="text-sm" data-testid={`tranche-${tranche.index}-payee`}>
+        Paid to: {tranche.payee.role}
+        {tranche.payee.demo ? " (demo key, devnet)" : ""}{" "}
+        <a
+          href={solanaAddressUrl(tranche.payee.address)}
+          target="_blank"
+          rel="noreferrer"
+          className="font-mono underline"
+        >
+          {shortKey(tranche.payee.address)}
+        </a>
       </p>
 
       {tranche.state === "Verified" ? (
@@ -334,7 +353,7 @@ function TrancheCard({
           >
             {challengeLeft > 0
               ? `Challenge window ends in about ${formatWait(challengeLeft)}. The chain decides the exact moment.`
-              : "The challenge window has ended. Anyone can release this stage now."}
+              : "The challenge window has ended. Anyone can release this part now."}
           </p>
           <Button
             onClick={() => act("release")}
@@ -483,7 +502,7 @@ export function EscrowView({
               >
                 <span>
                   {STEP_TEXT[t.step]}
-                  {t.index !== undefined ? ` (stage ${t.index + 1})` : ""}
+                  {t.index !== undefined ? ` (Check ${t.index + 1})` : ""}
                 </span>
                 <TxLink url={t.url} signature={t.signature} />
               </li>
@@ -556,7 +575,7 @@ export function EscrowScreen() {
         }}
         eyebrow="Escrow on Solana devnet"
         title="Repair money"
-        intro="Sandbox rand held for this repair, released in two stages after independent review."
+        intro="Sandbox rand held for this repair. The reviewer makes two checks; each one releases its part."
       />
       <Container size="narrow">
         <EscrowView

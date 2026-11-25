@@ -10,8 +10,8 @@ export function EscrowCard({ issueId, role }: { issueId: string; role: string | 
     <Card data-testid="escrow-card" className="flex flex-col gap-3">
       <h2 className="text-xl">Repair money</h2>
       <p className="text-[0.95rem] text-muted">
-        Sandbox rand held in an escrow on Solana devnet, released in two stages after
-        independent review.
+        Sandbox rand held in an escrow on Solana devnet, released after two independent
+        checks: materials on site, then work done.
       </p>
       <ButtonLink
         href={`/issues/${issueId}/escrow`}

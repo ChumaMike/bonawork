@@ -10,7 +10,11 @@ export type TrancheStateName =
 
 export type EscrowTranche = {
   index: 0 | 1;
-  label: "Materials" | "Completion";
+  /** "Check 1: Materials on site" or "Check 2: Work done". */
+  label: string;
+  detail: string;
+  /** Who a release pays, read from the escrow. */
+  payee: { address: string; role: "contractor"; demo: boolean };
   amount: string;
   amountLabel: string;
   state: TrancheStateName;

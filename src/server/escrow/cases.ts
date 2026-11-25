@@ -65,8 +65,22 @@ const DAY = 86_400;
 export const MIN_CHALLENGE_SECONDS = 60;
 export const MAX_CHALLENGE_SECONDS = 604_800;
 
-/** The two payment stages of every BonaWork escrow. */
-export const TRANCHE_LABELS = ["Materials", "Completion"] as const;
+/**
+ * The two checks of every BonaWork escrow, one per payment stage. The
+ * reviewer verifies each one; the materials stage is paid on verified
+ * delivery of materials, never as an upfront advance.
+ */
+export const TRANCHE_CHECKS = [
+  {
+    label: "Check 1: Materials on site",
+    detail:
+      "Paid on verified delivery of materials: the delivered items match the invoice.",
+  },
+  {
+    label: "Check 2: Work done",
+    detail: "Paid when the reviewer confirms the work is installed and working.",
+  },
+] as const;
 
 // ------------------------------------------------------------------ rows
 
@@ -611,7 +625,13 @@ export async function runCaseWatchdog(deps: EscrowDeps) {
 
 export type PublicEscrowTranche = {
   index: TrancheIndex;
-  label: (typeof TRANCHE_LABELS)[number];
+  label: (typeof TRANCHE_CHECKS)[number]["label"];
+  detail: string;
+  /**
+   * Who a release pays, read from the escrow. Today the program pays both
+   * stages to the escrow's contractor; a per-stage payee can replace this.
+   */
+  payee: { address: string; role: "contractor"; demo: boolean };
   amount: string;
   amountLabel: string;
   state: keyof typeof TrancheState;
@@ -680,7 +700,13 @@ export function publicEscrowView(
     tranches: onChain
       ? onChain.tranches.map((t) => ({
           index: t.index,
-          label: TRANCHE_LABELS[t.index],
+          label: TRANCHE_CHECKS[t.index].label,
+          detail: TRANCHE_CHECKS[t.index].detail,
+          payee: {
+            address: onChain.account.contractor,
+            role: "contractor" as const,
+            demo: onChain.account.contractor === row.contractorAddress,
+          },
           amount: t.account.amount.toString(),
           amountLabel: formatRand(t.account.amount),
           state: t.state,
