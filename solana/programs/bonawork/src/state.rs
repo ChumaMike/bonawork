@@ -50,12 +50,17 @@ pub struct Escrow {
     /// Optional wallet the funder may add to raise disputes on chain.
     /// `Pubkey::default()` means the funder chose not to.
     pub funder_challenger: Pubkey,
-    /// Receives each released tranche. Nobody can change it later.
+    /// Claims each tranche (with the match key). Receives a tranche when it is that tranche's payee.
     pub contractor: Pubkey,
     /// Responsible for raising disputes.
     pub school: Pubkey,
-    /// The only wallet that can verify this repair.
+    /// The only wallet that can verify this repair. Replaceable only by `reassign_reviewer`
+    /// (admin and school together, and never while a verified tranche awaits release).
     pub reviewer: Pubkey,
+    /// Who receives each tranche when it is released, fixed at creation; nobody can change it.
+    /// Typically payees[0] is the materials supplier (paid once the reviewer confirms the
+    /// materials are on site) and payees[1] is the contractor.
+    pub payees: [Pubkey; 2],
 
     pub mint: Pubkey,
     pub match_authority: Pubkey,
@@ -75,6 +80,31 @@ pub struct Escrow {
     pub bump: u8,
 }
 
+impl Escrow {
+    /// The fixed payee of tranche `index`. An index outside 0..2 gives the default key,
+    /// which can never match a real account, so a release with it fails instead of panicking.
+    pub fn payee_for(&self, index: u8) -> Pubkey {
+        self.payees.get(usize::from(index)).copied().unwrap_or_default()
+    }
+
+    /// Tokens the vault must keep for tranches that are not settled yet.
+    /// A cancelled escrow owes nothing: its tranches can never be claimed.
+    pub fn amount_owed(&self) -> Result<u64> {
+        if self.cancelled {
+            return Ok(0);
+        }
+        let settled = self
+            .released_amount
+            .checked_add(self.refunded_amount)
+            .ok_or(crate::errors::BonaError::ArithmeticOverflow)?;
+        let owed = self
+            .total_amount
+            .checked_sub(settled)
+            .ok_or(crate::errors::BonaError::ArithmeticOverflow)?;
+        Ok(owed)
+    }
+}
+
 #[derive(AnchorSerialize, AnchorDeserialize, Clone, Copy, PartialEq, Eq, InitSpace, Debug)]
 pub enum TrancheState {
     /// Funded or waiting for funding; nothing claimed yet.
@@ -85,7 +115,7 @@ pub enum TrancheState {
     Verified,
     /// Frozen by a dispute.
     Disputed,
-    /// Paid to the contractor's token account.
+    /// Paid to the tranche's fixed payee's token account.
     Released,
     /// Returned to the funder.
     Refunded,

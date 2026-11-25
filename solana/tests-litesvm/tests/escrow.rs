@@ -90,6 +90,8 @@ struct CreateEscrowArgs {
     verification_deadlines: [i64; 2],
     challenge_seconds: u32,
     dispute_seconds: u32,
+    /// All zeroes = the contractor.
+    payees: [[u8; 32]; 2],
 }
 
 #[derive(BorshDeserialize, Debug)]
@@ -100,7 +102,8 @@ struct EscrowState {
     _funder_challenger: [u8; 32],
     _contractor: [u8; 32],
     _school: [u8; 32],
-    _reviewer: [u8; 32],
+    reviewer: [u8; 32],
+    payees: [[u8; 32]; 2],
     _mint: [u8; 32],
     _match_authority: [u8; 32],
     _dispute_authority: [u8; 32],
@@ -160,6 +163,8 @@ struct World {
     school: Keypair,
     reviewer: Keypair,
     stranger: Keypair,
+    /// A materials supplier, paid directly for tranche 0 in the payee tests.
+    supplier: Keypair,
     mint_auth: Keypair,
     mint: Address,
 }
@@ -226,6 +231,7 @@ impl World {
             school: Keypair::new(),
             reviewer: Keypair::new(),
             stranger: Keypair::new(),
+            supplier: Keypair::new(),
             mint_auth,
             mint,
         };
@@ -283,6 +289,7 @@ impl World {
             verification_deadlines: [T0 + 7 * 86_400, T0 + 14 * 86_400],
             challenge_seconds: CHALLENGE,
             dispute_seconds: DISPUTE_TIMEOUT,
+            payees: [[0; 32]; 2],
         }
     }
 
@@ -430,7 +437,7 @@ impl World {
         send(&mut self.svm, &self.fee, &[ix], &[who])
     }
 
-    fn release_ix(&self, c: &Case, index: u8, caller: &Address, contractor: &Address, vault: &Address) -> Instruction {
+    fn release_ix(&self, c: &Case, index: u8, caller: &Address, payee: &Address, vault: &Address) -> Instruction {
         let tranche = if index == 0 { c.t0 } else { c.t1 };
         Instruction {
             program_id: program(),
@@ -440,8 +447,8 @@ impl World {
                 mw(tranche),
                 mw(*vault),
                 ro(self.mint),
-                ro(*contractor),
-                mw(ata(contractor, &self.mint)),
+                ro(*payee),
+                mw(ata(payee, &self.mint)),
                 ro(addr(TOKEN_PROGRAM)),
                 ro(addr(ATA_PROGRAM)),
                 ro(addr(SYSTEM_PROGRAM)),
@@ -450,12 +457,77 @@ impl World {
         }
     }
 
-    /// Released by a stranger, to prove anyone can trigger it.
+    /// The payee the escrow stored for a tranche.
+    fn payee(&self, c: &Case, index: u8) -> Address {
+        Address::new_from_array(self.escrow(c.escrow).payees[usize::from(index)])
+    }
+
+    /// Released by a stranger, to prove anyone can trigger it. Pays the stored payee.
     fn release(&mut self, c: &Case, index: u8) -> Result<(), String> {
         let stranger = self.stranger.insecure_clone();
         sol(&mut self.svm, &stranger.pubkey());
-        let ix = self.release_ix(c, index, &stranger.pubkey(), &self.contractor.pubkey(), &c.vault);
+        let payee = self.payee(c, index);
+        let ix = self.release_ix(c, index, &stranger.pubkey(), &payee, &c.vault);
         send(&mut self.svm, &self.fee, &[ix], &[&stranger])
+    }
+
+    /// Accounts: admin, config, school, escrow, tranche0, tranche1, new reviewer's record.
+    /// `admin_signs` / `school_signs` = false leaves that account in place but unsigned.
+    fn reassign_ix(&self, c: &Case, admin: &Address, admin_signs: bool, school: &Address, school_signs: bool, new_reviewer: &Address) -> Instruction {
+        let meta = |a: &Address, signs: bool| AccountMeta::new_readonly(*a, signs);
+        Instruction {
+            program_id: program(),
+            accounts: vec![
+                meta(admin, admin_signs),
+                ro(self.config()),
+                meta(school, school_signs),
+                mw(c.escrow),
+                ro(c.t0),
+                ro(c.t1),
+                ro(pda(&[b"reviewer", new_reviewer.as_ref()])),
+            ],
+            data: data("reassign_reviewer", &new_reviewer.to_bytes()),
+        }
+    }
+
+    /// Admin and school both sign.
+    fn reassign(&mut self, c: &Case, new_reviewer: &Address) -> Result<(), String> {
+        let ix = self.reassign_ix(c, &self.admin.pubkey(), true, &self.school.pubkey(), true, new_reviewer);
+        let admin = self.admin.insecure_clone();
+        let school = self.school.insecure_clone();
+        send(&mut self.svm, &self.fee, &[ix], &[&admin, &school])
+    }
+
+    /// Called by a stranger, to prove anyone can trigger it.
+    fn sweep(&mut self, c: &Case) -> Result<(), String> {
+        let stranger = self.stranger.insecure_clone();
+        sol(&mut self.svm, &stranger.pubkey());
+        let ix = Instruction {
+            program_id: program(),
+            accounts: vec![
+                mws(stranger.pubkey()),
+                ro(c.escrow),
+                mw(c.vault),
+                ro(self.mint),
+                ro(c.funder),
+                mw(ata(&c.funder, &self.mint)),
+                ro(addr(TOKEN_PROGRAM)),
+                ro(addr(ATA_PROGRAM)),
+                ro(addr(SYSTEM_PROGRAM)),
+            ],
+            data: disc("sweep_surplus"),
+        };
+        send(&mut self.svm, &self.fee, &[ix], &[&stranger])
+    }
+
+    /// Claim, verify, wait out the challenge window and release one tranche.
+    fn settle(&mut self, c: &Case, index: u8, evidence: u8) {
+        self.claim(c, index, 0, evidence).unwrap();
+        self.verify(c, index, 1, evidence).unwrap();
+        let t = if index == 0 { c.t0 } else { c.t1 };
+        let until = self.tranche(t).challenge_until;
+        self.at(until);
+        self.release(c, index).unwrap();
     }
 
     fn refund(&mut self, c: &Case, index: u8, with_prior: bool) -> Result<(), String> {
@@ -935,4 +1007,288 @@ fn t22_full_journey_totals_and_cancel() {
     assert_eq!(w.balance(ata(&c.funder, &w.mint)), before + 1_000);
     assert!(w.escrow(c.escrow).cancelled);
     expect_err(w.activate(&c), "EscrowCancelled");
+}
+
+// ---------------------------------------------------------------- payee per tranche
+
+/// An escrow whose materials tranche pays the supplier directly; completion pays the contractor.
+fn supplier_case(w: &mut World, case: u8) -> Case {
+    let mut a = w.default_args(case);
+    a.payees = [w.supplier.pubkey().to_bytes(), [0; 32]];
+    let c = w.create(&a).unwrap();
+    w.deposit(&c, MATERIALS + COMPLETION);
+    w.activate(&c).unwrap();
+    c
+}
+
+#[test]
+fn t23_materials_tranche_pays_the_supplier_not_the_contractor() {
+    let mut w = World::new();
+    let c = supplier_case(&mut w, 1);
+    assert_eq!(w.payee(&c, 0), w.supplier.pubkey());
+    assert_eq!(w.payee(&c, 1), w.contractor.pubkey(), "an unset payee defaults to the contractor");
+
+    let supplier_ata = ata(&w.supplier.pubkey(), &w.mint);
+    let contractor_ata = ata(&w.contractor.pubkey(), &w.mint);
+    w.settle(&c, 0, 10);
+    assert_eq!(w.balance(supplier_ata), MATERIALS);
+    assert_eq!(w.balance(contractor_ata), 0, "the contractor gets nothing for the materials tranche");
+    assert_eq!(w.balance(c.vault), COMPLETION);
+
+    w.settle(&c, 1, 20);
+    assert_eq!(w.balance(supplier_ata), MATERIALS);
+    assert_eq!(w.balance(contractor_ata), COMPLETION);
+    assert_eq!(w.balance(c.vault), 0);
+    assert_eq!(w.escrow(c.escrow).released_amount, MATERIALS + COMPLETION);
+}
+
+#[test]
+fn t24_payee_cannot_be_swapped_at_release() {
+    let mut w = World::new();
+    let c = supplier_case(&mut w, 1);
+    w.claim(&c, 0, 0, 10).unwrap();
+    w.verify(&c, 0, 1, 10).unwrap();
+    let until = w.tranche(c.t0).challenge_until;
+    w.at(until);
+    let stranger = w.stranger.insecure_clone();
+    sol(&mut w.svm, &stranger.pubkey());
+    // The contractor (a valid payee of the other tranche) cannot take the materials money.
+    let ix = w.release_ix(&c, 0, &stranger.pubkey(), &w.contractor.pubkey(), &c.vault);
+    expect_err(send(&mut w.svm, &w.fee, &[ix], &[&stranger]), "Unauthorized");
+    // Nor can the caller.
+    let ix = w.release_ix(&c, 0, &stranger.pubkey(), &stranger.pubkey(), &c.vault);
+    expect_err(send(&mut w.svm, &w.fee, &[ix], &[&stranger]), "Unauthorized");
+    // The right owner with someone else's token account is rejected too.
+    let mut ix = w.release_ix(&c, 0, &stranger.pubkey(), &w.supplier.pubkey(), &c.vault);
+    ix.accounts[6] = AccountMeta::new(ata(&w.contractor.pubkey(), &w.mint), false);
+    assert!(send(&mut w.svm, &w.fee, &[ix], &[&stranger]).is_err());
+    assert_eq!(w.balance(c.vault), MATERIALS + COMPLETION);
+
+    w.release(&c, 0).unwrap();
+    assert_eq!(w.balance(ata(&w.supplier.pubkey(), &w.mint)), MATERIALS);
+}
+
+#[test]
+fn t25_payees_must_not_hold_other_roles() {
+    let mut w = World::new();
+    let base = w.default_args(1);
+    let escrow = w.case_for(&base).escrow;
+    let challenger = Keypair::new();
+    let bad = [
+        base.funder,
+        base.school,
+        base.reviewer,
+        w.matcher.pubkey().to_bytes(),
+        w.disputer.pubkey().to_bytes(),
+        escrow.to_bytes(),
+    ];
+    for p in bad {
+        for slot in 0..2 {
+            let mut a = w.default_args(1);
+            a.payees[slot] = p;
+            expect_err(w.create(&a).map(|_| ()), "InvalidRoleAssignment");
+        }
+    }
+    let mut a = w.default_args(1);
+    a.funder_challenger = challenger.pubkey().to_bytes();
+    a.payees[0] = challenger.pubkey().to_bytes();
+    expect_err(w.create(&a).map(|_| ()), "InvalidRoleAssignment");
+    // Naming the contractor explicitly is the same as the default.
+    let mut a = w.default_args(1);
+    a.payees = [a.contractor, a.contractor];
+    let c = w.create(&a).unwrap();
+    assert_eq!(w.payee(&c, 0), w.contractor.pubkey());
+}
+
+// ---------------------------------------------------------------- reviewer replacement
+
+fn vetted_reviewer(w: &mut World) -> Keypair {
+    let r = Keypair::new();
+    w.set_reviewer(r.pubkey(), true).unwrap();
+    r
+}
+
+#[test]
+fn t26_reassign_needs_admin_and_school() {
+    let mut w = World::new();
+    let c = w.funded_case(1);
+    let new_r = vetted_reviewer(&mut w);
+    let admin = w.admin.insecure_clone();
+    let school = w.school.insecure_clone();
+    let stranger = w.stranger.insecure_clone();
+
+    // Admin alone.
+    let ix = w.reassign_ix(&c, &admin.pubkey(), true, &school.pubkey(), false, &new_r.pubkey());
+    expect_err(send(&mut w.svm, &w.fee, &[ix], &[&admin]), "AccountNotSigner");
+    // School alone.
+    let ix = w.reassign_ix(&c, &admin.pubkey(), false, &school.pubkey(), true, &new_r.pubkey());
+    expect_err(send(&mut w.svm, &w.fee, &[ix], &[&school]), "AccountNotSigner");
+    // Admin with a stranger posing as the school.
+    let ix = w.reassign_ix(&c, &admin.pubkey(), true, &stranger.pubkey(), true, &new_r.pubkey());
+    expect_err(send(&mut w.svm, &w.fee, &[ix], &[&admin, &stranger]), "Unauthorized");
+    // School with a stranger posing as the admin.
+    let ix = w.reassign_ix(&c, &stranger.pubkey(), true, &school.pubkey(), true, &new_r.pubkey());
+    expect_err(send(&mut w.svm, &w.fee, &[ix], &[&stranger, &school]), "Unauthorized");
+    assert_eq!(w.escrow(c.escrow).reviewer, w.reviewer.pubkey().to_bytes());
+
+    w.reassign(&c, &new_r.pubkey()).unwrap();
+    assert_eq!(w.escrow(c.escrow).reviewer, new_r.pubkey().to_bytes());
+}
+
+#[test]
+fn t27_reassign_refused_while_a_tranche_is_verified_or_disputed() {
+    let mut w = World::new();
+    let c = w.funded_case(1);
+    let new_r = vetted_reviewer(&mut w);
+    let school = w.school.insecure_clone();
+    let disputer = w.disputer.insecure_clone();
+    w.claim(&c, 0, 0, 10).unwrap();
+    w.verify(&c, 0, 1, 10).unwrap();
+    expect_err(w.reassign(&c, &new_r.pubkey()), "ReviewerChangeBlocked");
+    // Still verified after the challenge window: the release is pending.
+    let until = w.tranche(c.t0).challenge_until;
+    w.at(until);
+    expect_err(w.reassign(&c, &new_r.pubkey()), "ReviewerChangeBlocked");
+
+    // Disputed is blocked too; once sent back for re-review (Claimed) it is allowed.
+    let c2 = w.funded_case(2);
+    w.claim(&c2, 0, 0, 10).unwrap();
+    w.verify(&c2, 0, 1, 10).unwrap();
+    w.dispute_as(&c2, 0, &school, 1).unwrap();
+    expect_err(w.reassign(&c2, &new_r.pubkey()), "ReviewerChangeBlocked");
+    let deadline = w.now() + 86_400;
+    w.resolve_as(&c2, 0, &disputer, false, deadline).unwrap();
+    w.reassign(&c2, &new_r.pubkey()).unwrap();
+    assert_eq!(w.escrow(c2.escrow).reviewer, new_r.pubkey().to_bytes());
+}
+
+#[test]
+fn t28_reassigned_reviewer_verifies_and_the_old_one_cannot() {
+    let mut w = World::new();
+    let c = w.funded_case(1);
+    w.claim(&c, 0, 0, 10).unwrap();
+    // The assigned reviewer is switched off: verification is stuck.
+    let old = w.reviewer.insecure_clone();
+    w.set_reviewer(old.pubkey(), false).unwrap();
+    expect_err(w.verify(&c, 0, 1, 10), "ReviewerInactive");
+
+    let new_r = vetted_reviewer(&mut w);
+    w.reassign(&c, &new_r.pubkey()).unwrap();
+    // Even if reactivated, the old reviewer is no longer assigned.
+    w.set_reviewer(old.pubkey(), true).unwrap();
+    expect_err(w.verify_as(&c, 0, &old, 1, 10), "ReviewerMismatch");
+    // The new reviewer still has to approve the exact evidence.
+    expect_err(w.verify_as(&c, 0, &new_r, 1, 11), "EvidenceMismatch");
+    w.verify_as(&c, 0, &new_r, 1, 10).unwrap();
+    let until = w.tranche(c.t0).challenge_until;
+    w.at(until);
+    w.release(&c, 0).unwrap();
+    assert_eq!(w.balance(ata(&w.contractor.pubkey(), &w.mint)), MATERIALS);
+}
+
+#[test]
+fn t29_new_reviewer_must_be_independent_and_active() {
+    let mut w = World::new();
+    let c = supplier_case(&mut w, 1);
+    // Every party gets a reviewer record, so only the role rule can stop them.
+    for who in [w.contractor.pubkey(), w.school.pubkey(), w.funder.pubkey(), w.supplier.pubkey()] {
+        w.set_reviewer(who, true).unwrap();
+        expect_err(w.reassign(&c, &who), "InvalidRoleAssignment");
+    }
+    let inactive = Keypair::new();
+    w.set_reviewer(inactive.pubkey(), false).unwrap();
+    expect_err(w.reassign(&c, &inactive.pubkey()), "ReviewerInactive");
+    // A wallet that was never vetted has no record at all.
+    let unvetted = Keypair::new();
+    assert!(w.reassign(&c, &unvetted.pubkey()).is_err());
+    assert_eq!(w.escrow(c.escrow).reviewer, w.reviewer.pubkey().to_bytes());
+}
+
+// ---------------------------------------------------------------- surplus recovery
+
+#[test]
+fn t30_sweep_returns_only_the_surplus() {
+    let mut w = World::new();
+    let funder_ata = |w: &World| ata(&w.funder.pubkey(), &w.mint);
+
+    // Before funding: a partial deposit is not surplus; an overpayment is.
+    let a = w.default_args(1);
+    let c = w.create(&a).unwrap();
+    w.deposit(&c, MATERIALS);
+    w.sweep(&c).unwrap();
+    assert_eq!(w.balance(c.vault), MATERIALS);
+    w.deposit(&c, COMPLETION + 50);
+    w.sweep(&c).unwrap();
+    assert_eq!(w.balance(funder_ata(&w)), 50);
+    assert_eq!(w.balance(c.vault), MATERIALS + COMPLETION);
+    w.activate(&c).unwrap();
+
+    // Funded: an extra deposit of X comes back as exactly X.
+    const X: u64 = 12_345;
+    w.deposit(&c, X);
+    w.sweep(&c).unwrap();
+    assert_eq!(w.balance(funder_ata(&w)), 50 + X);
+    assert_eq!(w.balance(c.vault), MATERIALS + COMPLETION);
+
+    // After the materials release, only the completion amount is owed.
+    w.settle(&c, 0, 10);
+    w.deposit(&c, 777);
+    w.sweep(&c).unwrap();
+    assert_eq!(w.balance(funder_ata(&w)), 50 + X + 777);
+    assert_eq!(w.balance(c.vault), COMPLETION);
+
+    // A verified tranche awaiting release keeps its money.
+    w.claim(&c, 1, 0, 20).unwrap();
+    w.verify(&c, 1, 1, 20).unwrap();
+    w.deposit(&c, 5);
+    w.sweep(&c).unwrap();
+    assert_eq!(w.balance(funder_ata(&w)), 50 + X + 777 + 5);
+    assert_eq!(w.balance(c.vault), COMPLETION);
+    let until = w.tranche(c.t1).challenge_until;
+    w.at(until);
+    w.release(&c, 1).unwrap();
+    assert_eq!(w.balance(ata(&w.contractor.pubkey(), &w.mint)), MATERIALS + COMPLETION);
+    assert_eq!(w.balance(c.vault), 0);
+}
+
+#[test]
+fn t31_sweep_after_settlement_empties_the_vault_to_the_funder() {
+    let mut w = World::new();
+    let funder_ata = ata(&w.funder.pubkey(), &w.mint);
+    let c = w.funded_case(1);
+    w.settle(&c, 0, 10);
+    w.settle(&c, 1, 20);
+    w.deposit(&c, 999);
+    w.sweep(&c).unwrap();
+    assert_eq!(w.balance(c.vault), 0);
+    assert_eq!(w.balance(funder_ata), 999);
+
+    // Refunded tranches owe nothing either.
+    let c2 = w.funded_case(2);
+    w.at(T0 + 7 * 86_400);
+    w.refund(&c2, 0, false).unwrap();
+    w.refund(&c2, 1, true).unwrap();
+    w.deposit(&c2, 31);
+    w.sweep(&c2).unwrap();
+    assert_eq!(w.balance(c2.vault), 0);
+    assert_eq!(w.balance(funder_ata), 999 + MATERIALS + COMPLETION + 31);
+}
+
+#[test]
+fn t32_sweep_twice_is_harmless() {
+    let mut w = World::new();
+    let funder_ata = ata(&w.funder.pubkey(), &w.mint);
+    let c = w.funded_case(1);
+    // Nothing to sweep: succeeds and moves nothing.
+    w.sweep(&c).unwrap();
+    assert_eq!(w.balance(c.vault), MATERIALS + COMPLETION);
+    w.deposit(&c, 400);
+    w.sweep(&c).unwrap();
+    w.sweep(&c).unwrap();
+    assert_eq!(w.balance(funder_ata), 400);
+    assert_eq!(w.balance(c.vault), MATERIALS + COMPLETION);
+    // The escrow still pays out in full.
+    w.settle(&c, 0, 10);
+    w.settle(&c, 1, 20);
+    assert_eq!(w.balance(ata(&w.contractor.pubkey(), &w.mint)), MATERIALS + COMPLETION);
 }
