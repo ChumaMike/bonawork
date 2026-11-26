@@ -1,0 +1,21 @@
+/*
+ * The guided demo's strip sits between the top bar and the page. Where the bar
+ * lies over a navy band (it has no data-flow), the strip takes that band's
+ * 76 px on its own top, and the page below it no longer needs it.
+ */
+.vl-header:not([data-flow]) ~ .demo-strip,
+.vl-header-holder ~ .demo-strip {
+  padding-top: 76px;
+  background:
+    linear-gradient(#030720, #030720) top / 100% 76px no-repeat,
+    var(--color-brand-soft);
+}
+.demo-strip ~ main {
+  background: none;
+}
+.demo-strip ~ main .vl-pagehero {
+  padding-top: clamp(28px, 4.5vw, 56px);
+}
+.demo-strip ~ main .vl-pagehero[data-size="compact"] {
+  padding-top: clamp(20px, 3vw, 36px);
+}

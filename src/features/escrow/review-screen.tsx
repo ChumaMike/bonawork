@@ -101,6 +101,9 @@ export function EscrowReviewScreen() {
           .catch(() => null)
       : Promise.resolve(null),
   );
+  const budget = useQuery(`budget:${issueId}`, () =>
+    escrowApi.budget(issueId).catch(() => null),
+  );
   const [review, setReview] = useState<ReviewRecord | null>(null);
   const [prepared, setPrepared] = useState<PreparedVerify | null>(null);
   const [sent, setSent] = useState<VerifySent | null>(null);
@@ -116,7 +119,7 @@ export function EscrowReviewScreen() {
     (t) => t.state === "Claimed" && (asked === null || t.index === asked),
   );
   const invoice = trail.data?.invoices.at(-1);
-  const lines: CopilotInvoiceLine[] = (invoice?.lines ?? [])
+  const invoiceLines: CopilotInvoiceLine[] = (invoice?.lines ?? [])
     .filter((l) => l.quantity > 0)
     .map((l) => ({
       lineId: l.sku,
@@ -124,6 +127,17 @@ export function EscrowReviewScreen() {
       quantity: l.quantity,
       unitPriceCents: l.unitPriceCents ?? 0,
     }));
+  // No invoice on the case: check against the school's confirmed budget instead
+  // (Check 1 against its materials, Check 2 against every line).
+  const budgetLines: CopilotInvoiceLine[] = (budget.data?.lines ?? [])
+    .filter((l) => claimed?.index === 1 || l.kind === "material")
+    .map((l, i) => ({
+      lineId: `line-${i + 1}`,
+      description: l.description,
+      quantity: l.quantity,
+      unitPriceCents: l.unitPriceCents,
+    }));
+  const lines = invoiceLines.length > 0 ? invoiceLines : budgetLines;
   const blocker = reviewBlocker(review);
 
   async function prepare() {
@@ -204,7 +218,7 @@ export function EscrowReviewScreen() {
         <p>There is no claim waiting for a check.</p>
       </Notice>
     );
-  } else if (!issue.data || trail.data === undefined) {
+  } else if (!issue.data || trail.data === undefined || budget.data === undefined) {
     body = <PageLoading />;
   } else {
     body = (

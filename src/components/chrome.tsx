@@ -111,7 +111,7 @@ function navItemsFor(audience: Audience, m: ReturnType<typeof useMessages>) {
 }
 
 /** Pages that draw no navy band under the bar, so the bar is solid on them. */
-const PLAIN_PAGES = new Set(["/sign-in"]);
+const PLAIN_PAGES = new Set(["/sign-in", "/demo"]);
 
 /**
  * The one top bar of the site, the landing page's: the logo, the menu for the

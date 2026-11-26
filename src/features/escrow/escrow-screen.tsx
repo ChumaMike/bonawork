@@ -568,7 +568,7 @@ function TrancheCard({
       </p>
       <p className="text-sm text-muted">{tranche.detail}</p>
       <p className="text-sm" data-testid={`tranche-${tranche.index}-payee`}>
-        Paid to: {tranche.payee.role}
+        Released to: the {tranche.payee.role}
         {tranche.payee.demo ? " (demo key, devnet)" : ""}{" "}
         <a
           href={solanaAddressUrl(tranche.payee.address)}

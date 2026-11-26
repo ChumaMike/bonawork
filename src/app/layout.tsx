@@ -4,6 +4,7 @@ import { Suspense } from "react";
 import { BonaBuddy } from "@/components/buddy/bona-buddy";
 import { BottomNav, PreviewBanner, SiteFooter, SiteHeader } from "@/components/chrome";
 import { ToastRegion } from "@/components/ui/toast";
+import { GuideStrip } from "@/features/demo/guide-strip";
 import { DEFAULT_LOCALE, getMessages } from "@/i18n";
 import "./globals.css";
 
@@ -86,6 +87,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         {/* The navigation reads the current path, so it streams in its own boundary. */}
         <Suspense fallback={<div className="vl-header-holder" />}>
           <SiteHeader />
+        </Suspense>
+        {/* The guided demo's strip, only while this browser runs the demo. */}
+        <Suspense fallback={null}>
+          <GuideStrip />
         </Suspense>
         <main id="main" className="flex-1">
           {children}

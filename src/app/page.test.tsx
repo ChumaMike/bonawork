@@ -53,11 +53,19 @@ describe("home page", () => {
       [
         ...new Set(screen.getAllByRole("link").map((link) => link.getAttribute("href"))),
       ].sort();
-    expect(hrefs()).toEqual(["/issues", "/report", "/schools", "/track"]);
+    // "/demo" is the guided demo (on unless BONAWORK_DEMO_MODE=off).
+    expect(hrefs()).toEqual(["/demo", "/issues", "/report", "/schools", "/track"]);
     // The staff tabs lead to sign-in: workspaces stay behind it and in the footer.
     for (const name of ["Supplier", "Independent reviewer", "Payment approver"]) {
       fireEvent.click(screen.getByRole("tab", { name }));
-      expect(hrefs()).toEqual(["/issues", "/report", "/schools", "/sign-in", "/track"]);
+      expect(hrefs()).toEqual([
+        "/demo",
+        "/issues",
+        "/report",
+        "/schools",
+        "/sign-in",
+        "/track",
+      ]);
     }
   });
 

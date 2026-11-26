@@ -97,11 +97,11 @@ export const TRANCHE_CHECKS = [
   {
     label: "Check 1: Materials on site",
     detail:
-      "Paid on verified delivery of materials: the delivered items match the invoice.",
+      "Released on verified delivery of materials: the delivered items match the invoice.",
   },
   {
     label: "Check 2: Work done",
-    detail: "Paid when the reviewer confirms the work is installed and working.",
+    detail: "Released when the reviewer confirms the work is installed and working.",
   },
 ] as const;
 

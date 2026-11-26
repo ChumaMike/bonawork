@@ -67,6 +67,12 @@ export async function signInAsDemo(email: string): Promise<Session> {
   return session;
 }
 
+/** Put the session the guided demo just switched to into the shared store. */
+export function setSessionFromServer(session: Session | null): void {
+  requested = true;
+  set({ status: "ready", session });
+}
+
 export async function signOut(): Promise<void> {
   await getApi().signOut();
   set({ status: "ready", session: null });

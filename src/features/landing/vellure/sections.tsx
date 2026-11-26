@@ -52,6 +52,11 @@ function Bars({ filled, total = 22 }: { filled: number; total?: number }) {
   );
 }
 
+/** The guided demo's entry; `BONAWORK_DEMO_MODE=off` hides it (read when the page is built). */
+const DEMO_ON = !["off", "false", "0"].includes(
+  (process.env.BONAWORK_DEMO_MODE ?? "").trim().toLowerCase(),
+);
+
 const MOCK_RAIL: IconName[] = ["home", "list", "file", "shieldCheck", "cube", "users"];
 
 /**
@@ -76,7 +81,15 @@ export function Hero() {
           {h.sub}
         </p>
         <div className="vl-hero-actions" data-rise style={delay(240)}>
-          <Link href="/report" className="vl-btn vl-btn-white">
+          {DEMO_ON ? (
+            <Link href="/demo" className="vl-btn vl-btn-white" data-testid="try-demo">
+              Try the demo
+            </Link>
+          ) : null}
+          <Link
+            href="/report"
+            className={DEMO_ON ? "vl-btn vl-btn-glass" : "vl-btn vl-btn-white"}
+          >
             {h.primary}
           </Link>
           <Link href="/issues" className="vl-btn vl-btn-glass">

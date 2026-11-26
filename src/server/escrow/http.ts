@@ -31,8 +31,61 @@ export async function escrowDeps(): Promise<EscrowDeps> {
   }
 }
 
+/** Words Solana uses when a paying key holds too little SOL for the fee or rent. */
+const LOW_SOL =
+  /insufficient (funds|lamports)|InsufficientFundsFor(Fee|Rent)|no record of a prior credit/i;
+
+/** True when a Solana failure says a platform key ran out of devnet SOL. */
+export function isLowSolError(error: unknown): boolean {
+  const seen = new Set<unknown>();
+  const texts: string[] = [];
+  const walk = (value: unknown, depth: number) => {
+    if (value == null || depth > 5 || seen.has(value)) return;
+    if (typeof value === "string") {
+      texts.push(value);
+      return;
+    }
+    if (typeof value !== "object") return;
+    seen.add(value);
+    if (Array.isArray(value)) {
+      value.forEach((v) => walk(v, depth + 1));
+      return;
+    }
+    const obj = value as Record<string, unknown>;
+    for (const [key, v] of Object.entries(obj)) {
+      if (typeof v === "string") texts.push(v);
+      else if (["cause", "context", "err", "logs", "InstructionError"].includes(key)) {
+        walk(v, depth + 1);
+      }
+    }
+    if (value instanceof Error) {
+      texts.push(value.message);
+      walk((value as { cause?: unknown }).cause, depth + 1);
+    }
+  };
+  walk(error, 0);
+  return texts.some((t) => LOW_SOL.test(t));
+}
+
+export const LOW_SOL_TEXT = "Demo wallet needs a top-up, try again later.";
+
 export function escrowErrorResponse(error: unknown): Response | null {
   if (error instanceof HttpError || error instanceof z.ZodError) return null;
+  if (isLowSolError(error)) {
+    console.warn("[escrow] a platform key is low on devnet SOL:", String(error));
+    return Response.json(
+      {
+        error: {
+          code: "ledger_unavailable",
+          message: LOW_SOL_TEXT,
+          kind: "low_sol",
+          programError: null,
+          findings: [],
+        },
+      },
+      { status: API_ERROR_STATUS.ledger_unavailable },
+    );
+  }
   const described = describeSolanaError(error);
   if (described.kind === "unknown") return null;
   const code: ApiErrorCode =
