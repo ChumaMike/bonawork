@@ -1,6 +1,5 @@
 import { describe, expect, it } from "vitest";
 import {
-  CONTENT_MAX_PX,
   PET_PX,
   hasGutter,
   homeSpot,
@@ -13,12 +12,10 @@ import {
 
 const wide: View = { w: 1536, h: 800, bottomReserve: 80 };
 const phone: View = { w: 390, h: 800, bottomReserve: 150 };
-const leftGutterEnd = (wide.w - CONTENT_MAX_PX) / 2;
 
 describe("where the pet may sit", () => {
-  it("knows when there is room beside the content", () => {
-    expect(hasGutter(wide.w)).toBe(true);
-    expect(hasGutter(1180)).toBe(false);
+  it("never strolls beside the content: the workbench pages use the full width", () => {
+    expect(hasGutter(wide.w)).toBe(false);
     expect(hasGutter(phone.w)).toBe(false);
   });
 
@@ -28,15 +25,19 @@ describe("where the pet may sit", () => {
     expect(home.y).toBe(phone.h - phone.bottomReserve - PET_PX);
   });
 
-  it("is moved out of the content when dropped on it, onto the nearer side", () => {
-    const dropped = settle({ x: 600, y: 300 }, wide);
-    expect(dropped.x + PET_PX).toBeLessThanOrEqual(leftGutterEnd);
-    const right = settle({ x: 1000, y: 300 }, wide);
-    expect(right.x).toBeGreaterThanOrEqual(wide.w - leftGutterEnd);
+  it("is moved to the nearer bottom corner when dropped", () => {
+    expect(settle({ x: 600, y: 300 }, wide)).toEqual({
+      x: 16,
+      y: wide.h - wide.bottomReserve - PET_PX,
+    });
+    expect(settle({ x: 1000, y: 300 }, wide).x).toBe(wide.w - PET_PX - 16);
   });
 
-  it("hugs an edge on a phone, and never covers the header or the bottom bar", () => {
-    expect(settle({ x: 120, y: 5 }, phone)).toEqual({ x: 16, y: 96 });
+  it("hugs a bottom corner on a phone, above the bottom bar", () => {
+    expect(settle({ x: 120, y: 5 }, phone)).toEqual({
+      x: 16,
+      y: phone.h - phone.bottomReserve - PET_PX,
+    });
     expect(settle({ x: 300, y: 790 }, phone)).toEqual({
       x: phone.w - PET_PX - 16,
       y: phone.h - phone.bottomReserve - PET_PX,
@@ -47,11 +48,9 @@ describe("where the pet may sit", () => {
     expect(onScreen({ x: -40, y: 2000 }, phone)).toEqual({ x: 0, y: phone.h - PET_PX });
   });
 
-  it("strolls only within its own strip, and stays put on a phone", () => {
-    for (const random of [0, 0.5, 1]) {
-      const next = strollTarget({ x: 40, y: 300 }, wide, () => random);
-      expect(next.x + PET_PX).toBeLessThanOrEqual(leftGutterEnd);
-    }
+  it("stays put instead of strolling", () => {
+    const corner = settle({ x: 40, y: 300 }, wide);
+    expect(strollTarget(corner, wide, () => 0.9)).toEqual(corner);
     const spot = settle({ x: 300, y: 400 }, phone);
     expect(strollTarget(spot, phone)).toEqual(spot);
   });

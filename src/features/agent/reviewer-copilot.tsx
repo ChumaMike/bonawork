@@ -74,7 +74,9 @@ export function ReviewerCopilot({
       setRows(draft.items.map((item) => ({ ...item, result: "not_checked", note: "" })));
       setSource(draft.extraSource);
     } catch (e) {
-      setError(e instanceof AgentRequestError ? e.message : "Could not load the checklist.");
+      setError(
+        e instanceof AgentRequestError ? e.message : "Could not load the checklist.",
+      );
     } finally {
       setBusy(false);
     }
@@ -91,7 +93,14 @@ export function ReviewerCopilot({
     const n = rows.filter((r) => r.origin === "reviewer").length + 1;
     setRows([
       ...rows,
-      { id: `r-${n}`, text: text.slice(0, 240), lineId: null, origin: "reviewer", result: "not_checked", note: "" },
+      {
+        id: `r-${n}`,
+        text: text.slice(0, 240),
+        lineId: null,
+        origin: "reviewer",
+        result: "not_checked",
+        note: "",
+      },
     ]);
     setNewCheck("");
     setFinished(null);
@@ -110,7 +119,9 @@ export function ReviewerCopilot({
       setWarnings(data.warnings);
       setFinished(null);
     } catch (e) {
-      setError(e instanceof AgentRequestError ? e.message : "Could not check the photos.");
+      setError(
+        e instanceof AgentRequestError ? e.message : "Could not check the photos.",
+      );
     } finally {
       setPhotoBusy(false);
     }
@@ -193,7 +204,10 @@ export function ReviewerCopilot({
                 <fieldset className="mt-2 flex flex-wrap gap-4">
                   <legend className="sr-only">Result for check {index + 1}</legend>
                   {(["pass", "fail", "not_checked"] as const).map((value) => (
-                    <label key={value} className="inline-flex min-h-11 items-center gap-2">
+                    <label
+                      key={value}
+                      className="inline-flex min-h-11 items-center gap-2"
+                    >
                       <input
                         type="radio"
                         name={`${id}-${row.id}`}
@@ -201,7 +215,11 @@ export function ReviewerCopilot({
                         onChange={() => update(row.id, { result: value })}
                         className="size-5"
                       />
-                      {value === "pass" ? "Looks right" : value === "fail" ? "Problem" : "Not checked"}
+                      {value === "pass"
+                        ? "Looks right"
+                        : value === "fail"
+                          ? "Problem"
+                          : "Not checked"}
                     </label>
                   ))}
                 </fieldset>
@@ -231,7 +249,12 @@ export function ReviewerCopilot({
               maxLength={240}
               onChange={(e) => setNewCheck(e.target.value)}
             />
-            <Button variant="secondary" onClick={addCheck} disabled={newCheck.trim().length < 3}>
+            <Button
+              variant="secondary"
+              className="shrink-0"
+              onClick={addCheck}
+              disabled={newCheck.trim().length < 3}
+            >
               Add
             </Button>
           </div>
@@ -241,8 +264,8 @@ export function ReviewerCopilot({
               Check photos
             </label>
             <p className="text-sm text-muted">
-              We compare the files with photos on other cases and read the date in each file. The
-              photos stay on this device.
+              We compare the files with photos on other cases and read the date in each
+              file. The photos stay on this device.
             </p>
             <input
               id={`${id}-photos`}
@@ -273,8 +296,12 @@ export function ReviewerCopilot({
             ) : null}
             {finished ? (
               <div className="rounded-xl bg-sunken p-3 text-sm" role="status">
-                <p>Review recorded on this page. Sign it in your wallet to put it on-chain.</p>
-                <p className="mt-1 break-all font-mono text-xs">review_hash {finished.reviewHashHex}</p>
+                <p>
+                  Review recorded on this page. Sign it in your wallet to put it on-chain.
+                </p>
+                <p className="mt-1 break-all font-mono text-xs">
+                  review_hash {finished.reviewHashHex}
+                </p>
               </div>
             ) : null}
           </div>

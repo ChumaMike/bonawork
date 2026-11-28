@@ -29,8 +29,10 @@ export function gutterWidth(w: number) {
 }
 
 /** True when the strips beside the content are wide enough for the buddy. */
-export function hasGutter(w: number) {
-  return gutterWidth(w) >= PET_PX + 2 * EDGE;
+export function hasGutter(_w: number) {
+  // The workbench pages use the full width, so there is no empty strip to
+  // stroll in. The buddy stays tucked in a bottom corner.
+  return false;
 }
 
 function yRange(view: View) {
@@ -62,7 +64,8 @@ export function homeSpot(view: View): Point {
 export function settle(p: Point, view: View): Point {
   const xs = xRange(view, sideOf(p, view));
   const ys = yRange(view);
-  return { x: clamp(p.x, xs.min, xs.max), y: clamp(p.y, ys.min, ys.max) };
+  // Always low on the screen, so it never covers a heading or a rail.
+  return { x: clamp(p.x, xs.min, xs.max), y: ys.max };
 }
 
 /** While dragging it can go anywhere on screen; it settles when let go. */

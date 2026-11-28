@@ -25,8 +25,8 @@ const POLLAR_ENABLED = Boolean(process.env.NEXT_PUBLIC_POLLAR_API_KEY);
 function Shared() {
   return (
     <p className="text-[0.95rem] text-muted">
-      You are watching a shared sample case, so the buttons are off. It moves as other people use
-      it.
+      You are watching a shared sample case, so the buttons are off. It moves as other
+      people use it.
     </p>
   );
 }
@@ -44,7 +44,15 @@ function Footer({ action }: { action: ReturnType<typeof useAction> }) {
 // ------------------------------------------------------------------ school
 
 /** The school's task: finish the report, check the quote, object or confirm. */
-export function SchoolTask({ demo, step, now }: { demo: GuidedDemo; step: StepInfo; now: number }) {
+export function SchoolTask({
+  demo,
+  step,
+  now,
+}: {
+  demo: GuidedDemo;
+  step: StepInfo;
+  now: number;
+}) {
   const t0 = demo.escrow?.tranches?.[0];
   const t1 = demo.escrow?.tranches?.[1];
   if (demo.shared) return <Shared />;
@@ -65,8 +73,8 @@ export function SchoolTask({ demo, step, now }: { demo: GuidedDemo; step: StepIn
     return (
       <>
         <TaskHeading title="Check the contractor's quote">
-          Each line is compared with prices at South African shops. You do not set a price: you
-          confirm the job is right.
+          Each line is compared with prices at South African shops. You do not set a
+          price: you confirm the job is right.
         </TaskHeading>
         <ScopeStep demo={demo} />
       </>
@@ -85,7 +93,15 @@ export function SchoolTask({ demo, step, now }: { demo: GuidedDemo; step: StepIn
   return <NotYourTurn step={step} person="school" />;
 }
 
-function SchoolObjection({ demo, index, left }: { demo: GuidedDemo; index: 0 | 1; left: number }) {
+function SchoolObjection({
+  demo,
+  index,
+  left,
+}: {
+  demo: GuidedDemo;
+  index: 0 | 1;
+  left: number;
+}) {
   const [said, setSaid] = useState<"object" | "fine" | null>(null);
   const [m, l] = splitOf(demo);
   const first = index === 0;
@@ -100,8 +116,8 @@ function SchoolObjection({ demo, index, left }: { demo: GuidedDemo; index: 0 | 1
                 : "The plumber says the toilets work. Is anything wrong?"
             }
           >
-            Sipho Mokoena checked {first ? "them" : "the work"} on site and signed. If you do
-            nothing, {rand(first ? m : l)} can be released to{" "}
+            Sipho Mokoena checked {first ? "them" : "the work"} on site and signed. If you
+            do nothing, {rand(first ? m : l)} can be released to{" "}
             {first ? SUPPLIER_NAME : CAST.contractor.name} when the time runs out.
           </TaskHeading>
         </div>
@@ -117,19 +133,30 @@ function SchoolObjection({ demo, index, left }: { demo: GuidedDemo; index: 0 | 1
         </div>
       </div>
       <div className="grid grid-cols-3 gap-2.5">
-        <ProofPhoto photo="toilets_before" alt="The broken toilets, as reported" caption="As reported" example />
+        <ProofPhoto
+          photo="toilets_before"
+          alt="The broken toilets, as reported"
+          caption="As reported"
+          example
+        />
         <ProofPhoto
           photo={first ? "materials_on_site" : "plumber_fixing"}
           alt={first ? "The materials on site" : "The plumber at work"}
           caption={first ? "Materials, by Themba" : "Work, by Themba"}
           example
         />
-        <ProofPhoto photo="reviewer_inspecting" alt="Sipho checking on site" caption="Checked by Sipho" example />
+        <ProofPhoto
+          photo="reviewer_inspecting"
+          alt="Sipho checking on site"
+          caption="Checked by Sipho"
+          example
+        />
       </div>
       {said === "object" ? (
         <p role="status" className="border-l-4 border-danger py-1 pl-4">
-          Objections are not switched on in this demo, so the money still moves after the wait. On
-          a real case an objection stops the money until a dispute reviewer looks at it.
+          Objections are not switched on in this demo, so the money still moves after the
+          wait. On a real case an objection stops the money until a dispute reviewer looks
+          at it.
         </p>
       ) : said === "fine" ? (
         <p role="status" className="border-l-4 border-st-verified py-1 pl-4">
@@ -162,11 +189,16 @@ function SchoolSaysDone({ demo }: { demo: GuidedDemo }) {
   return (
     <>
       <TaskHeading title="Is the repair finished?">
-        Say so only if the toilets work. Your word is a claim, not proof: the case stays &ldquo;repair
-        claimed&rdquo; until Sipho checks.
+        Say so only if the toilets work. Your word is a claim, not proof: the case stays
+        &ldquo;repair claimed&rdquo; until Sipho checks.
       </TaskHeading>
       <div className="grid grid-cols-2 gap-2.5 sm:max-w-lg">
-        <ProofPhoto photo="toilets_before" alt="The toilets before" caption="Before" example />
+        <ProofPhoto
+          photo="toilets_before"
+          alt="The toilets before"
+          caption="Before"
+          example
+        />
         <ProofPhoto
           photo="toilets_after"
           alt="The toilets after the repair"
@@ -177,7 +209,12 @@ function SchoolSaysDone({ demo }: { demo: GuidedDemo }) {
       <label htmlFor="school-done" className="font-medium">
         What the school can see now
       </label>
-      <Textarea id="school-done" rows={3} value={note} onChange={(e) => setNote(e.target.value)} />
+      <Textarea
+        id="school-done"
+        rows={3}
+        value={note}
+        onChange={(e) => setNote(e.target.value)}
+      />
       <Button
         size="lg"
         className="w-full sm:w-auto sm:self-start"
@@ -209,7 +246,11 @@ export function FunderLock({ demo, step }: { demo: GuidedDemo; step: StepInfo })
   return (
     <>
       <LockPanel
-        title={funded ? `${rand(total)} is locked for the toilets` : `Lock ${rand(total)} to fix two toilets`}
+        title={
+          funded
+            ? `${rand(total)} is locked for the toilets`
+            : `Lock ${rand(total)} to fix two toilets`
+        }
         split={[m, l]}
         note={
           funded
@@ -220,9 +261,9 @@ export function FunderLock({ demo, step }: { demo: GuidedDemo; step: StepInfo })
       {mine ? (
         <>
           <GuardianNote>
-            <strong className="font-semibold">What this transaction does.</strong> It locks{" "}
-            {rand(total)} in this case&apos;s account on Solana and sends nothing to anyone yet. Who
-            gets each part is fixed now and cannot be changed later.
+            <strong className="font-semibold">What this transaction does.</strong> It
+            locks {rand(total)} in this case&apos;s account on Solana and sends nothing to
+            anyone yet. Who gets each part is fixed now and cannot be changed later.
           </GuardianNote>
           <div className="flex flex-wrap items-center gap-3">
             <Button
@@ -245,8 +286,8 @@ export function FunderLock({ demo, step }: { demo: GuidedDemo; step: StepInfo })
               Lock {rand(total)}
             </Button>
             <span className="text-sm text-muted">
-              Sandbox rand. The lock is a real transaction on Solana devnet, signed by the demo
-              funder key on the server.
+              Sandbox rand. The lock is a real transaction on Solana devnet, signed by the
+              demo funder key on the server.
             </span>
           </div>
           {POLLAR_ENABLED ? (
@@ -325,15 +366,26 @@ function Claim({ demo, index }: { demo: GuidedDemo; index: 0 | 1 }) {
   const first = index === 0;
   return (
     <>
-      <TaskHeading title={first ? "Ask for Check 1: materials on site" : "Ask for Check 2: work done"}>
+      <TaskHeading
+        title={
+          first ? "Ask for Check 1: materials on site" : "Ask for Check 2: work done"
+        }
+      >
         {first
           ? "Say what was delivered to the school. Sipho will come and check it against the quote."
           : "Say what you did. The school confirms, then Sipho checks the work."}
       </TaskHeading>
       <div className="flex flex-col gap-2">
-        <span className="font-semibold">{first ? "Photos of the materials on site" : "Photos of the finished work"}</span>
+        <span className="font-semibold">
+          {first ? "Photos of the materials on site" : "Photos of the finished work"}
+        </span>
         <div className="grid grid-cols-3 gap-2.5">
-          <ProofPhoto photo="toilets_before" alt="The toilet block" caption="The site" example />
+          <ProofPhoto
+            photo="toilets_before"
+            alt="The toilet block"
+            caption="The site"
+            example
+          />
           <ProofPhoto
             photo={first ? "materials_on_site" : "plumber_fixing"}
             alt={first ? "The materials at the school" : "The cisterns being fitted"}
@@ -341,9 +393,9 @@ function Claim({ demo, index }: { demo: GuidedDemo; index: 0 | 1 }) {
             example
           />
           <ProofPhoto
-            photo={first ? "evidence_capture" : "toilets_after"}
-            alt={first ? "Photographing the delivery" : "The toilets working"}
-            caption={first ? "The delivery" : "All four flush"}
+            photo={first ? "plumber_fixing" : "toilets_after"}
+            alt={first ? "Starting on the old cisterns" : "The toilets working"}
+            caption={first ? "Work starting" : "All four flush"}
             example
           />
         </div>
@@ -362,7 +414,12 @@ function Claim({ demo, index }: { demo: GuidedDemo; index: 0 | 1 }) {
       <label htmlFor="claim-note" className="font-medium">
         {first ? "What was delivered" : "What was done"}
       </label>
-      <Textarea id="claim-note" rows={3} value={note} onChange={(e) => setNote(e.target.value)} />
+      <Textarea
+        id="claim-note"
+        rows={3}
+        value={note}
+        onChange={(e) => setNote(e.target.value)}
+      />
       <div className="rounded-[14px] bg-brand-soft px-4 py-4 text-[0.95rem] leading-normal">
         {first
           ? `The ${rand(m)} goes to the supplier, not to you. Your ${rand(l)} comes at Check 2, when the toilets work and the school agrees.`
@@ -376,14 +433,19 @@ function Claim({ demo, index }: { demo: GuidedDemo; index: 0 | 1 }) {
           loading={action.busy !== null}
           onClick={() =>
             action.run("Sending to Solana…", async () => {
-              const sent = await escrowApi.claim(demo.caseId, { index, note: note.trim() });
+              const sent = await escrowApi.claim(demo.caseId, {
+                index,
+                note: note.trim(),
+              });
               return { label: `Check ${index + 1} asked for.`, url: sent.explorerUrl };
             })
           }
         >
           Ask for Check {index + 1}
         </Button>
-        <span className="text-sm text-muted">Sipho and the school are told straight away.</span>
+        <span className="text-sm text-muted">
+          Sipho and the school are told straight away.
+        </span>
       </div>
       <Footer action={action} />
     </>
@@ -402,13 +464,21 @@ export function ReviewerTask({ demo, step }: { demo: GuidedDemo; step: StepInfo 
   return (
     <>
       <TaskHeading
-        title={index === 0 ? "Are the materials really on site?" : "Is the work really done?"}
+        title={
+          index === 0 ? "Are the materials really on site?" : "Is the work really done?"
+        }
       >
         If you sign, {rand(index === 0 ? m : l)} can go to{" "}
-        {index === 0 ? SUPPLIER_NAME : CAST.contractor.name} after the school&apos;s 60 seconds.
+        {index === 0 ? SUPPLIER_NAME : CAST.contractor.name} after the school&apos;s 60
+        seconds.
       </TaskHeading>
       <div className="grid grid-cols-3 gap-2.5">
-        <ProofPhoto photo="toilets_before" alt="The toilet block" caption="The site" example />
+        <ProofPhoto
+          photo="toilets_before"
+          alt="The toilet block"
+          caption="The site"
+          example
+        />
         <ProofPhoto
           photo={index === 0 ? "materials_on_site" : "toilets_after"}
           alt={index === 0 ? "Toilet cisterns on site" : "The repaired toilets"}
@@ -416,9 +486,9 @@ export function ReviewerTask({ demo, step }: { demo: GuidedDemo; step: StepInfo 
           example
         />
         <ProofPhoto
-          photo={index === 0 ? "evidence_capture" : "plumber_fixing"}
-          alt={index === 0 ? "Pipe and fittings" : "The plumber at work"}
-          caption={index === 0 ? "Pipe and fittings" : "Fitting"}
+          photo={index === 0 ? "plumber_fixing" : "plumber_fixing"}
+          alt={index === 0 ? "Work starting on the cisterns" : "The plumber at work"}
+          caption={index === 0 ? "Work starting" : "Fitting"}
           example
         />
       </div>
@@ -430,7 +500,9 @@ export function ReviewerTask({ demo, step }: { demo: GuidedDemo; step: StepInfo 
         backLabel="See it on the public case page"
         onSigned={() => void refreshGuided()}
       />
-      <p className="text-sm text-muted">You sign with the reviewer key. AI never signs.</p>
+      <p className="text-sm text-muted">
+        You sign with the reviewer key. AI never signs.
+      </p>
     </>
   );
 }
