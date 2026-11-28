@@ -3,6 +3,7 @@
 import { Icon } from "@/components/ui/icon";
 import { cn } from "@/components/ui/cn";
 import type { EscrowTx, PublicEscrow, TrancheStateName } from "@/features/escrow/api";
+import { SUPPLIER_NAME } from "./cast";
 import { formatWait } from "@/features/escrow/api";
 
 /** 300000 -> "R3 000". Whole rand only: the demo amounts have no cents. */
@@ -201,7 +202,7 @@ export function MoneyPath({
           className="lg:w-44 lg:shrink-0"
           tone={state === "Released" ? "done" : "waiting"}
           kicker={index === 0 ? "Supplier" : "Contractor"}
-          name={index === 0 ? "Demo supplier" : "Themba Zulu"}
+          name={index === 0 ? SUPPLIER_NAME : "Themba Zulu"}
         />
       </div>
     );

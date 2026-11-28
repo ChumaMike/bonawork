@@ -36,6 +36,22 @@ import type {
 } from "../src/shared";
 
 const receipt = () => jsonb("receipt").$type<BlockchainReceipt | null>();
+
+/**
+ * How a problem affects the learners, as the reporter answered it. Every
+ * answer is optional. Not part of the report's commitment document: it is
+ * context for funders, not evidence.
+ */
+export type LearnerImpact = {
+  /** How many learners cannot use the thing that is broken. */
+  learners?: number;
+  /** Since when, in the reporter's own words ("About 3 weeks"). */
+  since?: string;
+  /** What learners do instead. */
+  instead?: string[];
+  /** Is anyone in danger right now? */
+  danger?: "yes" | "unhealthy" | "no";
+};
 /** ISO-8601 UTC text, set by the application. */
 const isoNow = () => text("created_at").notNull();
 
@@ -111,6 +127,8 @@ export const reports = pgTable(
     title: text("title").notNull(),
     description: text("description").notNull(),
     location: text("location").notNull().default(""),
+    /** Optional answers about the learners; see `LearnerImpact`. */
+    impact: jsonb("impact").$type<LearnerImpact | null>(),
     status: text("status").notNull().$type<ReportStatus>(),
     endorsementCount: integer("endorsement_count").notNull().default(0),
     hasInterimProtection: boolean("has_interim_protection").notNull().default(false),

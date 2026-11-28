@@ -261,6 +261,14 @@ export interface SchoolProfile extends School {
 
 /* -------------------------------- Reporting ------------------------------- */
 
+/** How a problem affects the learners. Every answer is optional. */
+export interface LearnerImpact {
+  learners?: number;
+  since?: string;
+  instead?: string[];
+  danger?: "yes" | "unhealthy" | "no";
+}
+
 export interface SubmitReportInput {
   schoolId: string;
   category: IssueCategory;
@@ -269,6 +277,7 @@ export interface SubmitReportInput {
   location: string;
   anonymous: boolean;
   evidence: EvidenceUpload[];
+  impact?: LearnerImpact;
 }
 
 export interface SubmissionReceipt {

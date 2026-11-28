@@ -167,7 +167,7 @@ const INFO: Record<StepId, Omit<StepInfo, "id">> = {
     number: 2,
     check2Number: null,
     person: "school",
-    title: "The school confirms the job and checks the prices",
+    title: "The school checks the contractor's quote",
     why: "Each price is compared with South African shops before anyone puts money in.",
   },
   fund: {
@@ -268,11 +268,28 @@ export function stepCounter(info: StepInfo): string {
   return info.title;
 }
 
-/** Where a step happens. Most steps happen on the guided page; the reviews on the real review screen. */
-export function stepHref(id: StepId, caseId: string): string {
-  if (id === "review1") return `/issues/${caseId}/escrow/review?stage=0`;
-  if (id === "review2") return `/issues/${caseId}/escrow/review?stage=1`;
-  return "/demo";
+/**
+ * Where a step happens: the page of the person whose turn it is. Releases,
+ * the proof and the end states happen on the public case page, /demo.
+ */
+export function stepHref(id: StepId): string {
+  switch (id) {
+    case "report":
+      return "/report";
+    case "scope":
+    case "school2":
+      return "/school";
+    case "fund":
+      return "/fund";
+    case "claim1":
+    case "claim2":
+      return "/jobs";
+    case "review1":
+    case "review2":
+      return "/checks";
+    default:
+      return "/demo";
+  }
 }
 
 /** True when the visitor has finished or the case cannot carry on: a new case may be made. */

@@ -130,5 +130,13 @@ export const migrations: BundledMigration[] = [
       "ALTER TABLE \"repair_budgets\" ADD CONSTRAINT \"repair_budgets_report_id_reports_id_fk\" FOREIGN KEY (\"report_id\") REFERENCES \"public\".\"reports\"(\"id\") ON DELETE no action ON UPDATE no action;",
       "ALTER TABLE \"repair_budgets\" ADD CONSTRAINT \"repair_budgets_confirmed_by_users_id_fk\" FOREIGN KEY (\"confirmed_by\") REFERENCES \"public\".\"users\"(\"id\") ON DELETE no action ON UPDATE no action;"
     ]
+  },
+  {
+    "tag": "0005_groovy_rick_jones",
+    "when": 1795855631529,
+    "hash": "5c510c103a6d05705ab01b1244329f0eef91b5c17e6417e021358e71f9dd7006",
+    "statements": [
+      "ALTER TABLE \"reports\" ADD COLUMN \"impact\" jsonb;"
+    ]
   }
 ];

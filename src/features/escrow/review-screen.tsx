@@ -89,6 +89,41 @@ function reviewBlocker(review: ReviewRecord | null): string | null {
 export function EscrowReviewScreen() {
   const { issueId } = useParams<{ issueId: string }>();
   const search = useSearchParams();
+  const asked = search.get("stage") === "1" ? 1 : search.get("stage") === "0" ? 0 : null;
+  return (
+    <>
+      <PageHero
+        back={{ href: `/issues/${issueId}/escrow`, label: "Escrow" }}
+        eyebrow="Independent review"
+        title="Verify a check"
+        intro="Work through the checklist, read what the transaction does, then sign. Only you can verify."
+      />
+      <Container size="narrow" className="flex flex-col gap-5">
+        <SandboxBadge />
+        <ReviewTask issueId={issueId} stage={asked} backHref={`/issues/${issueId}/escrow`} />
+      </Container>
+    </>
+  );
+}
+
+/**
+ * The reviewer's checklist, the Guardian check and the signature, for one
+ * case. On its own page and inside the reviewer's workbench.
+ */
+export function ReviewTask({
+  issueId,
+  stage,
+  backHref,
+  backLabel = "Back to the escrow",
+  onSigned,
+}: {
+  issueId: string;
+  /** Which check to review; null takes whichever is waiting. */
+  stage: 0 | 1 | null;
+  backHref: string;
+  backLabel?: string;
+  onSigned?: () => void;
+}) {
   const audience = useAudience();
   const escrow = useQuery(`escrow:${issueId}`, () => escrowApi.get(issueId));
   const issue = useQuery(`issue:${issueId}`, () => getApi().getIssue(issueId));
@@ -113,8 +148,7 @@ export function EscrowReviewScreen() {
   if (escrow.error) return <PageError onRetry={escrow.reload} />;
   if (escrow.data === undefined || audience.status === "loading") return <PageLoading />;
 
-  const back = { href: `/issues/${issueId}/escrow`, label: "Escrow" };
-  const asked = search.get("stage") === "1" ? 1 : search.get("stage") === "0" ? 0 : null;
+  const asked = stage;
   const claimed: EscrowTranche | undefined = escrow.data?.tranches?.find(
     (t) => t.state === "Claimed" && (asked === null || t.index === asked),
   );
@@ -168,6 +202,7 @@ export function EscrowReviewScreen() {
           review,
         }),
       );
+      onSigned?.();
     } catch (e) {
       setError(e as EscrowApiError);
     } finally {
@@ -207,8 +242,8 @@ export function EscrowReviewScreen() {
             See the transaction on Solana Explorer
           </a>
         </p>
-        <ButtonLink href={back.href} variant="secondary" size="sm" className="mt-3">
-          Back to the escrow
+        <ButtonLink href={backHref} variant="secondary" size="sm" className="mt-3">
+          {backLabel}
         </ButtonLink>
       </Notice>
     );
@@ -292,15 +327,7 @@ export function EscrowReviewScreen() {
   }
 
   return (
-    <>
-      <PageHero
-        back={back}
-        eyebrow="Independent review"
-        title="Verify a check"
-        intro="Work through the checklist, read what the transaction does, then sign. Only you can verify."
-      />
-      <Container size="narrow" className="flex flex-col gap-5">
-        <SandboxBadge />
+    <div className="flex flex-col gap-5">
         {body}
         {error ? (
           <Notice tone="danger" icon="alert" title="Not sent">
@@ -310,7 +337,6 @@ export function EscrowReviewScreen() {
             ) : null}
           </Notice>
         ) : null}
-      </Container>
-    </>
+    </div>
   );
 }

@@ -33,6 +33,12 @@ export const PHOTO_NAMES = [
   "verify_phone",
   "evidence_capture",
   "empty_state",
+  /* Slots for photos still to come. Until a file exists, `photoOr` picks a stand-in. */
+  "before_after_toilets_after",
+  "materials_on_site",
+  "plumber_fixing",
+  "ceiling_after",
+  "tap_after",
 ] as const;
 
 export type PhotoName = (typeof PHOTO_NAMES)[number];
@@ -186,6 +192,36 @@ export const PHOTO_META: Record<PhotoName, PhotoMeta> = {
     ratio: 1,
     color: "#e9d9b8",
   },
+  before_after_toilets_after: {
+    alt: "The repaired school toilet block, clean and dry, with all four toilets working.",
+    icon: "building",
+    ratio: LANDSCAPE,
+    color: "#7c8a7a",
+  },
+  materials_on_site: {
+    alt: "New toilet cisterns, flush valves and a length of PVC pipe stacked inside the school gate.",
+    icon: "cube",
+    ratio: LANDSCAPE,
+    color: "#8a8a7a",
+  },
+  plumber_fixing: {
+    alt: "A plumber fitting a new cistern in a school toilet.",
+    icon: "wrench",
+    ratio: LANDSCAPE,
+    color: "#6f7f6a",
+  },
+  ceiling_after: {
+    alt: "A classroom ceiling with new boards fitted and painted.",
+    icon: "building",
+    ratio: LANDSCAPE,
+    color: "#a89868",
+  },
+  tap_after: {
+    alt: "A school kitchen tap running clean water into a steel sink.",
+    icon: "drop",
+    ratio: LANDSCAPE,
+    color: "#5d7f8a",
+  },
 };
 
 function resolve(name: PhotoName): Photo {
@@ -224,6 +260,11 @@ export function getPhoto(name: PhotoName): Photo {
 /** True once a real picture exists for this key. */
 export function hasPhoto(name: PhotoName): boolean {
   return PHOTOS[name].file !== null;
+}
+
+/** `name` when its file exists, otherwise `fallback`: a slot never shows a blank box. */
+export function photoOr(name: PhotoName, fallback: PhotoName): PhotoName {
+  return hasPhoto(name) ? name : fallback;
 }
 
 /**

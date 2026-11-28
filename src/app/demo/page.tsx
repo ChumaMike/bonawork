@@ -1,13 +1,13 @@
 import type { Metadata } from "next";
 import { ScreenBoundary } from "@/components/ui/screen-boundary";
-import { DemoScreen } from "@/features/demo/demo-screen";
+import { DemoCaseScreen } from "@/features/workbench/case-screen";
 
-export const metadata: Metadata = { title: "Try the demo" };
+export const metadata: Metadata = { title: "Follow a real repair" };
 
 export default function Page() {
   return (
     <ScreenBoundary>
-      <DemoScreen />
+      <DemoCaseScreen />
     </ScreenBoundary>
   );
 }

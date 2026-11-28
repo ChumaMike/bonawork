@@ -1,14 +1,13 @@
 import type { Metadata } from "next";
 import { ScreenBoundary } from "@/components/ui/screen-boundary";
-import { SignInScreen } from "@/features/auth/sign-in-screen";
-import { getMessages } from "@/i18n";
+import { DemoSignIn } from "@/features/workbench/sign-in";
 
-export const metadata: Metadata = { title: getMessages().auth.title };
+export const metadata: Metadata = { title: "Sign in" };
 
 export default function Page() {
   return (
     <ScreenBoundary>
-      <SignInScreen />
+      <DemoSignIn />
     </ScreenBoundary>
   );
 }

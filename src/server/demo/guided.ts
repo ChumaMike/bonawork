@@ -19,7 +19,7 @@ import type { PriceCheckResult } from "@/shared/price-check";
 import { getSolanaRpc } from "@/server/solana/rpc";
 import { devnetConfig } from "@/server/solana/network";
 
-import type { ReportRow } from "../../../database/schema";
+import type { LearnerImpact, ReportRow } from "../../../database/schema";
 import {
   createSessionToken,
   sessionCookie,
@@ -111,6 +111,12 @@ export const DEMO_TEMPLATE = {
   schoolDoneNote:
     "The plumber finished today. All four toilets flush and the floor is dry. The block is open again.",
   challengeSeconds: 60,
+  impact: {
+    learners: 380,
+    since: "About 3 weeks",
+    instead: ["Queue for the 2 that work", "Miss class time"],
+    danger: "unhealthy",
+  },
 } as const;
 
 /** [Check 1 materials, Check 2 labour], cents. */
@@ -221,6 +227,7 @@ export type GuidedDemo = {
   schoolName: string;
   /** Stored status: submitted, acknowledged, repair_claimed, verified... */
   status: string;
+  impact: LearnerImpact | null;
   budget: PublicRepairBudget | null;
   escrow: PublicEscrow | null;
   /** Set when the escrow could not be read; the steps fall back on it. */
@@ -278,6 +285,7 @@ export async function loadGuidedDemo(
     location: report.location,
     schoolName: institution?.name ?? "",
     status: report.status,
+    impact: report.impact ?? null,
     budget: await loadRepairBudget(ctx.db, report.id),
     escrow,
     escrowError,
@@ -385,6 +393,7 @@ async function createDemoCase(ctx: ServerContext): Promise<ReportRow> {
       description: DEMO_TEMPLATE.description,
       location: DEMO_TEMPLATE.location,
       anonymous: true,
+      impact: { ...DEMO_TEMPLATE.impact, instead: [...DEMO_TEMPLATE.impact.instead] },
       uploads: [],
     },
   );

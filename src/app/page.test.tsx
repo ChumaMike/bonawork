@@ -5,7 +5,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import { LedgerPanel } from "@/components/ledger-state";
 import { StatusProgress } from "@/components/status";
 import type { BlockchainReceipt } from "@/shared";
-import Home from "./page";
+import Home from "./about/page";
 
 afterEach(cleanup);
 

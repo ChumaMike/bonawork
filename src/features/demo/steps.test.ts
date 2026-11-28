@@ -107,9 +107,14 @@ describe("step info", () => {
     expect(stepInfo("fund").person).toBe("funder");
     expect(stepInfo("claim1").person).toBe("contractor");
     expect(stepInfo("release1").person).toBe("public");
-    expect(stepHref("review1", "abc")).toBe("/issues/abc/escrow/review?stage=0");
-    expect(stepHref("review2", "abc")).toBe("/issues/abc/escrow/review?stage=1");
-    expect(stepHref("fund", "abc")).toBe("/demo");
+    expect(stepHref("report")).toBe("/report");
+    expect(stepHref("scope")).toBe("/school");
+    expect(stepHref("fund")).toBe("/fund");
+    expect(stepHref("claim1")).toBe("/jobs");
+    expect(stepHref("review1")).toBe("/checks");
+    expect(stepHref("review2")).toBe("/checks");
+    expect(stepHref("school2")).toBe("/school");
+    expect(stepHref("release1")).toBe("/demo");
   });
 
   it("never says paid or resolved", () => {

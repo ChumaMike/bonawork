@@ -4,8 +4,12 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useSyncExternalStore } from "react";
 import { USING_FIXTURES } from "@/data/api";
-import { useAudience, WORKSPACE, workspaceFor, type Audience } from "@/data/audience";
-import { LandingFooter, LandingHeader } from "@/features/landing/vellure/landing-chrome";
+import { useAudience, workspaceFor, type Audience } from "@/data/audience";
+import { useSession } from "@/data/session";
+import { CAST } from "@/features/demo/cast";
+import { useGuided } from "@/features/demo/client";
+import { personForRole } from "@/features/demo/steps";
+import { LandingFooter } from "@/features/landing/vellure/landing-chrome";
 import { useMessages } from "@/i18n";
 import { cn } from "./ui/cn";
 import { Icon, type IconName } from "./ui/icon";
@@ -110,29 +114,121 @@ function navItemsFor(audience: Audience, m: ReturnType<typeof useMessages>) {
   };
 }
 
-/** Pages that draw no navy band under the bar, so the bar is solid on them. */
-const PLAIN_PAGES = new Set(["/sign-in", "/demo"]);
+/** The main menu for each demo person, as the workbenches name it. */
+function benchMenu(role: string | null): NavItem[] | null {
+  switch (role) {
+    case "school_admin":
+      return [
+        { href: "/school", label: "Our school", icon: "school" },
+        { href: "/report", label: "Report a problem", icon: "plus" },
+      ];
+    case "buyer":
+      return [
+        { href: "/fund", label: "Repairs to fund", icon: "lock" },
+        { href: "/fund#money", label: "My money", icon: "list" },
+      ];
+    case "supplier":
+      return [{ href: "/jobs", label: "My jobs", icon: "wrench" }];
+    case "independent_reviewer":
+      return [
+        { href: "/checks", label: "My checks", icon: "shieldCheck" },
+        { href: "/issues", label: "Cases", icon: "list" },
+      ];
+    default:
+      return null;
+  }
+}
+
+const PUBLIC_MENU: NavItem[] = [
+  { href: "/issues", label: "Cases", icon: "list" },
+  { href: "/schools", label: "Schools", icon: "school" },
+  { href: "/verify", label: "Check a proof", icon: "shieldCheck" },
+];
 
 /**
- * The one top bar of the site, the landing page's: the logo, the menu for the
- * person signed in, the account and one blue button. It lies over the navy
- * band at the top of each page and turns solid once the page is scrolled.
+ * The one top bar of the site: the wordmark, the menu for the person signed
+ * in, and who you are, "Name, role · switch", which opens the list of demo
+ * people. Signed out, it offers sign in and the demo.
  */
 export function SiteHeader() {
-  const m = useMessages();
   const pathname = usePathname();
-  const school = useSchoolContext();
-  const nav = navItemsFor(useAudience(), m);
+  const { session, status } = useSession();
+  const guided = useGuided();
+  const role = session?.user.role ?? null;
+  const menu = benchMenu(role) ?? PUBLIC_MENU;
+  const person = personForRole(role);
+  const demoOn = guided.status === "ready" && guided.demo !== null;
+
+  let who: string | null = null;
+  if (session) {
+    const name =
+      person && person !== "public" ? CAST[person].name : session.user.displayName;
+    const label =
+      person && person !== "public" ? CAST[person].short : (ROLE_LABEL[role!] ?? "staff");
+    who = `${name}, ${label}`;
+  } else if (demoOn) {
+    who = "Viewing as the public";
+  }
+
   return (
-    <LandingHeader
-      links={nav.header}
-      showReport={!nav.staff}
-      current={pathname}
-      school={school}
-      plain={PLAIN_PAGES.has(pathname)}
-    />
+    <header className="no-print bg-ink text-on-brand" data-testid="site-header">
+      <div className="mx-auto flex min-h-[60px] w-full max-w-[1240px] flex-wrap items-center gap-x-7 gap-y-1 px-4 py-2 sm:px-6">
+        <Link
+          href="/"
+          className="font-brand text-[1.3rem] font-bold text-on-brand"
+          aria-label="BonaWork, home"
+        >
+          BonaWork
+        </Link>
+        <nav
+          aria-label="Main"
+          className="order-3 flex w-full gap-5 overflow-x-auto text-[0.95rem] font-medium sm:order-none sm:w-auto sm:flex-1"
+        >
+          {menu.map((item) => (
+            <Link
+              key={item.href}
+              href={item.href}
+              aria-current={isActive(pathname, item.href.split("#")[0]) ? "page" : undefined}
+              className="flex min-h-10 items-center whitespace-nowrap text-on-brand underline-offset-[6px] hover:underline aria-[current=page]:underline"
+            >
+              {item.label}
+            </Link>
+          ))}
+        </nav>
+        <div className="ml-auto flex items-center gap-3 sm:ml-0">
+          {status === "loading" ? null : who ? (
+            <Link
+              href="/sign-in"
+              data-testid="role-switch"
+              className="flex min-h-10 items-center rounded-full border border-muted px-3.5 text-sm font-medium text-on-brand hover:border-on-brand"
+            >
+              {who} · switch
+            </Link>
+          ) : (
+            <>
+              <Link href="/sign-in" className="text-[0.95rem] font-medium text-on-brand">
+                Sign in
+              </Link>
+              <Link
+                href="/demo"
+                className="hidden min-h-[42px] items-center rounded-full bg-brand px-[18px] text-[0.95rem] font-semibold text-on-brand hover:bg-brand-strong sm:flex"
+              >
+                Try the demo
+              </Link>
+            </>
+          )}
+        </div>
+      </div>
+    </header>
   );
 }
+
+const ROLE_LABEL: Record<string, string> = {
+  reporter: "reporter",
+  district_official: "district",
+  receiving_officer: "receiving officer",
+  payment_approver: "payment approver",
+};
 
 /* ------------------------------------------------------------------------ */
 /* Phone bottom bar                                                          */
@@ -214,27 +310,15 @@ export function PreviewBanner() {
   );
 }
 
-/** The procurement workspaces, in the order their roles act on a case. */
-const PROCUREMENT_ROLES = [
-  "buyer",
-  "supplier",
-  "receiving_officer",
-  "payment_approver",
-] as const;
-
 export function SiteFooter() {
-  const m = useMessages();
   const audience = useAudience();
   // Signed out: the way in for staff. A community reporter does not need it.
   // Staff: only their own workspace.
   const staffLinks = [
-    { href: "/admin", label: m.nav.admin, role: "school_admin" },
-    { href: "/reviewer", label: m.nav.reviewer, role: "independent_reviewer" },
-    ...PROCUREMENT_ROLES.map((role) => ({
-      href: WORKSPACE[role].href,
-      label: `${m.auth.role[role]}: ${m.nav.workspace[role]}`,
-      role,
-    })),
+    { href: "/school", label: "School: our school", role: "school_admin" },
+    { href: "/fund", label: "Funder: repairs to fund", role: "buyer" },
+    { href: "/jobs", label: "Contractor: my jobs", role: "supplier" },
+    { href: "/checks", label: "Reviewer: my checks", role: "independent_reviewer" },
   ].filter((link) => (audience.role === null ? true : link.role === audience.role));
   // One footer on every page, with the same way in for staff.
   return <LandingFooter staffLinks={staffLinks} />;

@@ -2,7 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Bricolage_Grotesque, Geist_Mono, Inter_Tight } from "next/font/google";
 import { Suspense } from "react";
 import { BonaBuddy } from "@/components/buddy/bona-buddy";
-import { BottomNav, PreviewBanner, SiteFooter, SiteHeader } from "@/components/chrome";
+import { PreviewBanner, SiteFooter, SiteHeader } from "@/components/chrome";
 import { ToastRegion } from "@/components/ui/toast";
 import { GuideStrip } from "@/features/demo/guide-strip";
 import { DEFAULT_LOCALE, getMessages } from "@/i18n";
@@ -85,7 +85,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         </a>
         <PreviewBanner />
         {/* The navigation reads the current path, so it streams in its own boundary. */}
-        <Suspense fallback={<div className="vl-header-holder" />}>
+        <Suspense fallback={<div className="min-h-[60px] bg-ink" />}>
           <SiteHeader />
         </Suspense>
         {/* The guided demo's strip, only while this browser runs the demo. */}
@@ -98,9 +98,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         {/* The footer reads who is signed in, so it streams in its own boundary too. */}
         <Suspense fallback={null}>
           <SiteFooter />
-        </Suspense>
-        <Suspense fallback={null}>
-          <BottomNav />
         </Suspense>
         {/* Bona buddy: floating help on every page. It reads the path, so it has its own boundary. */}
         <Suspense fallback={null}>

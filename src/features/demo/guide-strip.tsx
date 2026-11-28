@@ -9,14 +9,7 @@ import "./demo.css";
 import { CAST } from "./cast";
 import { refreshGuided, startGuided, switchPerson, useGuided } from "./client";
 import { rand } from "./money-path";
-import {
-  DEMO_PEOPLE,
-  DEMO_PERSON_LABEL,
-  personForRole,
-  stepCounter,
-  stepHref,
-  type DemoPerson,
-} from "./steps";
+import { personForRole, stepCounter, stepHref, type DemoPerson } from "./steps";
 
 /** One line of where the money is, for pages other than the guided page. */
 function MiniPath({
@@ -52,10 +45,10 @@ function MiniPath({
 }
 
 /**
- * The guide strip: on every page while this browser runs the guided demo.
- * "Step N of 7", why it matters, a "Next step" button that switches to the
- * right demo person and opens the right screen, "Demo: switch person" and
- * "Restart demo".
+ * The guide strip: a slim bar on every page but the public case page while
+ * this browser runs the guided demo. "Step N of 7", what it is, a "Next step"
+ * button that switches to the right demo person and opens their page, and
+ * "Restart demo". Switching person is in the header.
  */
 export function GuideStrip() {
   const guided = useGuided();
@@ -64,7 +57,6 @@ export function GuideStrip() {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [open, setOpen] = useState(false);
 
   // Read the demo again whenever the visitor moves to another page.
   useEffect(() => {
@@ -80,11 +72,11 @@ export function GuideStrip() {
   }, [step, pathname]);
 
   if (guided.status !== "ready" || !guided.demo || !step) return null;
+  if (pathname === "/demo") return null;
   const demo = guided.demo;
   const current = audience.status === "ready" ? personForRole(audience.role) : null;
-  const href = stepHref(step.id, demo.caseId);
-  const onGuidedPage = pathname === "/demo";
-  const here = pathname === href.split("?")[0];
+  const href = stepHref(step.id);
+  const here = pathname === href;
   const ready = step.person === null || step.person === current;
 
   async function go(person: DemoPerson | null, target: string) {
@@ -92,7 +84,6 @@ export function GuideStrip() {
     setError(null);
     try {
       if (person && person !== current) await switchPerson(person);
-      setOpen(false);
       router.push(target);
     } catch (e) {
       setError((e as Error).message);
@@ -121,93 +112,32 @@ export function GuideStrip() {
       aria-label="Guided demo"
       data-testid="guide-strip"
       data-step={step.id}
-      className="demo-strip no-print border-b-2 border-brand bg-brand-soft text-ink"
+      className="demo-strip no-print border-b border-line bg-brand-soft text-ink"
     >
-      <div className="mx-auto flex w-full max-w-6xl flex-col gap-3 px-4 py-3 sm:px-6">
-        {onGuidedPage ? null : (
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <div className="min-w-0">
-              <p className="text-xs font-semibold tracking-[0.08em] text-brand-strong uppercase">
-                Demo · {stepCounter(step)}
-              </p>
-              <p className="font-display text-lg leading-snug font-semibold">
-                {step.title}
-              </p>
-              <p className="text-[0.95rem]">{step.why}</p>
-            </div>
-            {here && ready ? (
-              <p className="shrink-0 text-sm font-semibold">Your turn: below.</p>
-            ) : (
-              <Button
-                className="w-full shrink-0 sm:w-auto"
-                loading={busy}
-                onClick={() => go(step.person, href)}
-              >
-                Next step
-                {step.person && step.person !== current
-                  ? `: ${DEMO_PERSON_LABEL[step.person]}`
-                  : ""}
-                <Icon name="arrowRight" className="size-5" />
-              </Button>
-            )}
-          </div>
+      <div className="mx-auto flex w-full max-w-[1240px] flex-wrap items-center gap-x-4 gap-y-2 px-4 py-2.5 text-sm sm:px-6">
+        <p className="min-w-0 flex-[1_1_320px]">
+          <span className="text-muted">Demo · {stepCounter(step)}:</span>{" "}
+          <span className="font-semibold">{step.title}</span>
+          <span className="hidden text-muted md:inline">
+            {" "}
+            · <MiniPath states={states} funded={demo.escrow?.funded === true} amounts={demo.template.amounts} />
+          </span>
+        </p>
+        {here && ready ? (
+          <span className="font-semibold">Your turn: below.</span>
+        ) : (
+          <Button size="sm" loading={busy} onClick={() => go(step.person, href)}>
+            Next step
+            {step.person && step.person !== current
+              ? `: ${step.person === "public" ? "the public" : CAST[step.person].name}`
+              : ""}
+          </Button>
         )}
-
-        <div className="flex flex-wrap items-center gap-x-3 gap-y-2 text-sm">
-          <p className="flex flex-wrap items-center gap-x-2 text-muted">
-            <MiniPath
-              states={states}
-              funded={demo.escrow?.funded === true}
-              amounts={demo.template.amounts}
-            />
-          </p>
-          <span className="flex-1" />
-          <p>
-            <span className="text-xs font-semibold tracking-[0.12em] uppercase">
-              Demo person
-            </span>{" "}
-            <span className="font-semibold">
-              {current
-                ? `${DEMO_PERSON_LABEL[current]}: ${CAST[current].name}`
-                : "Someone else"}
-            </span>
-          </p>
-          <Button
-            size="sm"
-            variant="secondary"
-            aria-expanded={open}
-            aria-controls="demo-people"
-            onClick={() => setOpen((o) => !o)}
-          >
-            Demo: switch person
-          </Button>
-          <Button size="sm" variant="quiet" loading={busy && !open} onClick={restart}>
-            Restart demo
-          </Button>
-        </div>
-
-        {open ? (
-          <ul id="demo-people" className="grid grid-cols-2 gap-2 sm:grid-cols-5">
-            {DEMO_PEOPLE.map((p) => (
-              <li key={p}>
-                <button
-                  type="button"
-                  disabled={busy}
-                  aria-pressed={p === current}
-                  onClick={() => go(p, pathname === "/demo" ? "/demo" : pathname)}
-                  className="flex min-h-14 w-full flex-col items-start justify-center rounded-xl border-2 border-line bg-surface px-3 py-2 text-left aria-pressed:border-brand disabled:opacity-50"
-                >
-                  <span className="text-xs font-semibold tracking-[0.08em] text-muted uppercase">
-                    {DEMO_PERSON_LABEL[p]}
-                  </span>
-                  <span className="font-semibold">{CAST[p].name}</span>
-                </button>
-              </li>
-            ))}
-          </ul>
-        ) : null}
+        <Button size="sm" variant="quiet" disabled={busy} onClick={restart}>
+          Restart demo
+        </Button>
         {error ? (
-          <p role="alert" className="text-sm font-medium text-danger">
+          <p role="alert" className="w-full font-medium text-danger">
             {error}
           </p>
         ) : null}

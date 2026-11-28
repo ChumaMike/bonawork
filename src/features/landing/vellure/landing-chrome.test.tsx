@@ -15,16 +15,15 @@ afterEach(() => {
 
 /** The menu every page shows to the community, in the same order. */
 const MENU: [string, string][] = [
-  ["Issues", "/issues"],
+  ["Cases", "/issues"],
   ["Schools", "/schools"],
-  ["Bona AI", "/assistant"],
-  ["Track", "/track"],
-  ["Check a file", "/verify"],
+  ["Check a proof", "/verify"],
 ];
 
 /** Every page this site has that the public may open. */
 const PUBLIC_ROUTES = [
   "/",
+  "/demo",
   "/agent",
   "/assistant",
   "/issues",
@@ -41,20 +40,16 @@ const hrefs = (root: HTMLElement) =>
     .map((link) => link.getAttribute("href"));
 
 describe("the site's top bar", () => {
-  it("is the same bar on every page, with the same destinations", () => {
+  it("is the same dark bar on every page, with the public menu", () => {
     render(<SiteHeader />);
     const bar = screen.getByRole("banner");
-    expect(bar).toHaveAttribute("data-testid", "landing-header");
+    expect(bar).toHaveAttribute("data-testid", "site-header");
     const menu = within(bar).getByRole("navigation", { name: "Main" });
     expect(
       within(menu)
         .getAllByRole("link")
         .map((link) => [link.textContent, link.getAttribute("href")]),
     ).toEqual(MENU);
-    expect(within(bar).getByRole("link", { name: "Report" })).toHaveAttribute(
-      "href",
-      "/report",
-    );
     expect(within(bar).getByRole("link", { name: /BonaWork/ })).toHaveAttribute(
       "href",
       "/",
@@ -64,36 +59,16 @@ describe("the site's top bar", () => {
     cleanup();
     path.current = "/issues";
     render(<SiteHeader />);
-    const other = screen.getByRole("banner");
-    expect(other).toHaveAttribute("data-testid", "landing-header");
-    const otherMenu = within(other).getByRole("navigation", { name: "Main" });
-    expect(
-      within(otherMenu)
-        .getAllByRole("link")
-        .map((link) => [link.textContent, link.getAttribute("href")]),
-    ).toEqual(MENU);
+    const otherMenu = within(screen.getByRole("banner")).getByRole("navigation", {
+      name: "Main",
+    });
     // The page someone is on is marked, and only that one.
     expect(
       within(otherMenu)
         .getAllByRole("link")
         .filter((link) => link.getAttribute("aria-current") === "page")
         .map((link) => link.textContent),
-    ).toEqual(["Issues"]);
-  });
-
-  it("lies over a page's navy band, and is solid where a page has none", () => {
-    path.current = "/issues";
-    render(<SiteHeader />);
-    const over = screen.getByRole("banner");
-    expect(over).not.toHaveAttribute("data-solid");
-    expect(over).not.toHaveAttribute("data-flow");
-
-    cleanup();
-    path.current = "/sign-in";
-    render(<SiteHeader />);
-    const plain = screen.getByRole("banner");
-    expect(plain).toHaveAttribute("data-solid");
-    expect(plain).toHaveAttribute("data-flow");
+    ).toEqual(["Cases"]);
   });
 
   it("names the school a page is about, beside the logo", () => {
@@ -157,7 +132,7 @@ describe("the site's footer", () => {
       name: "For schools and reviewers",
     });
     expect(hrefs(staff)).toEqual(
-      expect.arrayContaining(["/admin", "/reviewer", "/supplier", "/payments"]),
+      expect.arrayContaining(["/school", "/fund", "/jobs", "/checks"]),
     );
 
     cleanup();
@@ -167,7 +142,7 @@ describe("the site's footer", () => {
     expect(other).toHaveClass("vl-footer");
     expect(
       hrefs(within(other).getByRole("navigation", { name: "For schools and reviewers" })),
-    ).toEqual(expect.arrayContaining(["/admin", "/reviewer", "/supplier", "/payments"]));
+    ).toEqual(expect.arrayContaining(["/school", "/fund", "/jobs", "/checks"]));
   });
 
   it("links only to pages that exist, the public code and the contract", () => {

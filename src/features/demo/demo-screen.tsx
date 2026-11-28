@@ -1,13 +1,9 @@
 "use client";
 
-import { useRouter } from "next/navigation";
-import { useEffect, useState, type ReactNode } from "react";
-import { Photo } from "@/components/media/photo";
+import { useEffect, useState } from "react";
 import { Button, ButtonLink } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/field";
 import { Icon } from "@/components/ui/icon";
-import { Container, PageLoading } from "@/components/ui/page";
-import { useAudience } from "@/data/audience";
 import { SpeakToReport } from "@/features/agent/voice";
 import {
   EscrowApiError,
@@ -16,31 +12,20 @@ import {
   type EscrowTx,
   type PublicEscrow,
 } from "@/features/escrow/api";
-import { CAST } from "./cast";
 import {
   continueWithCheck2,
   demoActions,
   refreshGuided,
   startGuided,
-  switchPerson,
-  useGuided,
   type GuidedDemo,
 } from "./client";
-import { MoneyPath, ProofLink, rand } from "./money-path";
-import {
-  DEMO_PEOPLE,
-  DEMO_PERSON_LABEL,
-  personForRole,
-  stepCounter,
-  stepHref,
-  type DemoPerson,
-  type StepInfo,
-} from "./steps";
+import { ProofLink, rand } from "./money-path";
+import { stepHref, type StepInfo } from "./steps";
 
 const POLLAR_ENABLED = Boolean(process.env.NEXT_PUBLIC_POLLAR_API_KEY);
 
 /** Unix seconds on the server's clock, ticking once a second. */
-function useServerClock(skew: number) {
+export function useServerClock(skew: number) {
   const [now, setNow] = useState(() => Math.floor(Date.now() / 1000) + skew);
   useEffect(() => {
     const tick = () => setNow(Math.floor(Date.now() / 1000) + skew);
@@ -51,20 +36,11 @@ function useServerClock(skew: number) {
   return now;
 }
 
-/** The small print every demo screen carries. */
-function DemoLabels({ window = false }: { window?: boolean }) {
-  return (
-    <p className="text-xs font-semibold tracking-[0.12em] text-muted uppercase">
-      Sandbox rand · Solana devnet · Demo people{window ? " · 60-second demo window" : ""}
-    </p>
-  );
-}
-
 // --------------------------------------------------------------- actions
 
 type Sent = { label: string; url: string } | null;
 
-function useAction() {
+export function useAction() {
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<{ message: string; program: string | null } | null>(
     null,
@@ -90,7 +66,7 @@ function useAction() {
   return { busy, error, sent, run, setError };
 }
 
-function ActionError({
+export function ActionError({
   error,
 }: {
   error: { message: string; program: string | null } | null;
@@ -106,7 +82,7 @@ function ActionError({
   );
 }
 
-function Sending({ label }: { label: string | null }) {
+export function Sending({ label }: { label: string | null }) {
   if (!label) return null;
   return (
     <p className="flex items-center gap-2 text-[0.95rem] font-medium" role="status">
@@ -116,7 +92,7 @@ function Sending({ label }: { label: string | null }) {
   );
 }
 
-function SentLine({ sent }: { sent: Sent }) {
+export function SentLine({ sent }: { sent: Sent }) {
   if (!sent) return null;
   return (
     <p className="flex flex-wrap items-center gap-x-2 text-[0.95rem]" role="status">
@@ -136,7 +112,7 @@ function SentLine({ sent }: { sent: Sent }) {
 
 // ------------------------------------------------------------------ steps
 
-function lastTx(escrow: PublicEscrow | null, step: EscrowTx["step"], index?: 0 | 1) {
+export function lastTx(escrow: PublicEscrow | null, step: EscrowTx["step"], index?: 0 | 1) {
   const txs = escrow?.transactions ?? [];
   for (let i = txs.length - 1; i >= 0; i--) {
     if (txs[i].step === step && (index === undefined || txs[i].index === index))
@@ -145,7 +121,7 @@ function lastTx(escrow: PublicEscrow | null, step: EscrowTx["step"], index?: 0 |
   return null;
 }
 
-function StepAction({
+export function StepAction({
   step,
   demo,
   now,
@@ -318,7 +294,7 @@ function StepAction({
         <ButtonLink
           size="lg"
           className="w-full sm:w-auto sm:self-start"
-          href={stepHref(step.id, id)}
+          href={stepHref(step.id)}
         >
           Open the checklist
           <Icon name="arrowRight" className="size-5" />
@@ -500,7 +476,7 @@ const LEVEL_TEXT: Record<PriceCheck["lines"][number]["level"], string> = {
   unavailable: "No shop price (labour)",
 };
 
-function ScopeStep({ demo }: { demo: GuidedDemo }) {
+export function ScopeStep({ demo }: { demo: GuidedDemo }) {
   const action = useAction();
   const [check, setCheck] = useState<PriceCheck | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -575,7 +551,7 @@ function ScopeStep({ demo }: { demo: GuidedDemo }) {
   );
 }
 
-function RestartButton({ primary = false }: { primary?: boolean }) {
+export function RestartButton({ primary = false }: { primary?: boolean }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   return (
@@ -604,316 +580,3 @@ function RestartButton({ primary = false }: { primary?: boolean }) {
   );
 }
 
-// ---------------------------------------------------------------- people
-
-export function PeopleList({
-  current,
-  active,
-}: {
-  current: DemoPerson | null;
-  active: DemoPerson | null;
-}) {
-  return (
-    <ol className="grid gap-x-6 gap-y-3 sm:grid-cols-2 lg:grid-cols-5">
-      {DEMO_PEOPLE.map((p) => (
-        <li
-          key={p}
-          className={`border-t-2 pt-2 ${p === active ? "border-brand" : "border-line"}`}
-          data-testid={`cast-${p}`}
-        >
-          <p className="text-xs font-semibold tracking-[0.08em] text-muted uppercase">
-            {DEMO_PERSON_LABEL[p]}
-            {p === current ? " · you now" : ""}
-          </p>
-          <p className="font-semibold">{CAST[p].name}</p>
-          <p className="text-sm text-muted">{CAST[p].role}</p>
-        </li>
-      ))}
-    </ol>
-  );
-}
-
-// ---------------------------------------------------------------- screen
-
-function Story({
-  demo,
-  children,
-  lead = true,
-}: {
-  demo: GuidedDemo | null;
-  children?: ReactNode;
-  /** True on the start screen, where the story is the page's heading. */
-  lead?: boolean;
-}) {
-  const Heading = lead ? "h1" : "h3";
-  return (
-    <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] lg:gap-10">
-      <Photo
-        name="category_sanitation"
-        priority
-        sizes="(min-width: 1024px) 40vw, 100vw"
-        className="overflow-hidden rounded-2xl"
-      />
-      <div className="flex flex-col gap-3">
-        <p className="text-sm font-semibold tracking-[0.08em] text-earth-strong uppercase">
-          {demo
-            ? `${demo.schoolName} · ${demo.reference}`
-            : "Thandolwethu Primary School, Emseni"}
-        </p>
-        <Heading
-          className={
-            lead
-              ? "font-display text-[2rem] leading-[1.1] font-semibold tracking-tight sm:text-5xl"
-              : "font-display text-2xl leading-tight font-semibold"
-          }
-        >
-          Two of four toilets leak. 380 learners share the two that work.
-        </Heading>
-        <p className="max-w-prose text-lg">
-          A plumber can fix it for {rand(500_000)}. Follow the money from the funder to
-          the people who did the work, and see that nobody could take it before it was
-          checked.
-        </p>
-        {children}
-      </div>
-    </div>
-  );
-}
-
-export function DemoScreen() {
-  const guided = useGuided();
-  const audience = useAudience();
-  const router = useRouter();
-  const skew = guided.status === "ready" ? guided.clockSkew : 0;
-  const now = useServerClock(skew);
-  const [starting, setStarting] = useState(false);
-  const [startError, setStartError] = useState<string | null>(null);
-  const [switching, setSwitching] = useState(false);
-  const [switchError, setSwitchError] = useState<string | null>(null);
-
-  const step = guided.status === "ready" ? guided.step : null;
-  // Waiting steps move on by themselves (the reviewer, the 60 seconds, the Watchdog).
-  useEffect(() => {
-    if (!step) return;
-    const waiting = ["release1", "release2", "review1", "review2", "chain_unreadable"];
-    if (!waiting.includes(step.id)) return;
-    const timer = setInterval(() => void refreshGuided(), 6000);
-    return () => clearInterval(timer);
-  }, [step]);
-
-  if (guided.status === "loading" || audience.status === "loading")
-    return <PageLoading />;
-  if (guided.status === "off") {
-    return (
-      <Container className="py-16">
-        <p className="text-lg">The guided demo is switched off on this server.</p>
-      </Container>
-    );
-  }
-  if (guided.status === "error") {
-    return (
-      <Container className="py-16">
-        <p className="text-lg">{guided.message}</p>
-      </Container>
-    );
-  }
-
-  const demo = guided.demo;
-  const current = personForRole(audience.role);
-  const amounts = demo?.template.amounts ?? [300_000, 200_000];
-
-  async function start() {
-    setStarting(true);
-    setStartError(null);
-    try {
-      await startGuided(false);
-    } catch (e) {
-      setStartError((e as Error).message);
-    } finally {
-      setStarting(false);
-    }
-  }
-
-  if (!demo || !step) {
-    return (
-      <Container className="flex flex-col gap-10 py-8 sm:py-12">
-        <Story demo={null}>
-          <DemoLabels />
-          <Button
-            size="lg"
-            className="w-full sm:w-auto sm:self-start"
-            loading={starting}
-            onClick={start}
-          >
-            Start the demo
-            <Icon name="arrowRight" className="size-5" />
-          </Button>
-          <p className="text-sm text-muted">
-            About 2 minutes. You play five demo people. The money is sandbox rand, the
-            transactions are real on Solana devnet.
-          </p>
-          {startError ? <p className="font-medium text-danger">{startError}</p> : null}
-        </Story>
-        <section className="flex flex-col gap-4" aria-labelledby="path-title">
-          <h2 id="path-title" className="font-display text-2xl font-semibold">
-            Where the money goes
-          </h2>
-          <MoneyPath
-            escrow={null}
-            amounts={amounts}
-            funderName={CAST.funder.name}
-            now={now}
-          />
-        </section>
-        <section className="flex flex-col gap-4" aria-labelledby="people-title">
-          <h2 id="people-title" className="font-display text-2xl font-semibold">
-            The people
-          </h2>
-          <PeopleList current={null} active={null} />
-        </section>
-      </Container>
-    );
-  }
-
-  const needed = step.person;
-  const wrongPerson = needed !== null && needed !== current;
-  const shared = demo.shared;
-
-  async function become(person: DemoPerson) {
-    setSwitching(true);
-    setSwitchError(null);
-    try {
-      await switchPerson(person);
-      const href = stepHref(step!.id, demo!.caseId);
-      if (href !== "/demo") router.push(href);
-    } catch (e) {
-      setSwitchError((e as Error).message);
-    } finally {
-      setSwitching(false);
-    }
-  }
-
-  return (
-    <Container className="flex flex-col gap-8 py-6 sm:py-10">
-      {guided.notice ? (
-        <p className="border-l-4 border-sun py-1 pl-4 font-medium" role="status">
-          {guided.notice}
-        </p>
-      ) : null}
-
-      <section
-        className="flex flex-col gap-5"
-        aria-labelledby="step-title"
-        data-testid="demo-step"
-        data-step={step.id}
-      >
-        <p className="text-sm font-semibold tracking-[0.08em] text-brand-strong uppercase">
-          {stepCounter(step)}
-          {needed ? ` · ${DEMO_PERSON_LABEL[needed]}` : ""}
-        </p>
-        <h1
-          id="step-title"
-          className="max-w-3xl font-display text-[2rem] leading-[1.1] font-semibold tracking-tight sm:text-5xl"
-        >
-          {step.title}
-        </h1>
-        <p className="max-w-2xl text-lg">{step.why}</p>
-
-        <div className="flex max-w-2xl flex-col gap-4">
-          {shared ? (
-            <p className="text-[0.95rem]">
-              You are watching a shared sample case, so the buttons are off. Its state
-              updates as other people use it.
-            </p>
-          ) : wrongPerson ? (
-            <>
-              <p className="text-[0.95rem]">
-                This step is done by{" "}
-                <span className="font-semibold">
-                  {CAST[needed].name}, {CAST[needed].role.split(",")[0].toLowerCase()}
-                </span>
-                .{" "}
-                <span className="text-xs font-semibold tracking-[0.12em] uppercase">
-                  Demo person
-                </span>
-              </p>
-              <Button
-                size="lg"
-                className="w-full sm:w-auto sm:self-start"
-                loading={switching}
-                onClick={() => become(needed)}
-              >
-                Continue as {CAST[needed].name}
-                <Icon name="arrowRight" className="size-5" />
-              </Button>
-              {switchError ? <p className="text-danger">{switchError}</p> : null}
-            </>
-          ) : (
-            <StepAction
-              key={`${step.id}:${demo.caseId}`}
-              step={step}
-              demo={demo}
-              now={now}
-            />
-          )}
-        </div>
-      </section>
-
-      <section
-        className="flex flex-col gap-4 border-t border-line pt-6"
-        aria-labelledby="path-title"
-      >
-        <div className="flex flex-wrap items-baseline justify-between gap-2">
-          <h2 id="path-title" className="font-display text-2xl font-semibold">
-            Where the money is
-          </h2>
-          <DemoLabels window={step.id === "release1" || step.id === "release2"} />
-        </div>
-        <MoneyPath
-          escrow={demo.escrow}
-          amounts={amounts}
-          funderName={CAST.funder.name}
-          now={now}
-        />
-      </section>
-
-      <section
-        className="flex flex-col gap-4 border-t border-line pt-6"
-        aria-labelledby="case-title"
-      >
-        <h2 id="case-title" className="sr-only">
-          The case
-        </h2>
-        <Story demo={demo} lead={false} />
-        <PeopleList current={current} active={needed} />
-      </section>
-
-      <details className="border-t border-line pt-4 text-sm text-muted">
-        <summary className="cursor-pointer font-medium text-ink">
-          Technical details
-        </summary>
-        <div className="mt-2 flex flex-col gap-1">
-          <p>
-            Escrow program on Solana devnet. Token: sandbox demo rand (BDZAR), no real
-            value. The demo people sign with keys held by the server.
-          </p>
-          {demo.escrow ? (
-            <p className="font-mono break-all">
-              Escrow {demo.escrow.escrow.address} · Program {demo.escrow.programId}
-            </p>
-          ) : null}
-          <p>
-            <a href={`/issues/${demo.caseId}`} className="underline">
-              The case page
-            </a>{" "}
-            ·{" "}
-            <a href={`/issues/${demo.caseId}/escrow`} className="underline">
-              The full escrow screen
-            </a>
-          </p>
-          <RestartButton />
-        </div>
-      </details>
-    </Container>
-  );
-}

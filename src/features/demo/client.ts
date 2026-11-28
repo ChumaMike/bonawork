@@ -8,7 +8,7 @@
  */
 import { useEffect, useSyncExternalStore } from "react";
 import { setSessionFromServer } from "@/data/session";
-import type { Session } from "@/data/types";
+import type { LearnerImpact, Session } from "@/data/types";
 import type { PublicEscrow, RepairBudget } from "@/features/escrow/api";
 import { detectStep, factsFrom, stepInfo, type DemoPerson, type StepInfo } from "./steps";
 
@@ -28,6 +28,7 @@ export type GuidedDemo = {
   location: string;
   schoolName: string;
   status: string;
+  impact?: LearnerImpact | null;
   budget: RepairBudget | null;
   escrow: PublicEscrow | null;
   escrowError: string | null;

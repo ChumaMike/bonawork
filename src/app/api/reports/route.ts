@@ -15,7 +15,29 @@ const Fields = z.object({
   description: z.string().trim().min(1, "Describe the problem.").max(5000),
   location: z.string().trim().max(200).default(""),
   anonymous: FormBoolean.default(false),
+  /** Optional JSON: how the problem affects the learners. */
+  impact: z.string().max(2000).optional(),
 });
+
+const Impact = z
+  .object({
+    learners: z.number().int().min(0).max(100_000).optional(),
+    since: z.string().trim().max(80).optional(),
+    instead: z.array(z.string().trim().max(80)).max(8).optional(),
+    danger: z.enum(["yes", "unhealthy", "no"]).optional(),
+  })
+  .strict();
+
+/** The impact answers, or null when none were given or they do not parse. */
+function parseImpact(text: string | undefined) {
+  if (!text) return null;
+  try {
+    const parsed = Impact.safeParse(JSON.parse(text));
+    return parsed.success && Object.keys(parsed.data).length > 0 ? parsed.data : null;
+  } catch {
+    return null;
+  }
+}
 
 /**
  * `POST /api/reports` — multipart: fields + `evidence` files (0..n). Returns a `SubmissionReceipt`.
@@ -37,6 +59,7 @@ export const POST = route(async (request) => {
     description: fields.description,
     location: fields.location,
     anonymous: fields.anonymous,
+    impact: parseImpact(fields.impact),
     uploads,
   });
   const bundle = await loadBundle(scope.ctx.db, report.id);

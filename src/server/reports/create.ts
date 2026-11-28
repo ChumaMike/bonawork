@@ -8,7 +8,7 @@ import {
   type ReportCategory,
   type ReportDocument,
 } from "@/shared";
-import type { ReportRow } from "../../../database/schema";
+import type { LearnerImpact, ReportRow } from "../../../database/schema";
 import { schema, type Db } from "../db";
 import type { EvidenceStore } from "../evidence/store";
 import type { CheckedUpload } from "../evidence/validate";
@@ -33,6 +33,8 @@ export interface CreateReportInput {
   description: string;
   location: string;
   anonymous: boolean;
+  /** Optional answers about the learners. Not part of the commitment. */
+  impact?: LearnerImpact | null;
   uploads: CheckedUpload[];
   /* Seeding only. */
   at?: IsoDateTime;
@@ -77,6 +79,7 @@ export async function createReport(
       title: document.title,
       description: document.description,
       location: input.location.trim(),
+      impact: input.impact ?? null,
       status: "submitted",
       endorsementCount: 0,
       hasInterimProtection: false,

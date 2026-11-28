@@ -210,6 +210,7 @@ export function createHttpApi(baseUrl = ""): BonaApi {
             description: input.description,
             location: input.location,
             anonymous: String(input.anonymous),
+            ...(input.impact ? { impact: JSON.stringify(input.impact) } : {}),
           },
           input.evidence,
         ),
