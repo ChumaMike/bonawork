@@ -26,7 +26,8 @@ const POLLAR_ENABLED = Boolean(process.env.NEXT_PUBLIC_POLLAR_API_KEY);
 
 /** Unix seconds on the server's clock, ticking once a second. */
 export function useServerClock(skew: number) {
-  const [now, setNow] = useState(() => Math.floor(Date.now() / 1000) + skew);
+  // 0 until mounted: a prerendered page must not read the clock.
+  const [now, setNow] = useState(0);
   useEffect(() => {
     const tick = () => setNow(Math.floor(Date.now() / 1000) + skew);
     tick();

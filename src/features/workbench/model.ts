@@ -157,7 +157,9 @@ export function guidedLine(demo: GuidedDemo, now: number): CaseLine {
     if (t.state === "Verified") {
       const left = Number(t.challengeUntil) - now;
       events.push(
-        left > 0
+        now <= 0
+          ? { text: "Waiting for the school", strong: true }
+          : left > 0
           ? { text: `Waiting ${clock(left)} for the school`, strong: true }
           : { text: "The wait is over. Anyone can release it.", strong: true },
       );

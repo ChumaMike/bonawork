@@ -34,10 +34,13 @@ export const PHOTO_NAMES = [
   "evidence_capture",
   "empty_state",
   /* Slots for photos still to come. Until a file exists, `photoOr` picks a stand-in. */
-  "before_after_toilets_after",
+  "toilets_before",
+  "toilets_after",
   "materials_on_site",
   "plumber_fixing",
+  "ceiling_before",
   "ceiling_after",
+  "tap_before",
   "tap_after",
 ] as const;
 
@@ -192,11 +195,29 @@ export const PHOTO_META: Record<PhotoName, PhotoMeta> = {
     ratio: 1,
     color: "#e9d9b8",
   },
-  before_after_toilets_after: {
+  toilets_before: {
+    alt: "The Thandolwethu toilet block before the repair: cracked cisterns and water on the floor.",
+    icon: "building",
+    ratio: LANDSCAPE,
+    color: "#7c8a7a",
+  },
+  toilets_after: {
     alt: "The repaired school toilet block, clean and dry, with all four toilets working.",
     icon: "building",
     ratio: LANDSCAPE,
     color: "#7c8a7a",
+  },
+  ceiling_before: {
+    alt: "A classroom ceiling in Room 7 with fallen and sagging boards.",
+    icon: "building",
+    ratio: LANDSCAPE,
+    color: "#9a8468",
+  },
+  tap_before: {
+    alt: "A school kitchen sink with a dry tap and empty pots beside it.",
+    icon: "drop",
+    ratio: LANDSCAPE,
+    color: "#5d7f8a",
   },
   materials_on_site: {
     alt: "New toilet cisterns, flush valves and a length of PVC pipe stacked inside the school gate.",

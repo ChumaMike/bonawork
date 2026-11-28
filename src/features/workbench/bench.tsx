@@ -194,12 +194,13 @@ export function CaseRail({
   return (
     <div className="flex flex-col gap-4 p-4 sm:p-6">
       <Photo
-        name="category_sanitation"
+        name="toilets_before"
         alt="The toilet block at Thandolwethu Primary"
         shape="free"
         sizes="(min-width: 1024px) 400px, 100vw"
         className="h-44 w-full rounded-xl"
       />
+      <p className="-mt-3 text-xs text-faint">Example photo for the demo</p>
       <div>
         <p className="text-[0.8rem] text-muted">
           {demo.schoolName} · {demo.reference}
@@ -277,7 +278,7 @@ export function CaseSummary({ demo, lit }: { demo: GuidedDemo; lit: [boolean, bo
   const funded = demo.escrow?.funded === true;
   return (
     <div className="-mx-4 -mt-5 flex items-center gap-3 border-b border-line bg-surface px-4 py-3.5 sm:-mx-8 sm:px-8">
-      <Photo name="category_sanitation" alt="" shape="free" sizes="64px" className="size-16 rounded-[10px]" />
+      <Photo name="toilets_before" alt="" shape="free" sizes="64px" className="size-16 rounded-[10px]" />
       <div className="flex min-w-0 flex-1 flex-col gap-1.5">
         <p className="font-semibold">Toilets, {demo.schoolName}</p>
         <SplitBar split={split} lit={lit} size="sm" />

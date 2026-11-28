@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { photoOr } from "@/components/media/manifest";
 import { Button, ButtonLink } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/field";
 import { CAST, SUPPLIER_NAME } from "@/features/demo/cast";
@@ -118,9 +117,9 @@ function SchoolObjection({ demo, index, left }: { demo: GuidedDemo; index: 0 | 1
         </div>
       </div>
       <div className="grid grid-cols-3 gap-2.5">
-        <ProofPhoto photo="category_sanitation" alt="The broken toilets, as reported" caption="As reported" />
+        <ProofPhoto photo="toilets_before" alt="The broken toilets, as reported" caption="As reported" example />
         <ProofPhoto
-          photo={first ? photoOr("materials_on_site", "evidence_capture") : photoOr("plumber_fixing", "evidence_capture")}
+          photo={first ? "materials_on_site" : "plumber_fixing"}
           alt={first ? "The materials on site" : "The plumber at work"}
           caption={first ? "Materials, by Themba" : "Work, by Themba"}
           example
@@ -167,9 +166,9 @@ function SchoolSaysDone({ demo }: { demo: GuidedDemo }) {
         claimed&rdquo; until Sipho checks.
       </TaskHeading>
       <div className="grid grid-cols-2 gap-2.5 sm:max-w-lg">
-        <ProofPhoto photo="category_sanitation" alt="The toilets before" caption="Before" />
+        <ProofPhoto photo="toilets_before" alt="The toilets before" caption="Before" example />
         <ProofPhoto
-          photo={photoOr("before_after_toilets_after", "reviewer_inspecting")}
+          photo="toilets_after"
           alt="The toilets after the repair"
           caption="After, by Themba"
           example
@@ -334,15 +333,15 @@ function Claim({ demo, index }: { demo: GuidedDemo; index: 0 | 1 }) {
       <div className="flex flex-col gap-2">
         <span className="font-semibold">{first ? "Photos of the materials on site" : "Photos of the finished work"}</span>
         <div className="grid grid-cols-3 gap-2.5">
-          <ProofPhoto photo="category_sanitation" alt="The toilet block" caption="The site" />
+          <ProofPhoto photo="toilets_before" alt="The toilet block" caption="The site" example />
           <ProofPhoto
-            photo={first ? photoOr("materials_on_site", "evidence_capture") : photoOr("plumber_fixing", "evidence_capture")}
+            photo={first ? "materials_on_site" : "plumber_fixing"}
             alt={first ? "The materials at the school" : "The cisterns being fitted"}
             caption={first ? "Cisterns, valves and pipe" : "Fitting the cisterns"}
             example
           />
           <ProofPhoto
-            photo={first ? "evidence_capture" : photoOr("before_after_toilets_after", "reviewer_inspecting")}
+            photo={first ? "evidence_capture" : "toilets_after"}
             alt={first ? "Photographing the delivery" : "The toilets working"}
             caption={first ? "The delivery" : "All four flush"}
             example
@@ -409,15 +408,15 @@ export function ReviewerTask({ demo, step }: { demo: GuidedDemo; step: StepInfo 
         {index === 0 ? SUPPLIER_NAME : CAST.contractor.name} after the school&apos;s 60 seconds.
       </TaskHeading>
       <div className="grid grid-cols-3 gap-2.5">
-        <ProofPhoto photo="category_sanitation" alt="The toilet block" caption="The site" />
+        <ProofPhoto photo="toilets_before" alt="The toilet block" caption="The site" example />
         <ProofPhoto
-          photo={index === 0 ? photoOr("materials_on_site", "evidence_capture") : photoOr("before_after_toilets_after", "reviewer_inspecting")}
+          photo={index === 0 ? "materials_on_site" : "toilets_after"}
           alt={index === 0 ? "Toilet cisterns on site" : "The repaired toilets"}
           caption={index === 0 ? "Cisterns and valves" : "After the repair"}
           example
         />
         <ProofPhoto
-          photo={index === 0 ? "evidence_capture" : photoOr("plumber_fixing", "evidence_capture")}
+          photo={index === 0 ? "evidence_capture" : "plumber_fixing"}
           alt={index === 0 ? "Pipe and fittings" : "The plumber at work"}
           caption={index === 0 ? "Pipe and fittings" : "Fitting"}
           example

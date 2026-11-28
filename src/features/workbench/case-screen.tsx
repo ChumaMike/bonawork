@@ -47,14 +47,17 @@ function CaseLayout({
             {title}
           </h1>
         </div>
-        <Photo
-          name={photo}
-          alt="The problem, as reported"
-          priority
-          shape="free"
-          sizes="(min-width: 640px) 260px, 100vw"
-          className="-mx-4 h-44 w-[calc(100%+2rem)] sm:mx-0 sm:h-[170px] sm:w-[260px] sm:rounded-[14px]"
-        />
+        <figure className="m-0 flex flex-col gap-1">
+          <Photo
+            name={photo}
+            alt="The problem, as reported"
+            priority
+            shape="free"
+            sizes="(min-width: 640px) 260px, 100vw"
+            className="-mx-4 h-44 w-[calc(100%+2rem)] sm:mx-0 sm:h-[170px] sm:w-[260px] sm:rounded-[14px]"
+          />
+          <figcaption className="text-xs text-faint">Example photo for the demo</figcaption>
+        </figure>
       </section>
       <section
         className="flex flex-wrap items-center gap-4 rounded-2xl bg-brand-soft px-5 py-4 sm:px-6"
@@ -98,7 +101,7 @@ export function DemoCaseScreen() {
       <CaseLayout
         school="Thandolwethu Primary, Emseni"
         title={DEMO_HEADLINE}
-        photo="category_sanitation"
+        photo="toilets_before"
         band={<StartBand />}
         line={{ ...guidedLine(EMPTY_DEMO, now) }}
         people={LIVE_PEOPLE}
@@ -109,7 +112,7 @@ export function DemoCaseScreen() {
     <CaseLayout
       school={`${demo.schoolName}, Emseni · ${demo.reference}`}
       title={DEMO_HEADLINE}
-      photo="category_sanitation"
+      photo="toilets_before"
       band={<LiveBand demo={demo} step={step} now={now} />}
       line={guidedLine(demo, now)}
       people={LIVE_PEOPLE}

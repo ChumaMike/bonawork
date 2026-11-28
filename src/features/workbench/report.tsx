@@ -303,8 +303,11 @@ function SchoolReport() {
         <span className="font-semibold">Photos</span>
         <div className="grid grid-cols-3 gap-2.5">
           <figure className="m-0 flex flex-col gap-1.5">
-            <Photo name="category_sanitation" alt="The broken toilets" shape="free" sizes="240px" className="h-32 w-full rounded-xl sm:h-36" />
-            <figcaption className="text-[0.8rem] text-muted">From the parent&apos;s report</figcaption>
+            <Photo name="toilets_before" alt="The broken toilets" shape="free" sizes="240px" className="h-32 w-full rounded-xl sm:h-36" />
+            <figcaption className="text-[0.8rem] text-muted">
+              From the parent&apos;s report
+              <span className="block text-faint">Example photo for the demo</span>
+            </figcaption>
           </figure>
         </div>
       </div>

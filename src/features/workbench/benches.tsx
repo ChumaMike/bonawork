@@ -1,7 +1,6 @@
 "use client";
 
 import { useMemo, useState, type ReactNode } from "react";
-import { photoOr } from "@/components/media/manifest";
 import { Photo } from "@/components/media/photo";
 import { ButtonLink } from "@/components/ui/button";
 import { cn } from "@/components/ui/cn";
@@ -106,7 +105,7 @@ function SchoolBenchView({ demo, step, now }: { demo: GuidedDemo; step: StepInfo
             <RailRow
               href="/school"
               selected
-              photo="category_sanitation"
+              photo="toilets_before"
               title="Two toilets leak"
               status={live}
             />
@@ -124,12 +123,12 @@ function SchoolBenchView({ demo, step, now }: { demo: GuidedDemo; step: StepInfo
               <h2 className="text-base font-semibold">Fixed here before</h2>
               <div className="grid grid-cols-2 gap-1.5">
                 <figure className="m-0 flex flex-col gap-1">
-                  <Photo name="category_buildings" alt="A broken classroom ceiling, before" shape="free" sizes="180px" className="h-24 w-full rounded-lg" />
+                  <Photo name="ceiling_before" alt="A broken classroom ceiling, before" shape="free" sizes="180px" className="h-24 w-full rounded-lg" />
                   <figcaption className="text-xs font-semibold text-danger">Before, 12 Oct</figcaption>
                 </figure>
                 <figure className="m-0 flex flex-col gap-1">
                   <Photo
-                    name={photoOr("ceiling_after", "reviewer_check")}
+                    name="ceiling_after"
                     alt="The classroom ceiling after the repair"
                     shape="free"
                     sizes="180px"
@@ -138,7 +137,7 @@ function SchoolBenchView({ demo, step, now }: { demo: GuidedDemo; step: StepInfo
                   <figcaption className="text-xs font-semibold text-st-verified">After, checked 3 Nov</figcaption>
                 </figure>
               </div>
-              <span className="text-xs text-faint">Example photos for the demo.</span>
+              <span className="text-xs text-faint">Example photo for the demo</span>
               <p className="pt-2 text-xs text-faint">{EXAMPLE_NOTE}</p>
             </div>
           </div>
@@ -237,7 +236,7 @@ function FunderBenchView({ demo, step, now }: { demo: GuidedDemo; step: StepInfo
                 key="live"
                 onClick={() => setChosen("live")}
                 selected={chosen === "live"}
-                photo="category_sanitation"
+                photo="toilets_before"
                 title="Two toilets leak"
                 sub={`${demo.schoolName}, ${demo.impact?.learners ?? 380} learners`}
                 tag={{ text: "Danger to health", tone: "danger" }}
@@ -291,7 +290,7 @@ function FunderBenchView({ demo, step, now }: { demo: GuidedDemo; step: StepInfo
           task={
             <>
               <Photo
-                name="category_sanitation"
+                name="toilets_before"
                 alt="The toilet block at Thandolwethu Primary"
                 shape="free"
                 sizes="(min-width: 1024px) 300px, 100vw"
